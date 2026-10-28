@@ -41,6 +41,25 @@ export const KART_STATUSES = {
 
 export type KartStatus = keyof typeof KART_STATUSES;
 
+export const MAINTENANCE_TYPES = {
+  revision: "Revisie",
+  service: "Onderhoud",
+  repair: "Reparatie",
+  inspection: "Inspectie",
+} as const;
+
+/** Engine components a maintenance job can cover; each keeps its own "hours since" counter. */
+export const ENGINE_COMPONENTS = {
+  piston: "Zuiger & veren",
+  big_end: "Big-end (drijfstanglager)",
+  crankshaft: "Krukas",
+  main_bearings: "Krukaslagers",
+  cylinder: "Cilinder",
+  reed_valve: "Membraan / inlaat",
+  clutch: "Koppeling",
+  gaskets: "Pakkingen & keerringen",
+} as const;
+
 export const EVENT_TYPES = {
   training: "Training",
   race: "Race",

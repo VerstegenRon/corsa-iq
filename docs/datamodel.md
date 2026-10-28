@@ -170,7 +170,10 @@ Revisies, onderhoud en reparaties.
 | type | text | `revision`, `service`, `repair`, `inspection` |
 | performed_by | text | eigen beheer of motorbouwer |
 | description | text | |
-| resets_usage | boolean | teller van draaiuren weer op 0 |
+| resets_usage | boolean | teller "sinds laatste revisie" weer op 0 |
+| components | text[] | behandelde motorcomponenten: `piston`, `big_end`, `crankshaft`, `main_bearings`, `cylinder`, `reed_valve`, `clutch`, `gaskets` |
+
+De **totale draaitijd** van een onderdeel loopt altijd door. Daarnaast zijn er twee soorten tellers: *sinds laatste revisie* (de laatste beurt met `resets_usage`) en *per component* (de laatste beurt waarin dat component voorkomt). Een nieuwe zuiger zet dus alleen de zuigerteller op nul.
 
 ---
 

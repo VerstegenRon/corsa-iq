@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
 import {
+  ENGINE_COMPONENTS,
   KART_STATUSES,
+  MAINTENANCE_TYPES,
   PART_CATEGORIES,
   PART_STATUSES,
   isPartCategory,
@@ -136,14 +138,32 @@ type PartValues = Extract<ReturnType<typeof readPart>, { values: unknown }>["val
  * A part's purchase is also a cost, booked on the season of the purchase year. Keeps that one
  * expense in line with the part: created, updated or removed together with the purchase price.
  */
-async function syncPurchaseExpense(supabase: Supabase, garageId: string, partId: string, part: PartValues) {
-  const { data: existing } = await supabase
-    .from("expenses")
+async function seasonIdForDate(supabase: Supabase, garageId: string, date: string) {
+  const { data: season } = await supabase
+    .from("seasons")
     .select("id")
-    .eq("part_id", partId)
+    .eq("garage_id", garageId)
+    .eq("year", Number(date.slice(0, 4)))
     .order("created_at")
     .limit(1)
     .maybeSingle();
+  return season?.id ?? null;
+}
+
+/** The expense booked for buying the part (maintenance costs link to their job instead). */
+function purchaseExpense(supabase: Supabase, partId: string) {
+  return supabase
+    .from("expenses")
+    .select("id")
+    .eq("part_id", partId)
+    .is("maintenance_record_id", null)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+}
+
+async function syncPurchaseExpense(supabase: Supabase, garageId: string, partId: string, part: PartValues) {
+  const { data: existing } = await purchaseExpense(supabase, partId);
 
   if (!part.purchase_price_cents) {
     if (existing) return supabase.from("expenses").delete().eq("id", existing.id);
@@ -151,16 +171,8 @@ async function syncPurchaseExpense(supabase: Supabase, garageId: string, partId:
   }
 
   const spentOn = part.purchased_on ?? todayInAmsterdam();
-  const { data: season } = await supabase
-    .from("seasons")
-    .select("id")
-    .eq("garage_id", garageId)
-    .eq("year", Number(spentOn.slice(0, 4)))
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
   const expense = {
-    season_id: season?.id ?? null,
+    season_id: await seasonIdForDate(supabase, garageId, spentOn),
     category: part.category === "tyre_set" ? "tyres" : "parts",
     spent_on: spentOn,
     amount_cents: part.purchase_price_cents,
@@ -231,13 +243,7 @@ export async function deletePart(partId: string): Promise<FormState> {
   }
 
   // The automatically booked purchase goes with it; other costs linked to the part stay.
-  const { data: purchase } = await supabase
-    .from("expenses")
-    .select("id")
-    .eq("part_id", partId)
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
+  const { data: purchase } = await purchaseExpense(supabase, partId);
 
   const { error } = await supabase.from("parts").delete().eq("id", partId).eq("garage_id", garage.id);
   if (error) return { error: `Verwijderen mislukt: ${error.message}` };
@@ -245,6 +251,66 @@ export async function deletePart(partId: string): Promise<FormState> {
 
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/parts");
+}
+
+export async function createMaintenance(partId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const performedOn = text(formData, "performed_on");
+  const type = text(formData, "type");
+  if (!performedOn) return { error: "Vul de datum in." };
+  if (!type || !(type in MAINTENANCE_TYPES)) return { error: "Kies het soort onderhoud." };
+
+  const components = formData.getAll("components").map(String);
+  if (components.some((c) => !(c in ENGINE_COMPONENTS))) return { error: "Onbekend component gekozen." };
+
+  const cost = optionalNumber(formData, "cost");
+  if (cost === undefined) return { error: "Vul een geldig bedrag in, of laat het veld leeg." };
+
+  const { supabase, garage } = await getCurrentGarage();
+  const { data: part } = await supabase.from("parts").select("category").eq("id", partId).eq("garage_id", garage.id).maybeSingle();
+  if (!part) return { error: "Dit onderdeel bestaat niet meer." };
+
+  const { data: record, error } = await supabase
+    .from("maintenance_records")
+    .insert({
+      garage_id: garage.id,
+      part_id: partId,
+      performed_on: performedOn,
+      type,
+      performed_by: text(formData, "performed_by"),
+      description: text(formData, "description"),
+      resets_usage: formData.get("resets_usage") === "on",
+      components,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+
+  if (cost) {
+    const { error: expenseError } = await supabase.from("expenses").insert({
+      garage_id: garage.id,
+      season_id: await seasonIdForDate(supabase, garage.id, performedOn),
+      maintenance_record_id: record.id,
+      category: part.category === "engine" ? "engine_revision" : "parts",
+      spent_on: performedOn,
+      amount_cents: Math.round(cost * 100),
+      description: [labelFor(MAINTENANCE_TYPES, type), labelFor(PART_CATEGORIES, part.category).toLowerCase()].join(" "),
+    });
+    if (expenseError) return { error: `Onderhoud opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  return { success: "Onderhoud vastgelegd." };
+}
+
+/** Removes the job and its cost; the counters then count from the previous job again. */
+export async function deleteMaintenance(recordId: string): Promise<FormState> {
+  const { supabase, garage } = await getCurrentGarage();
+  await supabase.from("expenses").delete().eq("maintenance_record_id", recordId).eq("garage_id", garage.id);
+  const { error } = await supabase.from("maintenance_records").delete().eq("id", recordId).eq("garage_id", garage.id);
+  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+
+  revalidatePath("/dashboard", "layout");
+  return {};
 }
 
 export async function installPart(kartId: string, _prev: FormState, formData: FormData): Promise<FormState> {
