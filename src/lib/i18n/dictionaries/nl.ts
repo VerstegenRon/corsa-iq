@@ -33,6 +33,11 @@ export const nl = {
     costs: "Kosten",
     parts: "Onderdelen",
     seasons: "Seizoen",
+    groupRacing: "Racen",
+    groupEquipment: "Materiaal",
+    groupFinance: "Financiën",
+    openMenu: "Menu openen",
+    closeMenu: "Menu sluiten",
   },
   login: {
     metaTitle: "Inloggen — CorsaIQ",

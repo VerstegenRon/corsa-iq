@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AddSection } from "@/components/edit-section";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -96,15 +97,15 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         </nav>
       </section>
 
-      <section aria-label="Samenvatting" className="grid gap-4 sm:grid-cols-3">
+      <section aria-label="Samenvatting" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Uitgegeven</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">{formatCents(total)}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatCents(total)}</p>
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">{budget !== null && total > budget ? "Over budget" : "Budget over"}</p>
           <p
-            className={`mt-2 text-3xl font-semibold tabular-nums ${budget !== null && total > budget ? "text-red-300" : ""}`}
+            className={`mt-2 text-2xl font-semibold tabular-nums sm:text-3xl ${budget !== null && total > budget ? "text-red-300" : ""}`}
           >
             {budget === null ? "—" : formatCents(Math.abs(budget - total))}
           </p>
@@ -127,7 +128,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Uitgaven</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">{expenses.length}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{expenses.length}</p>
         </div>
       </section>
 
@@ -184,10 +185,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         <ExpenseList expenses={expenses} />
       </section>
 
-      <section aria-labelledby="add-expense-heading" className={cardClass}>
-        <h2 id="add-expense-heading" className="mb-6 text-lg font-semibold">
-          Uitgave toevoegen
-        </h2>
+      <AddSection title="Uitgave toevoegen" defaultOpen={expenses.length === 0}>
         <ExpenseForm
           key={filter}
           garageId={garage.id}
@@ -196,7 +194,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
           seasons={seasons.map((s) => ({ id: s.id, label: s.name }))}
           events={(eventsResult.data ?? []).map((e) => ({ id: e.id, label: e.name }))}
         />
-      </section>
+      </AddSection>
     </>
   );
 }

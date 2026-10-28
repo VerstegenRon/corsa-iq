@@ -33,8 +33,8 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
   const [trackId, setTrackId] = useState(event?.track_id ?? (tracks.length > 0 ? "" : "new"));
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <label className={labelClass}>
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
+      <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Naam *
         <input name="name" required defaultValue={event?.name} placeholder="Ronde 1 – Genk" className={inputClass} />
       </label>
@@ -48,7 +48,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
           ))}
         </select>
       </label>
-      <label className={labelClass}>
+      <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Seizoen
         <select
           name="season_id"
@@ -71,7 +71,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
         Einddatum
         <input name="ends_on" type="date" defaultValue={event?.ends_on ?? ""} className={inputClass} />
       </label>
-      <label className={labelClass}>
+      <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Circuit *
         <select
           name="track_id"
@@ -96,7 +96,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
 
       {trackId === "new" && (
         <>
-          <label className={labelClass}>
+          <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Naam circuit *
             <input name="new_track_name" required placeholder="Kartbaan De Polder" className={inputClass} />
           </label>
@@ -111,7 +111,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
         </>
       )}
 
-      <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-3">
+      <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : event ? "Wijzigingen opslaan" : "Evenement toevoegen"}

@@ -19,3 +19,23 @@ export function EditSection({ title = "Bewerken", children, danger }: { title?: 
     </details>
   );
 }
+
+/**
+ * Collapsed "… toevoegen" card, so a list page starts with the list instead of a long form. It starts
+ * open when there is nothing in the list yet (`defaultOpen`), where adding is the next step.
+ */
+export function AddSection({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details open={defaultOpen || undefined} className={`${cardClass} group`}>
+      <summary className="cursor-pointer list-none text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-2">
+          <span aria-hidden="true" className="inline-flex size-6 items-center justify-center rounded-full bg-cyan-400/15 text-base text-cyan-300 transition-transform group-open:rotate-45">
+            +
+          </span>
+          {title}
+        </span>
+      </summary>
+      <div className="mt-6">{children}</div>
+    </details>
+  );
+}

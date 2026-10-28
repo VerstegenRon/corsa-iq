@@ -33,7 +33,7 @@ export function PartForm({ part }: { part?: PartValues }) {
   );
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
       <label className={labelClass}>
         Categorie *
         <select name="category" required defaultValue={part?.category ?? ""} className={inputClass}>
@@ -104,12 +104,12 @@ export function PartForm({ part }: { part?: PartValues }) {
           )}
         </label>
       )}
-      <label className={`${labelClass} sm:col-span-2`}>
+      <label className={`${labelClass} col-span-2`}>
         Notities
         <input name="notes" defaultValue={part?.notes ?? ""} className={inputClass} />
       </label>
 
-      <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-3">
+      <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : part ? "Wijzigingen opslaan" : "Onderdeel toevoegen"}

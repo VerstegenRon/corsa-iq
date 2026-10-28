@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { inputClass } from "@/components/ui";
+import { inputClass, labelClass } from "@/components/ui";
 
 export type TrackRow = {
   id: string;
@@ -15,35 +15,60 @@ export type TrackRow = {
   events: number;
 };
 
-/** Tracks grouped per country (A–Z), with a search over name, town and country. */
+/**
+ * Tracks grouped per country (A–Z), with a country picker and a search over name, town and country.
+ * On phones the full list is long, so it only shows once a country is picked or something is searched;
+ * wider screens show every country until one is picked.
+ */
 export function TrackList({ tracks }: { tracks: TrackRow[] }) {
   const [query, setQuery] = useState("");
+  const [country, setCountry] = useState("");
   const q = query.trim().toLowerCase();
-  const visible = q
-    ? tracks.filter((t) => [t.name, t.city, t.country, t.countryName].some((v) => v?.toLowerCase().includes(q)))
-    : tracks;
+  const visible = tracks.filter(
+    (t) =>
+      (!country || t.countryName === country) &&
+      (!q || [t.name, t.city, t.country, t.countryName].some((v) => v?.toLowerCase().includes(q))),
+  );
+  const countries = new Map<string, number>();
+  for (const track of tracks) countries.set(track.countryName, (countries.get(track.countryName) ?? 0) + 1);
+  const narrowed = Boolean(country || q);
 
   const groups = new Map<string, TrackRow[]>();
   for (const track of visible) groups.set(track.countryName, [...(groups.get(track.countryName) ?? []), track]);
 
   return (
     <div className="flex flex-col gap-6">
-      <label className="flex flex-col gap-2 text-sm text-zinc-300 sm:max-w-sm">
-        Zoeken
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Naam, plaats of land"
-          className={inputClass}
-        />
-      </label>
+      <div className="grid gap-3 sm:max-w-2xl sm:grid-cols-2">
+        <label className={labelClass}>
+          Land
+          <select value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass}>
+            <option value="">Alle landen ({tracks.length})</option>
+            {[...countries.entries()].map(([name, count]) => (
+              <option key={name} value={name}>
+                {name} ({count})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={labelClass}>
+          Zoeken
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Naam, plaats of land"
+            className={inputClass}
+          />
+        </label>
+      </div>
+
+      {!narrowed && <p className="text-sm text-zinc-400 sm:hidden">Kies een land, of zoek op naam of plaats.</p>}
 
       {visible.length === 0 && <p className="text-sm text-zinc-400">Geen circuit gevonden. Voeg het hieronder zelf toe.</p>}
 
-      {[...groups.entries()].map(([country, rows]) => (
-        <section key={country} aria-label={country}>
-          <h3 className="text-xs tracking-wide text-zinc-500 uppercase">{country}</h3>
+      {[...groups.entries()].map(([name, rows]) => (
+        <section key={name} aria-label={name} className={narrowed ? undefined : "hidden sm:block"}>
+          <h3 className="text-xs tracking-wide text-zinc-500 uppercase">{name}</h3>
           <ul className="mt-2 divide-y divide-zinc-800/80">
             {rows.map((track) => (
               <li key={track.id}>

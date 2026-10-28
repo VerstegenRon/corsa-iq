@@ -26,7 +26,7 @@ export function DriverForm({ driver }: { driver?: DriverValues }) {
   );
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-4">
       <label className={labelClass}>
         Voornaam *
         <input name="first_name" required defaultValue={driver?.first_name} placeholder="Sam" className={inputClass} />
@@ -53,7 +53,7 @@ export function DriverForm({ driver }: { driver?: DriverValues }) {
         Licentienummer
         <input name="licence_number" defaultValue={driver?.licence_number ?? ""} className={inputClass} />
       </label>
-      <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-4">
+      <div className="flex flex-col gap-4 col-span-2 lg:col-span-4">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : driver ? "Wijzigingen opslaan" : "Coureur toevoegen"}

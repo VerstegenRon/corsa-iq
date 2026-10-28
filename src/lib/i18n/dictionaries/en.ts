@@ -18,6 +18,11 @@ export const en: Dictionary = {
     costs: "Costs",
     parts: "Parts",
     seasons: "Season",
+    groupRacing: "Racing",
+    groupEquipment: "Equipment",
+    groupFinance: "Finance",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
   },
   login: {
     metaTitle: "Sign in — CorsaIQ",

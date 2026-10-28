@@ -28,7 +28,7 @@ export function LimitsForm({
   const components = componentSet === "engine" ? t.options.engineComponents : t.options.chassisComponents;
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-4">
       {sortedEntries(components).map(([key, label]) => (
         <label key={key} className={labelClass}>
           {label}
@@ -41,7 +41,7 @@ export function LimitsForm({
           />
         </label>
       ))}
-      <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-4">
+      <div className="flex flex-col gap-4 col-span-2 lg:col-span-4">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : "Grenzen opslaan"}

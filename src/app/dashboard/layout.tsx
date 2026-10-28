@@ -1,23 +1,21 @@
 import { getDictionary } from "@/lib/i18n/server";
 
 import { signOut } from "../login/actions";
-import { DashboardNav, HomeLink, SettingsLink } from "./nav";
+import { DashboardNav, HomeLink, MobileMenu, SettingsLink } from "./nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const t = await getDictionary();
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-950 text-zinc-50">
-      <header className="border-b border-zinc-900">
-        {/* On phones the nav gets its own row under the logo and sign-out button; it wraps when needed. */}
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
-          <div className="order-1">
-            <HomeLink />
-          </div>
-          <div className="order-3 w-full min-w-0 sm:order-2 sm:w-auto sm:flex-1">
+      <header className="relative border-b border-zinc-900">
+        {/* From lg the grouped nav sits in the header row; below that it lives in the menu panel. */}
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-4">
+          <HomeLink />
+          <div className="hidden min-w-0 flex-1 lg:block">
             <DashboardNav />
           </div>
-          <div className="order-2 ml-auto flex items-center gap-2 sm:order-3">
+          <div className="ml-auto hidden items-center gap-2 lg:flex">
             <SettingsLink />
             <form action={signOut}>
               <button
@@ -27,6 +25,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
                 {t.common.signOut}
               </button>
             </form>
+          </div>
+          <div className="ml-auto lg:hidden">
+            <MobileMenu signOut={signOut} />
           </div>
         </div>
       </header>

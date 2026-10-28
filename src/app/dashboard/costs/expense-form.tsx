@@ -50,7 +50,7 @@ export function ExpenseForm({
   }, initialState);
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
       <label className={labelClass}>
         Categorie *
         <select name="category" required defaultValue="entry_fee" className={inputClass}>
@@ -74,7 +74,7 @@ export function ExpenseForm({
         <input type="hidden" name="event_id" value={eventId} />
       ) : (
         <>
-          <label className={labelClass}>
+          <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Seizoen
             <select name="season_id" defaultValue={defaultSeasonId ?? ""} className={inputClass}>
               <option value="">Geen seizoen</option>
@@ -85,7 +85,7 @@ export function ExpenseForm({
               ))}
             </select>
           </label>
-          <label className={labelClass}>
+          <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Evenement
             <select name="event_id" defaultValue="" className={inputClass}>
               <option value="">Geen evenement</option>
@@ -99,11 +99,11 @@ export function ExpenseForm({
         </>
       )}
 
-      <label className={`${labelClass} sm:col-span-2 lg:col-span-1`}>
+      <label className={`${labelClass} col-span-2 lg:col-span-1`}>
         Omschrijving
         <input name="description" placeholder="Inschrijving NK ronde 1" className={inputClass} />
       </label>
-      <label className={`${labelClass} sm:col-span-2`}>
+      <label className={`${labelClass} col-span-2`}>
         Bonnetje (foto of pdf)
         <input
           name="receipt"
@@ -113,7 +113,7 @@ export function ExpenseForm({
         />
       </label>
 
-      <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-3">
+      <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : "Uitgave toevoegen"}

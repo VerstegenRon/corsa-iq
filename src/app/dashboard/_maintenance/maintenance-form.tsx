@@ -45,7 +45,7 @@ export function MaintenanceForm({
   const components = componentSet === "engine" ? t.options.engineComponents : componentSet === "chassis" ? t.options.chassisComponents : null;
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
       <label className={labelClass}>
         Datum *
         <input name="performed_on" type="date" required defaultValue={today} className={inputClass} />
@@ -66,7 +66,7 @@ export function MaintenanceForm({
       </label>
 
       {components && (
-        <fieldset className="sm:col-span-2 lg:col-span-3">
+        <fieldset className="col-span-2 lg:col-span-3">
           <legend className="text-sm text-zinc-300">Vervangen of gereviseerd</legend>
           <p className="mt-1 text-xs text-zinc-500">{text.componentsHelp}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -80,7 +80,7 @@ export function MaintenanceForm({
         </fieldset>
       )}
 
-      <label className="flex items-start gap-2 text-sm text-zinc-300 sm:col-span-2 lg:col-span-3">
+      <label className="flex items-start gap-2 text-sm text-zinc-300 col-span-2 lg:col-span-3">
         {/* Keyed on the type, so switching to "Revisie" checks it again and other types start unchecked. */}
         <input
           key={type}
@@ -95,7 +95,7 @@ export function MaintenanceForm({
         </span>
       </label>
 
-      <label className={`${labelClass} sm:col-span-2`}>
+      <label className={`${labelClass} col-span-2`}>
         Omschrijving
         <input name="description" placeholder={text.descriptionPlaceholder} className={inputClass} />
       </label>
@@ -104,7 +104,7 @@ export function MaintenanceForm({
         <input name="cost" inputMode="decimal" placeholder="350" className={inputClass} />
       </label>
 
-      <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-3">
+      <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : "Onderhoud vastleggen"}

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
-import { EditSection } from "@/components/edit-section";
+import { AddSection, EditSection } from "@/components/edit-section";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -94,22 +94,22 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </p>
       </section>
 
-      <section aria-label="Samenvatting" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Samenvatting" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Sessies</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">{event.sessions.length}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{event.sessions.length}</p>
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Snelste ronde</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">{formatLapTime(bestLap)}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatLapTime(bestLap)}</p>
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Rijtijd</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">{formatMinutes(totalMinutes)}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatMinutes(totalMinutes)}</p>
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Kosten</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">{formatCents(totalCents)}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatCents(totalCents)}</p>
         </div>
       </section>
 
@@ -160,10 +160,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </section>
       )}
 
-      <section aria-labelledby="add-session-heading" className={cardClass}>
-        <h2 id="add-session-heading" className="mb-6 text-lg font-semibold">
-          Sessie toevoegen
-        </h2>
+      <AddSection title="Sessie toevoegen" defaultOpen={event.sessions.length === 0}>
         {karts.length === 0 ? (
           <p className="text-sm text-zinc-400">
             Voeg eerst een kart toe.{" "}
@@ -180,7 +177,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
             lastSetup={(lastSetupResult.data?.values as SetupValues | undefined) ?? null}
           />
         )}
-      </section>
+      </AddSection>
 
       <section aria-labelledby="costs-heading" className={cardClass}>
         <h2 id="costs-heading" className="text-lg font-semibold">

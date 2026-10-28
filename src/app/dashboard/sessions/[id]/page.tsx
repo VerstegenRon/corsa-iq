@@ -124,11 +124,11 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
         {session.driver_feedback && <p className="mt-3 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>}
       </section>
 
-      <section aria-label="Analyse" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Analyse" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className={cardClass}>
             <p className="text-sm text-zinc-400">{stat.label}</p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums">{stat.value}</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{stat.value}</p>
             {stat.note && <p className="mt-1 text-xs text-zinc-500">{stat.note}</p>}
           </div>
         ))}
