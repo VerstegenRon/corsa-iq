@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
+import { getDictionary } from "@/lib/i18n/server";
 import {
   ENGINE_COMPONENTS,
   KART_STATUSES,
   MAINTENANCE_TYPES,
-  PART_CATEGORIES,
   PART_STATUSES,
   isPartCategory,
   labelFor,
@@ -170,13 +170,14 @@ async function syncPurchaseExpense(supabase: Supabase, garageId: string, partId:
     return { error: null };
   }
 
+  const t = await getDictionary();
   const spentOn = part.purchased_on ?? todayInAmsterdam();
   const expense = {
     season_id: await seasonIdForDate(supabase, garageId, spentOn),
     category: part.category === "tyre_set" ? "tyres" : "parts",
     spent_on: spentOn,
     amount_cents: part.purchase_price_cents,
-    description: [labelFor(PART_CATEGORIES, part.category), part.brand, part.model].filter(Boolean).join(" "),
+    description: [labelFor(t.options.partCategories, part.category), part.brand, part.model].filter(Boolean).join(" "),
   };
 
   if (existing) return supabase.from("expenses").update(expense).eq("id", existing.id);
@@ -266,6 +267,7 @@ export async function createMaintenance(partId: string, _prev: FormState, formDa
   if (cost === undefined) return { error: "Vul een geldig bedrag in, of laat het veld leeg." };
 
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
   const { data: part } = await supabase.from("parts").select("category").eq("id", partId).eq("garage_id", garage.id).maybeSingle();
   if (!part) return { error: "Dit onderdeel bestaat niet meer." };
 
@@ -293,7 +295,7 @@ export async function createMaintenance(partId: string, _prev: FormState, formDa
       category: part.category === "engine" ? "engine_revision" : "parts",
       spent_on: performedOn,
       amount_cents: Math.round(cost * 100),
-      description: [labelFor(MAINTENANCE_TYPES, type), labelFor(PART_CATEGORIES, part.category).toLowerCase()].join(" "),
+      description: [labelFor(t.options.maintenanceTypes, type), labelFor(t.options.partCategories, part.category).toLowerCase()].join(" "),
     });
     if (expenseError) return { error: `Onderhoud opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
   }

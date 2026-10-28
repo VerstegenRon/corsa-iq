@@ -3,7 +3,9 @@ import Link from "next/link";
 
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { EVENT_TYPES, formatCents, formatDate, labelFor, ownOrOfficial, trackLabel } from "@/lib/karting";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { getDictionary } from "@/lib/i18n/server";
+import { formatCents, formatDate, labelFor, ownOrOfficial, trackLabel } from "@/lib/karting";
 
 import { EventForm } from "./event-form";
 import { SeasonForm } from "./season-form";
@@ -23,7 +25,7 @@ type EventRow = {
   sessions: { id: string }[];
 };
 
-function EventList({ events }: { events: EventRow[] }) {
+function EventList({ events, t }: { events: EventRow[]; t: Dictionary }) {
   if (events.length === 0) return <p className="mt-3 text-sm text-zinc-500">Nog geen evenementen.</p>;
   return (
     <ul className="mt-4 divide-y divide-zinc-800/80">
@@ -36,7 +38,7 @@ function EventList({ events }: { events: EventRow[] }) {
             <span>
               <span className="block text-sm font-medium text-zinc-100">{event.name}</span>
               <span className="block text-xs text-zinc-500">
-                {labelFor(EVENT_TYPES, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"}
+                {labelFor(t.options.eventTypes, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"}
               </span>
             </span>
             <span className="text-right text-xs text-zinc-400">
@@ -55,6 +57,7 @@ function EventList({ events }: { events: EventRow[] }) {
 
 export default async function SeasonsPage() {
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [seasonsResult, eventsResult, tracksResult] = await Promise.all([
     supabase
@@ -110,7 +113,7 @@ export default async function SeasonsPage() {
             {formatCents(season.expenses.reduce((sum, e) => sum + e.amount_cents, 0))} uitgegeven
             {season.budget_cents !== null && ` van ${formatCents(season.budget_cents)} budget`}
           </Link>
-          <EventList events={events.filter((event) => event.season_id === season.id)} />
+          <EventList events={events.filter((event) => event.season_id === season.id)} t={t} />
         </section>
       ))}
 
@@ -119,7 +122,7 @@ export default async function SeasonsPage() {
           <h2 id="loose-heading" className="text-lg font-semibold">
             Buiten seizoen
           </h2>
-          <EventList events={looseEvents} />
+          <EventList events={looseEvents} t={t} />
         </section>
       )}
 

@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { EXPENSE_CATEGORIES, formatCents, labelFor, todayInAmsterdam } from "@/lib/karting";
+import { getDictionary } from "@/lib/i18n/server";
+import { formatCents, labelFor, todayInAmsterdam } from "@/lib/karting";
 
 import { ExpenseForm } from "./expense-form";
 import { ExpenseList } from "./expense-list";
@@ -21,6 +22,7 @@ function sumBy<T>(rows: T[], key: (row: T) => string, amount: (row: T) => number
 export default async function CostsPage({ searchParams }: PageProps<"/dashboard/costs">) {
   const { season: seasonParam } = await searchParams;
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [seasonsResult, eventsResult] = await Promise.all([
     supabase
@@ -139,7 +141,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               {byCategory.map(([category, cents]) => (
                 <li key={category}>
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-300">{labelFor(EXPENSE_CATEGORIES, category)}</span>
+                    <span className="text-zinc-300">{labelFor(t.options.expenseCategories, category)}</span>
                     <span className="tabular-nums">{formatCents(cents)}</span>
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-800">

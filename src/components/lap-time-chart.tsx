@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
 import { formatLapTime } from "@/lib/karting";
 
 // One series of lap times as a line: the fastest point is the accent and is labelled,
@@ -44,6 +46,7 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
   const [width, setWidth] = useState(640);
   const [active, setActive] = useState<number | null>(null);
   const titleId = useId();
+  const t = useT();
 
   useEffect(() => {
     const element = containerRef.current;
@@ -106,7 +109,7 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
   return (
     <figure ref={containerRef} className="relative min-w-0 overflow-hidden">
       <figcaption id={titleId} className="sr-only">
-        {label}. Snelste {formatLapTime(bestMs)} ({points[bestIndex].title}). De tabel eronder bevat alle waarden.
+        {format(t.chart.summary, { label, time: formatLapTime(bestMs), title: points[bestIndex].title })}
       </figcaption>
       <svg
         role="img"

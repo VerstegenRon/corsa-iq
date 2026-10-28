@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { LapTimeChart } from "@/components/lap-time-chart";
 import { cardClass, linkClass } from "@/components/ui";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format, plural } from "@/lib/i18n/locales";
 import { formatDate, formatLapTime, trackLabel } from "@/lib/karting";
 import { formatDelta } from "@/lib/lap-analysis";
 
@@ -50,7 +52,7 @@ const shortDate = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "sho
  * Small multiples: one chart per track. Lap times on different tracks are not comparable,
  * so each track gets its own scale rather than sharing one axis.
  */
-export function TrackProgress({ sessions }: { sessions: ProgressSession[] }) {
+export function TrackProgress({ sessions, t }: { sessions: ProgressSession[]; t: Dictionary }) {
   const tracks = groupByTrack(sessions);
   if (tracks.length === 0) return null;
 
@@ -58,9 +60,9 @@ export function TrackProgress({ sessions }: { sessions: ProgressSession[] }) {
     <section aria-labelledby="progress-heading" className="flex flex-col gap-4">
       <div>
         <h2 id="progress-heading" className="text-lg font-semibold">
-          Progressie per circuit
+          {t.progress.title}
         </h2>
-        <p className="mt-1 text-sm text-zinc-400">Je snelste ronde per evenement · lager is sneller</p>
+        <p className="mt-1 text-sm text-zinc-400">{t.progress.subtitle}</p>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         {tracks.map((track) => {
@@ -74,7 +76,7 @@ export function TrackProgress({ sessions }: { sessions: ProgressSession[] }) {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="font-semibold">{track.name}</h3>
                 <p className="text-xs text-zinc-500">
-                  {track.events.length} {track.events.length === 1 ? "evenement" : "evenementen"} · snelste{" "}
+                  {plural(track.events.length, t.progress.events)} · {t.progress.fastest}{" "}
                   <span className="text-zinc-300 tabular-nums">{formatLapTime(best)}</span>
                 </p>
               </div>
@@ -82,12 +84,12 @@ export function TrackProgress({ sessions }: { sessions: ProgressSession[] }) {
               {track.events.length >= 2 ? (
                 <>
                   <p className="mt-1 text-xs text-zinc-500">
-                    {change < 0 ? "Sneller" : change > 0 ? "Trager" : "Gelijk"} sinds {formatDate(first.startsOn)}:{" "}
+                    {format(change < 0 ? t.progress.faster : change > 0 ? t.progress.slower : t.progress.equal, { date: formatDate(first.startsOn) })}{" "}
                     <span className="text-zinc-300 tabular-nums">{formatDelta(change)} s</span>
                   </p>
                   <div className="mt-4">
                     <LapTimeChart
-                      label={`Snelste ronde per evenement op ${track.name}`}
+                      label={format(t.progress.chartLabel, { track: track.name })}
                       points={track.events.map((event) => ({
                         key: event.id,
                         xLabel: shortDate.format(new Date(event.startsOn)),
@@ -95,19 +97,19 @@ export function TrackProgress({ sessions }: { sessions: ProgressSession[] }) {
                         // Spaced by date, so a long break between events looks like one.
                         position: (Date.parse(event.startsOn) - Date.parse(first.startsOn)) / 86_400_000,
                         title: `${event.name} · ${formatDate(event.startsOn)}`,
-                        detail: event.ms === best ? "snelste op dit circuit" : `${formatDelta(event.ms - best)} t.o.v. snelste`,
+                        detail: event.ms === best ? t.progress.fastestHere : format(t.progress.vsFastest, { delta: formatDelta(event.ms - best) }),
                       }))}
                     />
                   </div>
                 </>
               ) : (
                 <p className="mt-3 text-sm text-zinc-400">
-                  Na een tweede evenement op dit circuit zie je hier je progressie.
+                  {t.progress.needSecond}
                 </p>
               )}
 
               <details className="mt-3 text-sm">
-                <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-300">Als tabel</summary>
+                <summary className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-300">{t.progress.asTable}</summary>
                 <table className="mt-2 w-full text-left text-xs tabular-nums">
                   <tbody className="divide-y divide-zinc-800/80">
                     {track.events.map((event) => (

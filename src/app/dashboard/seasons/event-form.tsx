@@ -3,8 +3,9 @@
 import { useActionState, useState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { EVENT_TYPES, sortByLabel, sortedEntries } from "@/lib/karting";
+import { sortByLabel, sortedEntries } from "@/lib/karting";
 
 import { createEvent, updateEvent } from "../season-actions";
 
@@ -24,6 +25,7 @@ export type EventValues = {
 
 /** Adds an event, or edits one when `event` is given. */
 export function EventForm({ seasons, tracks, event }: { seasons: Option[]; tracks: Option[]; event?: EventValues }) {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(
     event ? updateEvent.bind(null, event.id) : createEvent,
     initialState,
@@ -39,7 +41,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
       <label className={labelClass}>
         Soort *
         <select name="type" required defaultValue={event?.type ?? "race"} className={inputClass}>
-          {sortedEntries(EVENT_TYPES).map(([value, label]) => (
+          {sortedEntries(t.options.eventTypes).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>

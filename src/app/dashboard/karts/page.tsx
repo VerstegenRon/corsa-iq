@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { KART_STATUSES, labelFor } from "@/lib/karting";
+import { getDictionary } from "@/lib/i18n/server";
+import { labelFor } from "@/lib/karting";
 
 import { KartForm } from "./kart-form";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function KartsPage() {
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const { data: karts, error } = await supabase
     .from("karts")
@@ -40,7 +42,7 @@ export default async function KartsPage() {
                 className={`${cardClass} transition-colors hover:border-cyan-400/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400`}
               >
                 <p className="text-xs font-medium tracking-wide text-cyan-200 uppercase">
-                  {labelFor(KART_STATUSES, kart.status)}
+                  {labelFor(t.options.kartStatuses, kart.status)}
                   {kart.class && ` · ${kart.class}`}
                 </p>
                 <h2 className="mt-2 text-lg font-semibold tracking-tight">{kart.name}</h2>

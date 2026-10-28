@@ -3,14 +3,16 @@
 import { useActionState, useState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { ENGINE_COMPONENTS, MAINTENANCE_TYPES, sortedEntries } from "@/lib/karting";
+import { sortedEntries } from "@/lib/karting";
 
 import { createMaintenance } from "../../actions";
 
 const initialState: FormState = {};
 
 export function MaintenanceForm({ partId, isEngine, today }: { partId: string; isEngine: boolean; today: string }) {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(createMaintenance.bind(null, partId), initialState);
   const [type, setType] = useState("revision");
 
@@ -23,7 +25,7 @@ export function MaintenanceForm({ partId, isEngine, today }: { partId: string; i
       <label className={labelClass}>
         Soort *
         <select name="type" required value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
-          {sortedEntries(MAINTENANCE_TYPES).map(([value, label]) => (
+          {sortedEntries(t.options.maintenanceTypes).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -42,7 +44,7 @@ export function MaintenanceForm({ partId, isEngine, today }: { partId: string; i
             Elk aangevinkt component begint opnieuw te tellen. De totale draaitijd van de motor loopt altijd door.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {sortedEntries(ENGINE_COMPONENTS).map(([value, label]) => (
+            {sortedEntries(t.options.engineComponents).map(([value, label]) => (
               <label key={value} className="flex items-center gap-2 text-sm text-zinc-300">
                 <input type="checkbox" name="components" value={value} className="size-4 accent-cyan-400" />
                 {label}

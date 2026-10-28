@@ -3,16 +3,18 @@ import Link from "next/link";
 
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { PART_CATEGORIES, formatCents, formatMinutes, labelFor } from "@/lib/karting";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
+import { formatCents, formatMinutes, labelFor } from "@/lib/karting";
 
 import { TrackProgress } from "./track-progress";
 
-export const metadata: Metadata = {
-  title: "Dashboard — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).overview.metaTitle };
+}
 
 export default async function DashboardPage() {
-  const { supabase, user, garage } = await getCurrentGarage();
+  const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
 
   const [karts, parts, installed, season, progress, limitedParts, usage] = await Promise.all([
     supabase.from("karts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
@@ -51,26 +53,26 @@ export default async function DashboardPage() {
     .sort((a, b) => b.minutes / b.limit - a.minutes / a.limit);
 
   const stats = [
-    { label: "Karts", value: String(karts.count ?? 0), href: "/dashboard/karts" },
-    { label: "Onderdelen", value: String(parts.count ?? 0), href: "/dashboard/parts" },
-    { label: "Gemonteerd", value: String(installed.count ?? 0), href: "/dashboard/parts" },
+    { label: t.overview.karts, value: String(karts.count ?? 0), href: "/dashboard/karts" },
+    { label: t.overview.parts, value: String(parts.count ?? 0), href: "/dashboard/parts" },
+    { label: t.overview.installed, value: String(installed.count ?? 0), href: "/dashboard/parts" },
     season.data
       ? {
-          label: `Kosten ${season.data.name}`,
+          label: format(t.overview.costsSeason, { season: season.data.name }),
           value: formatCents(season.data.expenses.reduce((sum, e) => sum + e.amount_cents, 0)),
           href: `/dashboard/costs?season=${season.data.id}`,
         }
-      : { label: "Kosten", value: formatCents(0), href: "/dashboard/costs" },
+      : { label: t.overview.costs, value: formatCents(0), href: "/dashboard/costs" },
   ];
 
   return (
     <>
       <section>
         <h1 className="text-3xl font-semibold tracking-tight">{garage.name}</h1>
-        <p className="mt-2 text-sm text-zinc-400">Ingelogd als {user.email}</p>
+        <p className="mt-2 text-sm text-zinc-400">{format(t.overview.signedInAs, { email: user.email ?? "" })}</p>
       </section>
 
-      <section aria-label="Overzicht" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label={t.overview.statsLabel} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className={`${cardClass} transition-colors hover:border-cyan-400/40`}>
             <p className="text-sm text-zinc-400">{stat.label}</p>
@@ -81,11 +83,11 @@ export default async function DashboardPage() {
 
       {karts.count === 0 && (
         <section className={cardClass}>
-          <h2 className="text-lg font-semibold">Begin met je kart</h2>
+          <h2 className="text-lg font-semibold">{t.overview.startTitle}</h2>
           <p className="mt-2 text-sm text-zinc-400">
-            Voeg je chassis toe en daarna je motor, banden en andere onderdelen.{" "}
+            {t.overview.startText}{" "}
             <Link href="/dashboard/karts" className={linkClass}>
-              Kart toevoegen
+              {t.overview.startLink}
             </Link>
           </p>
         </section>
@@ -94,18 +96,18 @@ export default async function DashboardPage() {
       {dueParts.length > 0 && (
         <section aria-labelledby="due-heading" className={`${cardClass} border-amber-400/30`}>
           <h2 id="due-heading" className="text-lg font-semibold">
-            Onderhoud nodig
+            {t.overview.dueTitle}
           </h2>
           <ul className="mt-3 divide-y divide-zinc-800/80">
             {dueParts.map((part) => (
               <li key={part.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm">
                 <Link href={`/dashboard/parts/${part.id}`} className={linkClass}>
-                  {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(PART_CATEGORIES, part.category)}
+                  {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category)}
                 </Link>
                 <span className="text-zinc-400 tabular-nums">
-                  {formatMinutes(part.minutes)} / {formatMinutes(part.limit)} sinds revisie
+                  {format(t.overview.sinceRevision, { used: formatMinutes(part.minutes), limit: formatMinutes(part.limit) })}
                   <span className={`ml-2 text-xs ${part.minutes >= part.limit ? "text-red-300" : "text-amber-300"}`}>
-                    {part.minutes >= part.limit ? "revisie nodig" : "bijna"}
+                    {part.minutes >= part.limit ? t.overview.due : t.overview.soon}
                   </span>
                 </span>
               </li>
@@ -114,7 +116,7 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <TrackProgress sessions={progress.data ?? []} />
+      <TrackProgress sessions={progress.data ?? []} t={t} />
     </>
   );
 }

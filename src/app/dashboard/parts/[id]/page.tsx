@@ -5,11 +5,9 @@ import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/delete-button";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { getDictionary } from "@/lib/i18n/server";
 import {
   ENGINE_COMPONENTS,
-  MAINTENANCE_TYPES,
-  PART_CATEGORIES,
-  PART_STATUSES,
   formatCents,
   formatDate,
   formatMinutes,
@@ -39,6 +37,7 @@ const toneClass = { ok: "bg-cyan-400", soon: "bg-amber-400", due: "bg-red-400" }
 export default async function PartPage({ params }: PageProps<"/dashboard/parts/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const { data: part, error } = await supabase
     .from("parts")
@@ -52,7 +51,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
   if (error) throw new Error(error.message);
   if (!part) notFound();
 
-  const name = [part.brand, part.model].filter(Boolean).join(" ") || labelFor(PART_CATEGORIES, part.category);
+  const name = [part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category);
   const kart = part.part_installations.find((i) => i.removed_at === null)?.karts;
   const isEngine = part.category === "engine";
   const sessions = part.session_parts.flatMap((sp) => (sp.sessions ? [sp.sessions] : []));
@@ -61,7 +60,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
   const limit = limitState(usage.sinceResetMinutes, part.usage_limit_minutes);
 
   const details = [
-    ["Status", kart ? `Op ${kart.name}` : labelFor(PART_STATUSES, part.status)],
+    ["Status", kart ? `Op ${kart.name}` : labelFor(t.options.partStatuses, part.status)],
     ["Sessies", String(sessions.length)],
     [
       "Aankoop",
@@ -80,7 +79,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{name}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {labelFor(PART_CATEGORIES, part.category)}
+          {labelFor(t.options.partCategories, part.category)}
           {part.serial_number && ` · #${part.serial_number}`}
         </p>
       </section>
@@ -157,7 +156,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/80">
-              {sortedEntries(ENGINE_COMPONENTS).map(([key, label]) => {
+              {sortedEntries(t.options.engineComponents).map(([key, label]) => {
                 const component = usage.components[key];
                 return (
                   <tr key={key}>
@@ -182,12 +181,12 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
           <ul className="mt-4 divide-y divide-zinc-800/80">
             {records.map((record) => {
               const cost = record.expenses.reduce((sum, e) => sum + e.amount_cents, 0);
-              const title = `${labelFor(MAINTENANCE_TYPES, record.type)} van ${formatDate(record.performed_on)}`;
+              const title = `${labelFor(t.options.maintenanceTypes, record.type)} van ${formatDate(record.performed_on)}`;
               return (
                 <li key={record.id} className="flex items-start justify-between gap-4 py-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-zinc-100">
-                      {labelFor(MAINTENANCE_TYPES, record.type)}
+                      {labelFor(t.options.maintenanceTypes, record.type)}
                       <span className="font-normal text-zinc-500">
                         {" "}
                         · {formatDate(record.performed_on)}
@@ -197,7 +196,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
                     </p>
                     {record.components.length > 0 && (
                       <p className="mt-1 text-xs text-zinc-400">
-                        {record.components.map((c) => labelFor(ENGINE_COMPONENTS, c)).join(" · ")}
+                        {record.components.map((c) => labelFor(t.options.engineComponents, c)).join(" · ")}
                       </p>
                     )}
                     {record.description && <p className="mt-1 text-xs text-zinc-500">{record.description}</p>}

@@ -3,8 +3,9 @@
 import { useActionState, useRef } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { SESSION_TYPES, WEATHER, sortByLabel, sortedEntries, type SetupValues } from "@/lib/karting";
+import { sortByLabel, sortedEntries, type SetupValues } from "@/lib/karting";
 
 import { createSession, updateSession } from "../../season-actions";
 
@@ -47,6 +48,7 @@ export function SessionForm({
   lastSetup: SetupValues | null;
   session?: SessionValues;
 }) {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(
     session ? updateSession.bind(null, session.id) : createSession.bind(null, eventId),
     initialState,
@@ -70,7 +72,7 @@ export function SessionForm({
         <label className={labelClass}>
           Soort *
           <select name="type" required defaultValue={session?.type ?? "practice"} className={inputClass}>
-            {sortedEntries(SESSION_TYPES).map(([value, label]) => (
+            {sortedEntries(t.options.sessionTypes).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -154,7 +156,7 @@ export function SessionForm({
         <label className={labelClass}>
           Weer
           <select name="weather" defaultValue={c.weather ?? "dry"} className={inputClass}>
-            {sortedEntries(WEATHER).map(([value, label]) => (
+            {sortedEntries(t.options.weather).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>

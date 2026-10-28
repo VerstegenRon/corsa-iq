@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { getCurrentGarage } from "@/lib/garage";
-import { EXPENSE_CATEGORIES, formatCents, formatDate, labelFor } from "@/lib/karting";
+import { getDictionary } from "@/lib/i18n/server";
+import { formatCents, formatDate, labelFor } from "@/lib/karting";
 import { RECEIPT_BUCKET } from "@/lib/storage";
 
 import { DeleteExpenseButton } from "./delete-expense-button";
@@ -28,11 +29,12 @@ async function signReceipts(expenses: ExpenseRow[]): Promise<Map<string, string>
 export async function ExpenseList({ expenses, showEvent = true }: { expenses: ExpenseRow[]; showEvent?: boolean }) {
   if (expenses.length === 0) return <p className="mt-3 text-sm text-zinc-500">Nog geen uitgaven.</p>;
   const receiptUrls = await signReceipts(expenses);
+  const t = await getDictionary();
 
   return (
     <ul className="mt-4 divide-y divide-zinc-800/80">
       {expenses.map((expense) => {
-        const category = labelFor(EXPENSE_CATEGORIES, expense.category);
+        const category = labelFor(t.options.expenseCategories, expense.category);
         const receiptUrl = expense.receipt_path ? receiptUrls.get(expense.receipt_path) : undefined;
         return (
           <li key={expense.id} className="flex items-center justify-between gap-4 py-3">

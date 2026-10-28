@@ -6,10 +6,8 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { getDictionary } from "@/lib/i18n/server";
 import {
-  EVENT_TYPES,
-  SESSION_TYPES,
-  WEATHER,
   formatCents,
   formatDate,
   formatLapTime,
@@ -37,6 +35,7 @@ type Conditions = { weather?: string; air_temp_c?: number; track_temp_c?: number
 export default async function EventPage({ params }: PageProps<"/dashboard/events/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult, seasonsResult, tracksResult] =
     await Promise.all([
@@ -88,7 +87,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{event.name}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {labelFor(EVENT_TYPES, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"} ·{" "}
+          {labelFor(t.options.eventTypes, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"} ·{" "}
           {formatDate(event.starts_on)}
           {event.ends_on && event.ends_on !== event.starts_on && ` – ${formatDate(event.ends_on)}`}
           {event.seasons && ` · ${event.seasons.name}`}
@@ -129,7 +128,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                   <div>
                     <p className="text-sm font-medium text-zinc-100">
                       <Link href={`/dashboard/sessions/${session.id}`} className={linkClass}>
-                        {labelFor(SESSION_TYPES, session.type)}
+                        {labelFor(t.options.sessionTypes, session.type)}
                       </Link>
                       <span className="font-normal text-zinc-500">
                         {" "}
@@ -138,7 +137,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
                       {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
-                      {conditions.weather && ` · ${labelFor(WEATHER, conditions.weather)}`}
+                      {conditions.weather && ` · ${labelFor(t.options.weather, conditions.weather)}`}
                       {conditions.air_temp_c !== undefined && ` · lucht ${conditions.air_temp_c} °C`}
                       {conditions.track_temp_c !== undefined && ` · baan ${conditions.track_temp_c} °C`}
                       {` · ${session.session_parts.length} ${session.session_parts.length === 1 ? "onderdeel" : "onderdelen"}`}
