@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { getCurrentGarage } from "@/lib/garage";
 import { EXPENSE_CATEGORIES, formatCents, formatDate, labelFor } from "@/lib/karting";
-import { RECEIPT_BUCKET } from "@/lib/receipts";
+import { RECEIPT_BUCKET } from "@/lib/storage";
 
 import { DeleteExpenseButton } from "./delete-expense-button";
 

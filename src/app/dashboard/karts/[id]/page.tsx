@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DeleteButton } from "@/components/delete-button";
+import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { KART_STATUSES, PART_CATEGORIES, formatDate, labelFor } from "@/lib/karting";
 
-import { removePart } from "../../actions";
+import { deleteKart, removePart } from "../../actions";
+import { KartForm } from "../kart-form";
 import { InstallForm } from "./install-form";
 
 export const metadata: Metadata = {
@@ -141,6 +144,19 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
           </ul>
         </section>
       )}
+
+      <EditSection
+        title="Kart bewerken"
+        danger={
+          <DeleteButton
+            action={deleteKart.bind(null, kart.id)}
+            label="Kart verwijderen"
+            confirmText={`${kart.name} verwijderen? Gemonteerde onderdelen gaan terug naar de voorraad.`}
+          />
+        }
+      >
+        <KartForm kart={kart} />
+      </EditSection>
     </>
   );
 }

@@ -62,9 +62,9 @@ export default async function PartsPage() {
                 return (
                   <tr key={part.id}>
                     <td className="px-6 py-4">
-                      <p className="font-medium text-zinc-100">
+                      <Link href={`/dashboard/parts/${part.id}`} className={`${linkClass} font-medium`}>
                         {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(PART_CATEGORIES, part.category)}
-                      </p>
+                      </Link>
                       <p className="text-xs text-zinc-500">{labelFor(PART_CATEGORIES, part.category)}</p>
                     </td>
                     <td className="px-6 py-4 text-zinc-400">{part.serial_number ?? "—"}</td>

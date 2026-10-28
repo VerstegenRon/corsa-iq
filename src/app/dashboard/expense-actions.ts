@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
 import { isExpenseCategory } from "@/lib/karting";
-import { RECEIPT_BUCKET } from "@/lib/receipts";
+import { RECEIPT_BUCKET } from "@/lib/storage";
 
 import { optionalNumber, text } from "./form-data";
 
