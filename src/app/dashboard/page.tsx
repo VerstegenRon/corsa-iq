@@ -5,7 +5,8 @@ import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
-import { formatCents, formatMinutes, labelFor } from "@/lib/karting";
+import { CHASSIS_COMPONENTS, ENGINE_COMPONENTS, formatCents, formatMinutes, labelFor } from "@/lib/karting";
+import { computeUsage, dueChecks, readLimits } from "@/lib/part-usage";
 
 import { TrackProgress } from "./track-progress";
 
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DashboardPage() {
   const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
 
-  const [karts, parts, installed, season, progress, limitedParts, usage] = await Promise.all([
+  const [karts, parts, installed, season, progress, activeParts, activeKarts] = await Promise.all([
     supabase.from("karts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase.from("parts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase
@@ -38,19 +39,48 @@ export default async function DashboardPage() {
       .not("best_lap_ms", "is", null),
     supabase
       .from("parts")
-      .select("id, category, brand, model, usage_limit_minutes")
+      .select(
+        "id, category, brand, model, usage_limit_minutes, component_limits, session_parts(sessions(started_at, duration_s)), maintenance_records(performed_on, resets_usage, components)",
+      )
       .eq("garage_id", garage.id)
-      .not("usage_limit_minutes", "is", null)
       .in("status", ["in_stock", "installed"]),
-    supabase.from("part_usage").select("part_id, minutes_since_reset").eq("garage_id", garage.id),
+    supabase
+      .from("karts")
+      .select("id, name, usage_limit_minutes, component_limits, sessions(started_at, duration_s), maintenance_records(performed_on, resets_usage, components)")
+      .eq("garage_id", garage.id)
+      .in("status", ["active", "spare"]),
   ]);
 
-  // Parts at 90% or more of their revision limit, most urgent first.
-  const minutesSinceReset = new Map((usage.data ?? []).map((u) => [u.part_id, u.minutes_since_reset ?? 0]));
-  const dueParts = (limitedParts.data ?? [])
-    .map((part) => ({ ...part, minutes: minutesSinceReset.get(part.id) ?? 0, limit: part.usage_limit_minutes! }))
-    .filter((part) => part.minutes >= part.limit * 0.9)
-    .sort((a, b) => b.minutes / b.limit - a.minutes / a.limit);
+  // Every counter (a part or kart as a whole, or one of its components) at 90% or more of its limit,
+  // most urgent first.
+  const engineKeys = Object.keys(ENGINE_COMPONENTS);
+  const chassisKeys = Object.keys(CHASSIS_COMPONENTS);
+  const dueItems = [
+    ...(activeParts.data ?? []).flatMap((part) => {
+      const keys = part.category === "engine" ? engineKeys : [];
+      const sessions = part.session_parts.flatMap((sp) => (sp.sessions ? [sp.sessions] : []));
+      const usage = computeUsage(sessions, part.maintenance_records, keys);
+      return dueChecks(usage, part.usage_limit_minutes, readLimits(part.component_limits, keys)).map((check) => ({
+        ...check,
+        key: `part-${part.id}-${check.component ?? ""}`,
+        href: `/dashboard/parts/${part.id}`,
+        name: [part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category),
+        componentLabel: check.component && labelFor(t.options.engineComponents, check.component),
+        wholeText: t.overview.sinceRevision,
+      }));
+    }),
+    ...(activeKarts.data ?? []).flatMap((kart) => {
+      const usage = computeUsage(kart.sessions, kart.maintenance_records, chassisKeys);
+      return dueChecks(usage, kart.usage_limit_minutes, readLimits(kart.component_limits, chassisKeys)).map((check) => ({
+        ...check,
+        key: `kart-${kart.id}-${check.component ?? ""}`,
+        href: `/dashboard/karts/${kart.id}`,
+        name: kart.name,
+        componentLabel: check.component && labelFor(t.options.chassisComponents, check.component),
+        wholeText: t.overview.sinceService,
+      }));
+    }),
+  ].sort((a, b) => b.share - a.share);
 
   const stats = [
     { label: t.overview.karts, value: String(karts.count ?? 0), href: "/dashboard/karts" },
@@ -93,25 +123,31 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      {dueParts.length > 0 && (
+      {dueItems.length > 0 && (
         <section aria-labelledby="due-heading" className={`${cardClass} border-amber-400/30`}>
           <h2 id="due-heading" className="text-lg font-semibold">
             {t.overview.dueTitle}
           </h2>
           <ul className="mt-3 divide-y divide-zinc-800/80">
-            {dueParts.map((part) => (
-              <li key={part.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm">
-                <Link href={`/dashboard/parts/${part.id}`} className={linkClass}>
-                  {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category)}
-                </Link>
-                <span className="text-zinc-400 tabular-nums">
-                  {format(t.overview.sinceRevision, { used: formatMinutes(part.minutes), limit: formatMinutes(part.limit) })}
-                  <span className={`ml-2 text-xs ${part.minutes >= part.limit ? "text-red-300" : "text-amber-300"}`}>
-                    {part.minutes >= part.limit ? t.overview.due : t.overview.soon}
+            {dueItems.map((item) => {
+              const counts = { used: formatMinutes(item.minutes), limit: formatMinutes(item.limit) };
+              return (
+                <li key={item.key} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm">
+                  <Link href={item.href} className={linkClass}>
+                    {item.name}
+                  </Link>
+                  <span className="text-zinc-400 tabular-nums">
+                    {item.componentLabel
+                      ? format(t.overview.componentUsage, { component: item.componentLabel, ...counts })
+                      : format(item.wholeText, counts)}
+                    <span className={`ml-2 text-xs font-medium ${item.tone === "due" ? "text-red-300" : "text-amber-300"}`}>
+                      <span aria-hidden="true">{item.tone === "due" ? "● " : "▲ "}</span>
+                      {item.tone === "due" ? t.overview.due : t.overview.soon}
+                    </span>
                   </span>
-                </span>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

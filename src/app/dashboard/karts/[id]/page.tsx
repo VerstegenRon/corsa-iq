@@ -8,9 +8,11 @@ import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { getDictionary } from "@/lib/i18n/server";
-import { formatDate, labelFor } from "@/lib/karting";
+import { CHASSIS_COMPONENTS, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
+import { computeUsage, readLimits } from "@/lib/part-usage";
 
-import { deleteKart, removePart } from "../../actions";
+import { ComponentsSection, MaintenanceSection, UsageCards } from "../../_maintenance/maintenance-sections";
+import { deleteKart, removePart, type MaintenanceTarget } from "../../actions";
 import { KartForm } from "../kart-form";
 import { InstallForm } from "./install-form";
 
@@ -35,11 +37,12 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
     supabase
       .from("karts")
       .select(
-        "id, name, chassis_brand, chassis_model, chassis_year, homologation, serial_number, class, status, part_installations(id, installed_at, removed_at, parts(id, category, brand, model, serial_number))",
+        "id, name, chassis_brand, chassis_model, chassis_year, homologation, serial_number, class, status, usage_limit_minutes, component_limits, sessions(started_at, duration_s), maintenance_records(id, performed_on, type, performed_by, description, resets_usage, components, created_at, expenses(amount_cents)), part_installations(id, installed_at, removed_at, parts(id, category, brand, model, serial_number))",
       )
       .eq("id", id)
       .eq("garage_id", garage.id)
       .order("installed_at", { referencedTable: "part_installations", ascending: false })
+      .order("performed_on", { referencedTable: "maintenance_records", ascending: false })
       .maybeSingle(),
     supabase
       .from("parts")
@@ -59,12 +62,19 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
     label: `${labelFor(t.options.partCategories, part.category)}: ${partLabel(part, t)}`,
   }));
 
+  const chassisKeys = Object.keys(CHASSIS_COMPONENTS);
+  const usage = computeUsage(kart.sessions, kart.maintenance_records, chassisKeys);
+  const componentLimits = readLimits(kart.component_limits, chassisKeys);
+  const target: MaintenanceTarget = { kind: "kart", id: kart.id };
+
   const details = [
     ["Chassis", [kart.chassis_brand, kart.chassis_model].filter(Boolean).join(" ")],
     ["Bouwjaar", kart.chassis_year?.toString()],
     ["Klasse", kart.class],
     ["Chassisnummer", kart.serial_number],
     ["Homologatie", kart.homologation],
+    ["Sessies", String(kart.sessions.length)],
+    ["Laatste groot onderhoud", usage.lastResetOn ? formatDate(usage.lastResetOn) : "nog niet"],
   ].filter((row): row is [string, string] => Boolean(row[1]));
 
   return (
@@ -150,6 +160,12 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
           </ul>
         </section>
       )}
+
+      <UsageCards kind="kart" usage={usage} limit={kart.usage_limit_minutes} />
+
+      <ComponentsSection target={target} componentSet="chassis" usage={usage} limits={componentLimits} t={t} />
+
+      <MaintenanceSection target={target} componentSet="chassis" records={kart.maintenance_records} today={todayInAmsterdam()} t={t} />
 
       <EditSection
         title="Kart bewerken"

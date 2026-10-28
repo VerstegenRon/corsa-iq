@@ -28,6 +28,7 @@ erDiagram
     karts ||--o{ part_installations : "krijgt gemonteerd"
     parts ||--o{ part_installations : "wordt gemonteerd"
     parts ||--o{ maintenance_records : "onderhoud"
+    karts ||--o{ maintenance_records : "chassisonderhoud"
 
     seasons ||--o{ events : bevat
     tracks ||--o{ events : "locatie van"
@@ -121,6 +122,8 @@ Een kart = een chassis met een identiteit. Wat erop zit, staat in `part_installa
 | serial_number | text | |
 | class | text | bijv. `X30 Senior`, `OK`, `Rotax Max`, `KZ2` |
 | status | text | `active`, `spare`, `sold`, `retired` |
+| usage_limit_minutes | int, nullable | groot onderhoud van het chassis na zoveel minuten |
+| component_limits | jsonb | grens per chassiscomponent in minuten, bijv. `{ "axle_bearings": 600 }` |
 | notes | text | |
 
 ### `parts`
@@ -139,6 +142,7 @@ Alles wat je bezit en wilt volgen: motor, banden, assen, tandwielen, carburateur
 | purchased_on | date | |
 | purchase_price_cents | int | ook als `expense` vastgelegd |
 | usage_limit_minutes | int, nullable | bijv. revisie na 600 min |
+| component_limits | jsonb | grens per motorcomponent in minuten, bijv. `{ "piston": 360 }` |
 | notes | text | |
 
 Categorieën (`category`): `engine`, `carburettor`, `exhaust`, `tyre_set`, `rim_set`, `rear_axle`, `sprocket`, `chain`, `seat`, `brake_disc`, `brake_pads`, `steering_wheel`, `front_hubs`, `spindle`, `bumper_bodywork`, `data_logger`, `other`.
@@ -173,9 +177,11 @@ Revisies, onderhoud en reparaties.
 | performed_by | text | eigen beheer of motorbouwer |
 | description | text | |
 | resets_usage | boolean | teller "sinds laatste revisie" weer op 0 |
-| components | text[] | behandelde motorcomponenten: `piston`, `big_end`, `crankshaft`, `main_bearings`, `cylinder`, `reed_valve`, `clutch`, `gaskets` |
+| components | text[] | behandelde componenten. Motor: `piston`, `big_end`, `crankshaft`, `main_bearings`, `cylinder`, `reed_valve`, `clutch`, `gaskets`. Chassis: `frame`, `axle_bearings`, `wheel_bearings`, `steering`, `brakes`, `fasteners` |
 
 De **totale draaitijd** van een onderdeel loopt altijd door. Daarnaast zijn er twee soorten tellers: *sinds laatste revisie* (de laatste beurt met `resets_usage`) en *per component* (de laatste beurt waarin dat component voorkomt). Een nieuwe zuiger zet dus alleen de zuigerteller op nul.
+
+Voor een kart werkt het net zo, gemeten over de sessies waarin die kart reed: totaal, *sinds groot onderhoud* en per chassiscomponent. Elke teller kan een eigen grens hebben (`usage_limit_minutes`, `component_limits`); vanaf 90% staat hij onder “Onderhoud nodig” op het overzicht.
 
 ---
 

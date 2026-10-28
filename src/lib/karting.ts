@@ -60,6 +60,16 @@ export const ENGINE_COMPONENTS = {
   gaskets: "Pakkingen & keerringen",
 } as const;
 
+/** What a chassis maintenance job can cover; each counts its own run time on the kart. */
+export const CHASSIS_COMPONENTS = {
+  frame: "Frame (controleren/richten)",
+  axle_bearings: "Aslagers",
+  wheel_bearings: "Wiellagers voor",
+  steering: "Stuurinrichting & fusees",
+  brakes: "Remsysteem (ontluchten, vloeistof)",
+  fasteners: "Bouten & moeren",
+} as const;
+
 export const EVENT_TYPES = {
   training: "Training",
   race: "Race",
@@ -156,6 +166,11 @@ export function formatMinutes(minutes: number | null): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return hours > 0 ? `${hours} u ${rest} min` : `${rest} min`;
+}
+
+/** Value for a decimal input, written like its placeholder: 24995 cents / 100 → "249,95", 500 min / 60 → "8,33". */
+export function decimalInput(value: number | null | undefined, divisor: number): string {
+  return value === null || value === undefined ? "" : String(Math.round((value / divisor) * 100) / 100).replace(".", ",");
 }
 
 /** 52345 → "52.345", 62345 → "1:02.345" */
