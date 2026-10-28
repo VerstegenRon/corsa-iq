@@ -53,7 +53,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       .maybeSingle(),
     supabase
       .from("expenses")
-      .select("id, category, spent_on, amount_cents, description, events(id, name)")
+      .select("id, category, spent_on, amount_cents, description, receipt_path, events(id, name)")
       .eq("event_id", id)
       .eq("garage_id", garage.id)
       .order("spent_on", { ascending: false })
@@ -178,7 +178,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </h2>
         <ExpenseList expenses={expenses} showEvent={false} />
         <div className="mt-6 border-t border-zinc-800/80 pt-6">
-          <ExpenseForm eventId={event.id} defaultDate={event.starts_on} />
+          <ExpenseForm garageId={garage.id} eventId={event.id} defaultDate={event.starts_on} />
         </div>
       </section>
     </>

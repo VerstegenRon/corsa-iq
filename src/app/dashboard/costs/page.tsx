@@ -43,7 +43,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
 
   let query = supabase
     .from("expenses")
-    .select("id, category, spent_on, amount_cents, description, events(id, name)")
+    .select("id, category, spent_on, amount_cents, description, receipt_path, events(id, name)")
     .eq("garage_id", garage.id)
     .order("spent_on", { ascending: false })
     .order("created_at", { ascending: false });
@@ -188,6 +188,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         </h2>
         <ExpenseForm
           key={filter}
+          garageId={garage.id}
           defaultDate={todayInAmsterdam()}
           defaultSeasonId={season?.id ?? seasons[0]?.id}
           seasons={seasons.map((s) => ({ id: s.id, label: s.name }))}
