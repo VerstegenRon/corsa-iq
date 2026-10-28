@@ -16,6 +16,7 @@ import {
   labelFor,
   todayInAmsterdam,
 } from "@/lib/karting";
+import { seasonIdForDate } from "@/lib/season-for-date";
 
 import { optionalNumber, text } from "./form-data";
 
@@ -141,21 +142,8 @@ function readPart(formData: FormData) {
 
 type PartValues = Extract<ReturnType<typeof readPart>, { values: unknown }>["values"];
 
-/**
- * A part's purchase is also a cost, booked on the season of the purchase year. Keeps that one
- * expense in line with the part: created, updated or removed together with the purchase price.
- */
-async function seasonIdForDate(supabase: Supabase, garageId: string, date: string) {
-  const { data: season } = await supabase
-    .from("seasons")
-    .select("id")
-    .eq("garage_id", garageId)
-    .eq("year", Number(date.slice(0, 4)))
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
-  return season?.id ?? null;
-}
+// A part's purchase is also a cost, booked on the season of the purchase year. syncPurchaseExpense keeps
+// that one expense in line with the part: created, updated or removed together with the purchase price.
 
 /** The expense booked for buying the part (maintenance costs link to their job instead). */
 function purchaseExpense(supabase: Supabase, partId: string) {
