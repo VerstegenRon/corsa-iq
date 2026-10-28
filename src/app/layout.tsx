@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CorsaIQ",
   description:
-    "Operationele intelligentie voor teams die scherper willen beslissen.",
+    "Je hele kartseizoen in één pitbox: rondetijden, onderhoud, kosten en bonnetjes.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
