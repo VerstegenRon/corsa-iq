@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
-import { isPartCategory } from "@/lib/karting";
+import { PART_CATEGORIES, isPartCategory, labelFor, todayInAmsterdam } from "@/lib/karting";
 
 import { optionalNumber, text } from "./form-data";
 
@@ -45,19 +45,51 @@ export async function createPart(_prev: FormState, formData: FormData): Promise<
     return { error: "Vul een geldig aantal draaiuren in, of laat het veld leeg." };
   }
 
+  const purchasedOn = text(formData, "purchased_on");
+  const priceCents = price === null ? null : Math.round(price * 100);
+
   const { supabase, garage } = await getCurrentGarage();
-  const { error } = await supabase.from("parts").insert({
-    garage_id: garage.id,
-    category,
-    brand: text(formData, "brand"),
-    model: text(formData, "model"),
-    serial_number: text(formData, "serial_number"),
-    purchased_on: text(formData, "purchased_on"),
-    purchase_price_cents: price === null ? null : Math.round(price * 100),
-    usage_limit_minutes: limitHours === null ? null : Math.round(limitHours * 60),
-    notes: text(formData, "notes"),
-  });
+  const { data: part, error } = await supabase
+    .from("parts")
+    .insert({
+      garage_id: garage.id,
+      category,
+      brand: text(formData, "brand"),
+      model: text(formData, "model"),
+      serial_number: text(formData, "serial_number"),
+      purchased_on: purchasedOn,
+      purchase_price_cents: priceCents,
+      usage_limit_minutes: limitHours === null ? null : Math.round(limitHours * 60),
+      notes: text(formData, "notes"),
+    })
+    .select("id")
+    .single();
   if (error) return { error: `Opslaan mislukt: ${error.message}` };
+
+  // The purchase also counts as a cost, booked on the season of the purchase year.
+  if (priceCents) {
+    const spentOn = purchasedOn ?? todayInAmsterdam();
+    const { data: season } = await supabase
+      .from("seasons")
+      .select("id")
+      .eq("garage_id", garage.id)
+      .eq("year", Number(spentOn.slice(0, 4)))
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
+    const { error: expenseError } = await supabase.from("expenses").insert({
+      garage_id: garage.id,
+      season_id: season?.id ?? null,
+      part_id: part.id,
+      category: category === "tyre_set" ? "tyres" : "parts",
+      spent_on: spentOn,
+      amount_cents: priceCents,
+      description: [labelFor(PART_CATEGORIES, category), text(formData, "brand"), text(formData, "model")]
+        .filter(Boolean)
+        .join(" "),
+    });
+    if (expenseError) return { error: `Onderdeel opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
+  }
 
   revalidatePath("/dashboard", "layout");
   return { success: "Onderdeel toegevoegd." };

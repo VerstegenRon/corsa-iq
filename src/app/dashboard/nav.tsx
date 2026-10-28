@@ -8,6 +8,7 @@ const items: { href: string; label: string; also?: string[] }[] = [
   { href: "/dashboard/seasons", label: "Seizoen", also: ["/dashboard/events"] },
   { href: "/dashboard/karts", label: "Karts" },
   { href: "/dashboard/parts", label: "Onderdelen" },
+  { href: "/dashboard/costs", label: "Kosten" },
 ];
 
 export function DashboardNav() {

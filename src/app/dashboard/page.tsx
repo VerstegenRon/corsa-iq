@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { formatCents } from "@/lib/karting";
 
 export const metadata: Metadata = {
   title: "Dashboard — CorsaIQ",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const { supabase, user, garage } = await getCurrentGarage();
 
-  const [karts, parts, installed] = await Promise.all([
+  const [karts, parts, installed, season] = await Promise.all([
     supabase.from("karts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase.from("parts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase
@@ -19,12 +20,26 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("garage_id", garage.id)
       .eq("status", "installed"),
+    supabase
+      .from("seasons")
+      .select("id, name, expenses(amount_cents)")
+      .eq("garage_id", garage.id)
+      .order("year", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const stats = [
-    { label: "Karts", value: karts.count ?? 0, href: "/dashboard/karts" },
-    { label: "Onderdelen", value: parts.count ?? 0, href: "/dashboard/parts" },
-    { label: "Gemonteerd", value: installed.count ?? 0, href: "/dashboard/parts" },
+    { label: "Karts", value: String(karts.count ?? 0), href: "/dashboard/karts" },
+    { label: "Onderdelen", value: String(parts.count ?? 0), href: "/dashboard/parts" },
+    { label: "Gemonteerd", value: String(installed.count ?? 0), href: "/dashboard/parts" },
+    season.data
+      ? {
+          label: `Kosten ${season.data.name}`,
+          value: formatCents(season.data.expenses.reduce((sum, e) => sum + e.amount_cents, 0)),
+          href: `/dashboard/costs?season=${season.data.id}`,
+        }
+      : { label: "Kosten", value: formatCents(0), href: "/dashboard/costs" },
   ];
 
   return (
@@ -34,7 +49,7 @@ export default async function DashboardPage() {
         <p className="mt-2 text-sm text-zinc-400">Ingelogd als {user.email}</p>
       </section>
 
-      <section aria-label="Overzicht" className="grid gap-4 sm:grid-cols-3">
+      <section aria-label="Overzicht" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className={`${cardClass} transition-colors hover:border-cyan-400/40`}>
             <p className="text-sm text-zinc-400">{stat.label}</p>
