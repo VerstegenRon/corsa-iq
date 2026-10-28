@@ -296,29 +296,26 @@ Een vastgelegde afstelling, **niet meer aan te passen** na koppeling aan een ses
 | values | jsonb | zie hieronder |
 | created_at | timestamptz | |
 
-Waarom `jsonb`: welke instellingen bestaan verschilt per klasse en chassis. Een vaste set velden wordt in de app gevalideerd (TypeScript + Zod) en kan worden uitgebreid zonder migratie:
+Waarom `jsonb`: welke instellingen bestaan verschilt per klasse en chassis. De velden staan op één plek in `src/lib/setup.ts` (`SETUP_FIELDS`: pad, label, eenheid en soort waarde); het sessieformulier, het opslaan, de samenvattingen en de vergelijkingen lezen die lijst. Een veld toevoegen kan zonder migratie; oudere setups missen het dan gewoon.
 
 ```json
 {
-  "tyre_pressure_cold_bar": { "fl": 0.62, "fr": 0.62, "rl": 0.60, "rr": 0.60 },
-  "tyre_pressure_hot_bar":  { "fl": 0.78, "fr": 0.79, "rl": 0.80, "rr": 0.81 },
+  "tyre_pressure_cold_bar": { "front": 0.62, "rear": 0.60 },
+  "tyre_pressure_hot_bar":  { "front": 0.84, "rear": 0.81 },
   "gearing": { "front_teeth": 12, "rear_teeth": 82 },
-  "rear_axle": { "hardness": "medium", "diameter_mm": 50 },
+  "rear_axle": { "hardness": "medium" },
   "rear_track_width_mm": 1395,
   "front_track_width_mm": 1270,
-  "caster": "neutral",
-  "camber": "neutral",
-  "toe_mm": 1,
-  "front_ride_height": "middle",
-  "rear_ride_height": "middle",
-  "seat": { "position": "standard", "struts": true },
-  "carburettor": { "main_jet": 125, "needle_position": 2 },
-  "front_bar": "none",
-  "torsion_bar": false,
-  "ballast_kg": 4,
+  "ride_height": { "front": "midden", "rear": "laag" },
+  "front_end": { "caster": "neutraal", "camber": "-1" },
+  "hubs": { "front_length_mm": 95, "rear_length_mm": 110 },
+  "carburettor": { "main_jet": 125, "needle": "K98 · 2", "low_screw_turns": 1.25, "high_screw_turns": 1.5 },
+  "engine": { "spark_plug": "B10EG" },
   "notes": ""
 }
 ```
+
+Setup-analyse: het circuitscherm zet alle sessies met een rondetijd onder elkaar met hun setup (snelste eerst, afwijkingen van de snelste vet, filter op weer en kart). De sessiepagina toont wat er veranderde ten opzichte van een andere sessie: standaard de vorige sessie van dezelfde kart, of een sessie op hetzelfde circuit.
 
 ### `laps`
 

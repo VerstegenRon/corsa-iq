@@ -6,21 +6,24 @@ import { DeleteButton } from "@/components/delete-button";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
-import { countryName, formatDate, formatLapTime, labelFor } from "@/lib/karting";
+import { countryName, formatDate, formatLapTime, labelFor, type SetupValues } from "@/lib/karting";
 
 import { deleteTrack } from "../../track-actions";
 import { TrackForm } from "../track-form";
+import { SetupComparison, type ComparedSession } from "./setup-comparison";
 
 export const metadata: Metadata = {
   title: "Circuit — CorsaIQ",
 };
 
-export default async function TrackPage({ params }: PageProps<"/dashboard/tracks/[id]">) {
-  const { id } = await params;
+export default async function TrackPage({ params, searchParams }: PageProps<"/dashboard/tracks/[id]">) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const weather = typeof query.weather === "string" ? query.weather : null;
+  const kartId = typeof query.kart === "string" ? query.kart : null;
   const { supabase, garage } = await getCurrentGarage();
   const t = await getDictionary();
 
-  const [trackResult, eventsResult] = await Promise.all([
+  const [trackResult, eventsResult, sessionsResult] = await Promise.all([
     supabase.from("tracks").select("id, name, city, country, created_by_garage_id").eq("id", id).maybeSingle(),
     supabase
       .from("events")
@@ -28,6 +31,12 @@ export default async function TrackPage({ params }: PageProps<"/dashboard/tracks
       .eq("track_id", id)
       .eq("garage_id", garage.id)
       .order("starts_on", { ascending: false }),
+    supabase
+      .from("sessions")
+      .select("id, type, best_lap_ms, conditions, karts(id, name), setups(values), events!inner(name, starts_on, track_id, garage_id)")
+      .eq("events.track_id", id)
+      .eq("events.garage_id", garage.id)
+      .not("best_lap_ms", "is", null),
   ]);
   const track = trackResult.data;
   // Another garage's own track is not shown, even though the catalogue is readable.
@@ -38,6 +47,16 @@ export default async function TrackPage({ params }: PageProps<"/dashboard/tracks
     const laps = event.sessions.map((s) => s.best_lap_ms).filter((ms): ms is number => ms !== null);
     return { ...event, best: laps.length > 0 ? Math.min(...laps) : null };
   });
+  const setupSessions: ComparedSession[] = (sessionsResult.data ?? []).map((s) => ({
+    id: s.id,
+    type: s.type,
+    startsOn: s.events.starts_on,
+    eventName: s.events.name,
+    kart: s.karts,
+    bestLapMs: s.best_lap_ms!,
+    conditions: s.conditions as ComparedSession["conditions"],
+    setup: (s.setups?.values ?? {}) as SetupValues,
+  }));
   const bestEver = events.reduce<number | null>((best, e) => (e.best !== null && (best === null || e.best < best) ? e.best : best), null);
 
   return (
@@ -93,6 +112,10 @@ export default async function TrackPage({ params }: PageProps<"/dashboard/tracks
           </ul>
         )}
       </section>
+
+      {setupSessions.length > 0 && (
+        <SetupComparison trackId={track.id} sessions={setupSessions} weather={weather} kartId={kartId} t={t} />
+      )}
 
       {own ? (
         <section aria-labelledby="edit-heading" className={cardClass}>
