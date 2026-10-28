@@ -11,7 +11,7 @@ import { formatLapTime } from "@/lib/karting";
 // light theme, each validated for contrast against its card surface); text uses text tokens,
 // never the series color.
 const COLORS = {
-  line: "var(--color-cyan-400)", // the app accent
+  line: "var(--color-brand-400)", // the app accent
   surface: "var(--chart-surface)", // card surface, used for marker rings
   grid: "var(--color-zinc-800)", // hairline
   axis: "var(--color-zinc-500)", // muted text
@@ -119,7 +119,7 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
         width={width}
         height={HEIGHT}
         viewBox={`0 0 ${width} ${HEIGHT}`}
-        className="block touch-pan-y focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+        className="block touch-pan-y focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
         onPointerMove={(e) => setActive(nearestIndex(e.clientX, e.currentTarget))}
         onPointerLeave={() => setActive(null)}
         onFocus={() => setActive((a) => a ?? bestIndex)}

@@ -103,7 +103,7 @@ export function ExpenseForm({
         />
       </label>
       {(reading.message || reading.error) && (
-        <p role="status" className={`col-span-2 text-sm lg:col-span-3 ${reading.error ? "text-amber-300" : "text-cyan-300"}`}>
+        <p role="status" className={`col-span-2 text-sm lg:col-span-3 ${reading.error ? "text-amber-300" : "text-brand-300"}`}>
           {reading.error ?? reading.message}
         </p>
       )}

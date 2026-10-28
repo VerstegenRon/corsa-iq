@@ -211,7 +211,7 @@ export function LapImportForm({
                           checked={lap.is_valid}
                           aria-label={`Ronde ${lap.lap_number} telt mee`}
                           onChange={(event) => setExcluded((e) => ({ ...e, [lap.lap_number]: !event.target.checked }))}
-                          className="size-4 accent-cyan-400"
+                          className="size-4 accent-brand-400"
                         />
                       </td>
                     </tr>

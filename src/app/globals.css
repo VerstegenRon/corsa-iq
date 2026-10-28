@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /*
- * Themes. The UI is written with dark-first Tailwind colours (zinc for neutrals, cyan for the
- * accent). The light theme re-maps those colour variables instead of adding light: variants to
+ * Themes. The UI is written with dark-first Tailwind colours (zinc for neutrals, brand for the
+ * CorsaIQ red accent). The light theme re-maps those colour variables instead of adding light: variants to
  * every class: the zinc scale is reversed (zinc-950 background becomes the lightest step), and the
  * light accent and status steps used as text on dark become darker steps, so text keeps its
  * contrast on a light surface. data-theme is set on <html> before paint (see app/layout.tsx).
@@ -38,11 +38,12 @@
   /* "text-white" is the strongest text on dark; on light that is near-black. */
   --color-white: oklch(14.1% 0.005 285.823);
 
-  /* Accent: the light cyans used as text and fills on dark become deep cyans on light. */
-  --color-cyan-100: oklch(39.8% 0.07 227.392);
-  --color-cyan-200: oklch(45% 0.085 224.283);
-  --color-cyan-300: oklch(45% 0.085 224.283);
-  --color-cyan-400: oklch(52% 0.105 223.128);
+  /* Brand: the light reds used as text and lines on dark become deep reds on light. Buttons
+   (brand-500/600 with white text) stay the same in both themes. */
+  --color-brand-100: #7f1d1d;
+  --color-brand-200: #991b1b;
+  --color-brand-300: #b91c1c;
+  --color-brand-400: #dc2626;
 
   /* Status text: errors and warnings in darker steps. */
   --color-red-200: oklch(44.4% 0.177 26.899);
@@ -50,6 +51,23 @@
   --color-red-400: oklch(57.7% 0.245 27.325);
   --color-amber-300: oklch(55.5% 0.163 48.998);
   --color-amber-400: oklch(66.6% 0.179 58.318);
+}
+
+/*
+ * CorsaIQ house colours: red, black and white. Text steps (100-300) are for dark surfaces,
+ * brand-400 for lines, bars, borders and focus rings, brand-500/600 for filled buttons with
+ * on-brand (white) text; each pair is checked for contrast against its surface in both themes.
+ * Red also marks errors and overdue maintenance, so "fine" states (ok meters, success
+ * messages) use neutrals rather than the accent.
+ */
+@theme {
+  --color-brand-100: #fecaca;
+  --color-brand-200: #fca5a5;
+  --color-brand-300: #f87171;
+  --color-brand-400: #ef4444;
+  --color-brand-500: #dc2626;
+  --color-brand-600: #b91c1c;
+  --color-on-brand: #ffffff;
 }
 
 @theme inline {

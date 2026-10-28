@@ -179,7 +179,7 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
                   return (
                     <tr key={lap.lap_number} className={counts ? "" : "text-zinc-500"}>
                       <td className="py-2 pr-4">{lap.lap_number}</td>
-                      <td className={`py-2 pr-4 font-medium ${isBest ? "text-cyan-300" : ""}`}>
+                      <td className={`py-2 pr-4 font-medium ${isBest ? "text-brand-300" : ""}`}>
                         {formatLapTime(lap.lap_time_ms)}
                         {!counts && <span className="ml-2 text-xs font-normal">telt niet mee</span>}
                       </td>
@@ -190,7 +190,7 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
                         const sector = lap.sectors[i];
                         const isBestSector = counts && sector !== undefined && sector === summary.bestSectors[i];
                         return (
-                          <td key={i} className={`py-2 pr-4 ${isBestSector ? "text-cyan-300" : ""}`}>
+                          <td key={i} className={`py-2 pr-4 ${isBestSector ? "text-brand-300" : ""}`}>
                             {sector === undefined ? "—" : formatLapTime(sector)}
                           </td>
                         );

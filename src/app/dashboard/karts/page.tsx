@@ -40,9 +40,9 @@ export default async function KartsPage() {
               <Link
                 key={kart.id}
                 href={`/dashboard/karts/${kart.id}`}
-                className={`${cardClass} transition-colors hover:border-cyan-400/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400`}
+                className={`${cardClass} transition-colors hover:border-brand-400/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400`}
               >
-                <p className="text-xs font-medium tracking-wide text-cyan-200 uppercase">
+                <p className="text-xs font-medium tracking-wide text-brand-200 uppercase">
                   {labelFor(t.options.kartStatuses, kart.status)}
                   {kart.class && ` · ${kart.class}`}
                 </p>

@@ -57,7 +57,7 @@ export async function ExpenseList({ expenses, showEvent = true }: { expenses: Ex
                       href={receiptUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-cyan-300 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                      className="text-brand-300 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                     >
                       Bonnetje
                     </a>

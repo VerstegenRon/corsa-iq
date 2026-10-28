@@ -10,7 +10,7 @@ export function FormMessage({ state }: { state: FormState }) {
   }
   if (state.success) {
     return (
-      <p role="status" className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+      <p role="status" className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100">
         {state.success}
       </p>
     );

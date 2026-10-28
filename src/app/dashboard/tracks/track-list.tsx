@@ -74,7 +74,7 @@ export function TrackList({ tracks }: { tracks: TrackRow[] }) {
               <li key={track.id}>
                 <Link
                   href={`/dashboard/tracks/${track.id}`}
-                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                 >
                   <span>
                     <span className="text-sm font-medium text-zinc-100">{track.name}</span>

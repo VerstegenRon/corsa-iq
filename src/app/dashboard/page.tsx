@@ -104,7 +104,7 @@ export default async function DashboardPage() {
 
       <section aria-label={t.overview.statsLabel} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Link key={stat.label} href={stat.href} className={`${cardClass} transition-colors hover:border-cyan-400/40`}>
+          <Link key={stat.label} href={stat.href} className={`${cardClass} transition-colors hover:border-brand-400/40`}>
             <p className="text-sm text-zinc-400">{stat.label}</p>
             <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{stat.value}</p>
           </Link>
