@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { THEME_STORAGE_KEY, isThemePreference, resolveTheme, type ThemePreference } from "./theme";
+import { AUTO_THEME_PATHS, THEME_STORAGE_KEY, isThemePreference, resolveTheme, type ThemePreference } from "./theme";
 
 const listeners = new Set<() => void>();
 
@@ -16,7 +16,12 @@ function readPreference(): ThemePreference {
   }
 }
 
-export function applyTheme(preference = readPreference()) {
+/** The stored preference, except on pages that always follow the time of day. */
+function pagePreference(): ThemePreference {
+  return AUTO_THEME_PATHS.includes(window.location.pathname) ? "auto" : readPreference();
+}
+
+export function applyTheme(preference = pagePreference()) {
   document.documentElement.setAttribute("data-theme", resolveTheme(preference));
 }
 
