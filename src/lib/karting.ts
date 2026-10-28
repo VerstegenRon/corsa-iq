@@ -106,6 +106,27 @@ export function isExpenseCategory(value: string): value is ExpenseCategory {
 }
 
 const collator = new Intl.Collator("nl", { sensitivity: "base", numeric: true });
+const regionNames = new Intl.DisplayNames(["nl"], { type: "region" });
+
+/** "IT" → "Italië"; unknown codes stay as they are. */
+export function countryName(code: string | null): string {
+  if (!code) return "Onbekend land";
+  try {
+    return regionNames.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/** PostgREST filter for the tracks a garage sees: the official catalogue plus its own entries. */
+export function ownOrOfficial(garageId: string): string {
+  return `created_by_garage_id.is.null,created_by_garage_id.eq.${garageId}`;
+}
+
+/** "South Garda Karting – Lonato del Garda (IT)": the town is always named, also when it is in the name. */
+export function trackLabel(track: { name: string; city?: string | null; country?: string | null }): string {
+  return `${track.name}${track.city ? ` – ${track.city}` : ""}${track.country ? ` (${track.country})` : ""}`;
+}
 
 /** Sorts options A–Z by their label, the way a Dutch reader expects ("Kart 2" before "Kart 10"). */
 export function sortByLabel<T extends { label: string }>(options: readonly T[]): T[] {

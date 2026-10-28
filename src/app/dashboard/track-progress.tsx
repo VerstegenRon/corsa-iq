@@ -2,12 +2,17 @@ import Link from "next/link";
 
 import { LapTimeChart } from "@/components/lap-time-chart";
 import { cardClass, linkClass } from "@/components/ui";
-import { formatDate, formatLapTime } from "@/lib/karting";
+import { formatDate, formatLapTime, trackLabel } from "@/lib/karting";
 import { formatDelta } from "@/lib/lap-analysis";
 
 export type ProgressSession = {
   best_lap_ms: number | null;
-  events: { id: string; name: string; starts_on: string; tracks: { id: string; name: string } | null };
+  events: {
+    id: string;
+    name: string;
+    starts_on: string;
+    tracks: { id: string; name: string; city: string | null; country: string | null } | null;
+  };
 };
 
 type EventBest = { id: string; name: string; startsOn: string; ms: number };
@@ -18,7 +23,7 @@ function groupByTrack(sessions: ProgressSession[]) {
   for (const session of sessions) {
     const track = session.events.tracks;
     if (!track || session.best_lap_ms === null) continue;
-    const entry = tracks.get(track.id) ?? { name: track.name, events: new Map<string, EventBest>() };
+    const entry = tracks.get(track.id) ?? { name: trackLabel(track), events: new Map<string, EventBest>() };
     const current = entry.events.get(session.events.id);
     if (!current || session.best_lap_ms < current.ms) {
       entry.events.set(session.events.id, {

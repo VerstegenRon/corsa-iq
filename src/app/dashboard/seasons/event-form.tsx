@@ -96,11 +96,15 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
         <>
           <label className={labelClass}>
             Naam circuit *
-            <input name="new_track_name" required placeholder="Circuit Genk" className={inputClass} />
+            <input name="new_track_name" required placeholder="Kartbaan De Polder" className={inputClass} />
+          </label>
+          <label className={labelClass}>
+            Plaats
+            <input name="new_track_city" placeholder="Lelystad" className={inputClass} />
           </label>
           <label className={labelClass}>
             Land (code)
-            <input name="new_track_country" maxLength={2} placeholder="BE" className={`${inputClass} uppercase`} />
+            <input name="new_track_country" maxLength={2} placeholder="NL" className={`${inputClass} uppercase`} />
           </label>
         </>
       )}

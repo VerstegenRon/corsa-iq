@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("sessions")
-      .select("best_lap_ms, events!inner(id, name, starts_on, garage_id, tracks(id, name))")
+      .select("best_lap_ms, events!inner(id, name, starts_on, garage_id, tracks(id, name, city, country))")
       .eq("events.garage_id", garage.id)
       .not("best_lap_ms", "is", null),
     supabase

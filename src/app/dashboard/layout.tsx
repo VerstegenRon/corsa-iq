@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-950 text-zinc-50">
       <header className="border-b border-zinc-900">
-        {/* On phones the nav gets its own scrollable row under the logo and sign-out button. */}
+        {/* On phones the nav gets its own row under the logo and sign-out button; it wraps when needed. */}
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
           <Link
             href="/dashboard"
