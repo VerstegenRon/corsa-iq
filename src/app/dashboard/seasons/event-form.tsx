@@ -2,14 +2,18 @@
 
 import { useActionState, useState } from "react";
 
+import { ChoiceChips } from "@/components/form-controls";
 import { FormMessage, type FormState } from "@/components/form-message";
+import type { IconName } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { sortByLabel, sortedEntries } from "@/lib/karting";
+import { sortByLabel } from "@/lib/karting";
 
 import { createEvent, updateEvent } from "../season-actions";
 
 const initialState: FormState = {};
+
+const EVENT_ICONS: Record<string, IconName> = { race: "flag", training: "stopwatch", test: "wrench" };
 
 type Option = { id: string; label: string };
 
@@ -38,16 +42,13 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
         Naam *
         <input name="name" required defaultValue={event?.name} placeholder="Ronde 1 – Genk" className={inputClass} />
       </label>
-      <label className={labelClass}>
-        Soort *
-        <select name="type" required defaultValue={event?.type ?? "race"} className={inputClass}>
-          {sortedEntries(t.options.eventTypes).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ChoiceChips
+        name="type"
+        legend="Soort"
+        required
+        defaultValue={event?.type ?? "race"}
+        options={Object.entries(t.options.eventTypes).map(([value, label]) => ({ value, label, icon: EVENT_ICONS[value] }))}
+      />
       <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Seizoen
         <select

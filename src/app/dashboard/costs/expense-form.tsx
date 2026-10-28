@@ -2,7 +2,9 @@
 
 import { useActionState, useRef, useState } from "react";
 
+import { ChoiceChips, MoreDetails } from "@/components/form-controls";
 import { FormMessage, type FormState } from "@/components/form-message";
+import { EXPENSE_ICONS, Icon, iconFor } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { sortByLabel, sortedEntries } from "@/lib/karting";
@@ -60,7 +62,10 @@ export function ExpenseForm({
     const form = formRef.current;
     const set = (name: string, value: string | null) => {
       const element = form?.elements.namedItem(name);
-      if (value && (element instanceof HTMLInputElement || element instanceof HTMLSelectElement)) element.value = value;
+      // A category is a group of radio buttons (RadioNodeList); setting its value checks that one.
+      if (value && (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof RadioNodeList)) {
+        element.value = value;
+      }
     };
     set("amount", fields.amount === null ? null : fields.amount.toFixed(2).replace(".", ","));
     set("spent_on", fields.date);
@@ -88,10 +93,17 @@ export function ExpenseForm({
 
   return (
     <form ref={formRef} action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
-      <label className={`${labelClass} col-span-2 lg:col-span-3`}>
-        <span>
-          Bonnetje of factuur (foto of pdf)
-          <span className="block text-xs text-zinc-500">Kies je een bestand, dan vullen we bedrag, datum, omschrijving en categorie voor je in.</span>
+      <label
+        className={`col-span-2 flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-dashed border-zinc-700 p-4 transition-colors hover:border-brand-400/60 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-400 lg:col-span-3 ${
+          reading.busy ? "opacity-60" : ""
+        }`}
+      >
+        <span aria-hidden="true" className="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-500 text-on-brand">
+          <Icon name="camera" className="size-6" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold text-zinc-100">{reading.busy ? "Bonnetje lezen…" : "Foto of pdf van je bonnetje"}</span>
+          <span className="block text-xs text-zinc-500">We vullen bedrag, datum en categorie voor je in.</span>
         </span>
         <input
           name="receipt"
@@ -99,7 +111,7 @@ export function ExpenseForm({
           accept={RECEIPT_ACCEPT}
           onChange={onReceiptChange}
           disabled={reading.busy}
-          className={`${inputClass} py-2.5 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-3 file:py-0.5 file:text-sm file:text-zinc-200`}
+          className="sr-only"
         />
       </label>
       {(reading.message || reading.error) && (
@@ -108,16 +120,14 @@ export function ExpenseForm({
         </p>
       )}
 
-      <label className={labelClass}>
-        Categorie *
-        <select name="category" required defaultValue="entry_fee" className={inputClass}>
-          {sortedEntries(t.options.expenseCategories).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ChoiceChips
+        name="category"
+        legend="Categorie"
+        required
+        variant="tiles"
+        defaultValue="entry_fee"
+        options={sortedEntries(t.options.expenseCategories).map(([value, label]) => ({ value, label, icon: iconFor(EXPENSE_ICONS, value) }))}
+      />
       <label className={labelClass}>
         Bedrag (€) *
         <input name="amount" required inputMode="decimal" placeholder="85,00" className={inputClass} />
@@ -130,7 +140,7 @@ export function ExpenseForm({
       {eventId ? (
         <input type="hidden" name="event_id" value={eventId} />
       ) : (
-        <>
+        <MoreDetails title="Seizoen en evenement">
           <label className={`${labelClass} col-span-2 sm:col-span-1`}>
             Seizoen
             <select name="season_id" defaultValue={defaultSeasonId ?? ""} className={inputClass}>
@@ -153,7 +163,7 @@ export function ExpenseForm({
               ))}
             </select>
           </label>
-        </>
+        </MoreDetails>
       )}
 
       <label className={`${labelClass} col-span-2 lg:col-span-1`}>

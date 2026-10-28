@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EXPENSE_ICONS, Icon, IconTile, iconFor } from "@/components/icons";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import { formatCents, formatDate, labelFor } from "@/lib/karting";
@@ -37,8 +38,9 @@ export async function ExpenseList({ expenses, showEvent = true }: { expenses: Ex
         const category = labelFor(t.options.expenseCategories, expense.category);
         const receiptUrl = expense.receipt_path ? receiptUrls.get(expense.receipt_path) : undefined;
         return (
-          <li key={expense.id} className="flex items-center justify-between gap-4 py-3">
-            <div className="min-w-0">
+          <li key={expense.id} className="flex items-center justify-between gap-3 py-3">
+            <IconTile name={iconFor(EXPENSE_ICONS, expense.category)} tone="neutral" size="sm" />
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-100">{expense.description ?? category}</p>
               <p className="text-xs text-zinc-500">
                 {formatDate(expense.spent_on)} · {category}
@@ -57,8 +59,9 @@ export async function ExpenseList({ expenses, showEvent = true }: { expenses: Ex
                       href={receiptUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-brand-300 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+                      className="inline-flex items-center gap-1 text-brand-300 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                     >
+                      <Icon name="receipt" className="size-3" />
                       Bonnetje
                     </a>
                   </>

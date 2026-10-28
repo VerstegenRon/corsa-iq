@@ -5,7 +5,9 @@ import { useActionState, useRef } from "react";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { sortByLabel, sortedEntries, type SetupValues } from "@/lib/karting";
+import { ChoiceChips, MoreDetails, Stepper } from "@/components/form-controls";
+import { WEATHER_ICONS } from "@/components/icons";
+import { sortByLabel, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, SETUP_GROUPS, getSetupValue, inputSetupValue, type SetupGroup } from "@/lib/setup";
 
 import { createSession, updateSession } from "../../season-actions";
@@ -70,16 +72,13 @@ export function SessionForm({
     <form action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-8">
       <fieldset className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <legend className="mb-4 text-sm font-semibold text-zinc-200">Sessie</legend>
-        <label className={labelClass}>
-          Soort *
-          <select name="type" required defaultValue={session?.type ?? "practice"} className={inputClass}>
-            {sortedEntries(t.options.sessionTypes).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ChoiceChips
+          name="type"
+          legend="Soort"
+          required
+          defaultValue={session?.type ?? "practice"}
+          options={Object.entries(t.options.sessionTypes).map(([value, label]) => ({ value, label }))}
+        />
         <label className={labelClass}>
           Kart *
           {session ? (
@@ -152,18 +151,14 @@ export function SessionForm({
         </label>
       </fieldset>
 
-      <fieldset className="grid gap-4 sm:grid-cols-3">
+      <fieldset className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3">
         <legend className="mb-4 text-sm font-semibold text-zinc-200">Omstandigheden</legend>
-        <label className={labelClass}>
-          Weer
-          <select name="weather" defaultValue={c.weather ?? "dry"} className={inputClass}>
-            {sortedEntries(t.options.weather).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ChoiceChips
+          name="weather"
+          legend="Weer"
+          defaultValue={c.weather ?? "dry"}
+          options={Object.entries(t.options.weather).map(([value, label]) => ({ value, label, icon: WEATHER_ICONS[value] }))}
+        />
         <label className={labelClass}>
           Luchttemperatuur (°C)
           <input name="air_temp_c" inputMode="decimal" defaultValue={decimal(c.air_temp_c)} placeholder="18" className={inputClass} />
@@ -183,23 +178,44 @@ export function SessionForm({
               ? "Ingevuld met je vorige afstelling. Pas aan wat je veranderde."
               : "Vul in wat je bijhoudt; alles is optioneel."}
         </p>
-        {(Object.keys(SETUP_GROUPS) as SetupGroup[]).map((group) => (
-          <div key={group} className="grid grid-cols-2 gap-x-3 gap-y-4 sm:col-span-2 lg:col-span-4 lg:grid-cols-4">
-            <p className="col-span-2 text-xs font-medium tracking-wide text-zinc-500 uppercase lg:col-span-4">{SETUP_GROUPS[group]}</p>
-            {SETUP_FIELDS.filter((field) => field.group === group).map((field) => (
-              <label key={field.name} className={labelClass}>
-                {field.label}
-                <input
-                  name={field.name}
-                  inputMode={field.kind === "integer" ? "numeric" : field.kind === "decimal" ? "decimal" : undefined}
-                  defaultValue={inputSetupValue(field, getSetupValue(s, field))}
-                  placeholder={field.placeholder}
-                  className={inputClass}
-                />
-              </label>
-            ))}
-          </div>
-        ))}
+        {(Object.keys(SETUP_GROUPS) as SetupGroup[]).map((group) => {
+          const fields = SETUP_FIELDS.filter((field) => field.group === group);
+          const filled = fields.filter((field) => getSetupValue(s, field) !== undefined).length;
+          return (
+            <MoreDetails
+              key={group}
+              title={`${SETUP_GROUPS[group]}${filled > 0 ? ` · ${filled} ingevuld` : ""}`}
+              defaultOpen={filled > 0}
+              className="sm:col-span-2 lg:col-span-4"
+              columns="lg:grid-cols-4"
+            >
+              {fields.map((field) =>
+                field.unit === "bar" || field.group === "gearing" ? (
+                  <Stepper
+                    key={field.name}
+                    name={field.name}
+                    label={field.label}
+                    defaultValue={inputSetupValue(field, getSetupValue(s, field))}
+                    placeholder={field.placeholder}
+                    step={field.unit === "bar" ? 0.01 : 1}
+                    decimals={field.unit === "bar" ? 2 : 0}
+                  />
+                ) : (
+                  <label key={field.name} className={labelClass}>
+                    {field.label}
+                    <input
+                      name={field.name}
+                      inputMode={field.kind === "integer" ? "numeric" : field.kind === "decimal" ? "decimal" : undefined}
+                      defaultValue={inputSetupValue(field, getSetupValue(s, field))}
+                      placeholder={field.placeholder}
+                      className={inputClass}
+                    />
+                  </label>
+                ),
+              )}
+            </MoreDetails>
+          );
+        })}
         <label className={`${labelClass} sm:col-span-2 lg:col-span-4`}>
           Notities afstelling
           <input name="setup_notes" defaultValue={s.notes} className={inputClass} />

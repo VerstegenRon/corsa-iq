@@ -5,6 +5,8 @@ import { useActionState } from "react";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
+import { ChoiceChips, MoreDetails } from "@/components/form-controls";
+import { PART_ICONS, iconFor } from "@/components/icons";
 import { decimalInput, sortedEntries } from "@/lib/karting";
 
 import { createPart, updatePart } from "../actions";
@@ -34,19 +36,14 @@ export function PartForm({ part }: { part?: PartValues }) {
 
   return (
     <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
-      <label className={labelClass}>
-        Categorie *
-        <select name="category" required defaultValue={part?.category ?? ""} className={inputClass}>
-          <option value="" disabled>
-            Kies…
-          </option>
-          {sortedEntries(t.options.partCategories).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ChoiceChips
+        name="category"
+        legend="Wat is het?"
+        required
+        variant="tiles"
+        defaultValue={part?.category}
+        options={sortedEntries(t.options.partCategories).map(([value, label]) => ({ value, label, icon: iconFor(PART_ICONS, value) }))}
+      />
       <label className={labelClass}>
         Merk
         <input name="brand" defaultValue={part?.brand ?? ""} placeholder="Vortex, MG, OTK…" className={inputClass} />
@@ -56,30 +53,12 @@ export function PartForm({ part }: { part?: PartValues }) {
         <input name="model" defaultValue={part?.model ?? ""} placeholder="Rok GP, SM Red…" className={inputClass} />
       </label>
       <label className={labelClass}>
-        Serie- of motornummer
-        <input name="serial_number" defaultValue={part?.serial_number ?? ""} className={inputClass} />
-      </label>
-      <label className={labelClass}>
-        Aankoopdatum
-        <input name="purchased_on" type="date" defaultValue={part?.purchased_on ?? ""} className={inputClass} />
-      </label>
-      <label className={labelClass}>
         Aankoopprijs (€)
         <input
           name="purchase_price"
           inputMode="decimal"
           defaultValue={part ? decimalInput(part.purchase_price_cents, 100) : undefined}
           placeholder="249,95"
-          className={inputClass}
-        />
-      </label>
-      <label className={labelClass}>
-        Revisie of vervangen na (uren)
-        <input
-          name="usage_limit_hours"
-          inputMode="decimal"
-          defaultValue={part ? decimalInput(part.usage_limit_minutes, 60) : undefined}
-          placeholder="10"
           className={inputClass}
         />
       </label>
@@ -104,10 +83,30 @@ export function PartForm({ part }: { part?: PartValues }) {
           )}
         </label>
       )}
-      <label className={`${labelClass} col-span-2`}>
-        Notities
-        <input name="notes" defaultValue={part?.notes ?? ""} className={inputClass} />
-      </label>
+      <MoreDetails defaultOpen={Boolean(part && (part.serial_number || part.purchased_on || part.usage_limit_minutes || part.notes))}>
+        <label className={labelClass}>
+          Serie- of motornummer
+          <input name="serial_number" defaultValue={part?.serial_number ?? ""} className={inputClass} />
+        </label>
+        <label className={labelClass}>
+          Aankoopdatum
+          <input name="purchased_on" type="date" defaultValue={part?.purchased_on ?? ""} className={inputClass} />
+        </label>
+        <label className={labelClass}>
+          Revisie of vervangen na (uren)
+          <input
+            name="usage_limit_hours"
+            inputMode="decimal"
+            defaultValue={part ? decimalInput(part.usage_limit_minutes, 60) : undefined}
+            placeholder="10"
+            className={inputClass}
+          />
+        </label>
+        <label className={`${labelClass} col-span-2`}>
+          Notities
+          <input name="notes" defaultValue={part?.notes ?? ""} className={inputClass} />
+        </label>
+      </MoreDetails>
 
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />

@@ -2,18 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AddSection } from "@/components/edit-section";
-import { cardClass, linkClass } from "@/components/ui";
+import { GEAR_ICONS, Icon, IconTile, iconFor } from "@/components/icons";
+import { Chip } from "@/components/meter";
+import { EmptyState, PageHeader } from "@/components/page-header";
+import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { gearValidity } from "@/lib/gear";
 import { getDictionary } from "@/lib/i18n/server";
-import { formatCents, labelFor, todayInAmsterdam } from "@/lib/karting";
+import { formatCents, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
 
 import { GearForm } from "./gear-form";
-import { Validity } from "./validity";
 
 export const metadata: Metadata = {
   title: "Uitrusting — CorsaIQ",
 };
+
+const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
 export default async function GearPage() {
   const { supabase, garage } = await getCurrentGarage();
@@ -36,55 +40,71 @@ export default async function GearPage() {
   // One block per driver (in the order they were added), then shared gear without a driver.
   const groups = [
     ...drivers.map((driver) => ({ key: driver.id, title: driver.name, items: gear.filter((g) => g.driver_id === driver.id) })),
-    { key: "none", title: "Geen coureur", items: gear.filter((g) => g.driver_id === null) },
+    { key: "none", title: "Gedeeld", items: gear.filter((g) => g.driver_id === null) },
   ].filter((group) => group.items.length > 0);
 
   return (
     <>
-      <section>
-        <h1 className="text-3xl font-semibold tracking-tight">Uitrusting</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Helm, overall, handschoenen en de rest, per coureur. Vul in tot wanneer de homologatie geldig is: vanaf twee maanden
-          ervoor zie je een waarschuwing op je overzicht.
-        </p>
-      </section>
+      <PageHeader
+        icon="helmet"
+        title="Uitrusting"
+        subtitle={gear.length > 0 ? "Homologatie bijna verlopen? Dan zie je het op je overzicht." : undefined}
+        add="Item"
+      />
+
+      {gear.length === 0 && (
+        <EmptyState icon="helmet" title="Nog geen uitrusting" text="Helm, overall, handschoenen: met de datum tot wanneer de homologatie geldt." />
+      )}
 
       {groups.map((group) => (
-        <section key={group.key} aria-label={group.title} className={`${cardClass} overflow-x-auto p-0`}>
-          <h2 className="px-6 pt-5 text-lg font-semibold">{group.title}</h2>
-          <table className="mt-2 w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-zinc-800 text-xs tracking-wide text-zinc-500 uppercase">
-              <tr>
-                <th scope="col" className="px-6 py-3 font-medium">Item</th>
-                <th scope="col" className="px-6 py-3 font-medium">Maat</th>
-                <th scope="col" className="px-6 py-3 font-medium">Homologatie</th>
-                <th scope="col" className="px-6 py-3 text-right font-medium">Prijs</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/80">
-              {group.items.map((item) => (
-                <tr key={item.id} className={item.status === "retired" ? "opacity-60" : undefined}>
-                  <td className="px-6 py-4">
-                    <Link href={`/dashboard/gear/${item.id}`} className={`${linkClass} font-medium`}>
-                      {[item.brand, item.model].filter(Boolean).join(" ") || labelFor(t.options.gearCategories, item.category)}
-                    </Link>
-                    <p className="text-xs text-zinc-500">
-                      {labelFor(t.options.gearCategories, item.category)}
-                      {item.status !== "in_use" && ` · ${labelFor(t.options.gearStatuses, item.status)}`}
-                    </p>
-                  </td>
-                  <td className="px-6 py-4 text-zinc-300">{item.size ?? "—"}</td>
-                  <td className="px-6 py-4">
-                    <span className="block text-zinc-300">{item.homologation ?? "—"}</span>
-                    <span className="text-xs">
-                      <Validity validUntil={item.valid_until} validity={gearValidity(item.valid_until, today)} />
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right tabular-nums text-zinc-300">{formatCents(item.purchase_price_cents)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <section key={group.key} aria-labelledby={`gear-${group.key}`} className="flex flex-col gap-3">
+          <h2 id={`gear-${group.key}`} className="flex items-center gap-2 text-sm font-medium text-zinc-400">
+            <Icon name="user" className="size-4" />
+            {group.title}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {group.items.map((item) => {
+              const validity = gearValidity(item.valid_until, today);
+              const name = [item.brand, item.model].filter(Boolean).join(" ") || labelFor(t.options.gearCategories, item.category);
+              const tone = validity?.tone === "expired" ? "red" : validity?.tone === "soon" ? "amber" : "brand";
+              return (
+                <Link
+                  key={item.id}
+                  href={`/dashboard/gear/${item.id}`}
+                  className={`${cardClass} group flex flex-col gap-4 transition-colors hover:border-brand-400/40 ${focusRing} ${
+                    item.status === "retired" ? "opacity-60" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <IconTile name={iconFor(GEAR_ICONS, item.category)} tone={tone} />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold tracking-tight">{name}</h3>
+                      <p className="truncate text-xs text-zinc-500">
+                        {labelFor(t.options.gearCategories, item.category)}
+                        {item.size && ` · maat ${item.size}`}
+                      </p>
+                    </div>
+                    {item.purchase_price_cents !== null && (
+                      <span className="shrink-0 text-xs text-zinc-400 tabular-nums">{formatCents(item.purchase_price_cents)}</span>
+                    )}
+                  </div>
+                  <div className="mt-auto flex flex-wrap gap-1.5">
+                    {item.homologation && <Chip>{item.homologation}</Chip>}
+                    {validity && (
+                      <Chip tone={validity.tone === "expired" ? "due" : validity.tone === "soon" ? "soon" : "neutral"}>
+                        {validity.tone === "expired"
+                          ? "verlopen"
+                          : validity.tone === "soon"
+                            ? `nog ${validity.daysLeft} ${validity.daysLeft === 1 ? "dag" : "dagen"}`
+                            : `tot ${formatDate(item.valid_until)}`}
+                      </Chip>
+                    )}
+                    {item.status !== "in_use" && <Chip>{labelFor(t.options.gearStatuses, item.status)}</Chip>}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </section>
       ))}
 

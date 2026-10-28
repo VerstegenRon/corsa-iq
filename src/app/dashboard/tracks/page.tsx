@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AddSection } from "@/components/edit-section";
+import { PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { countryName, ownOrOfficial, sortByLabel } from "@/lib/karting";
@@ -38,12 +39,7 @@ export default async function TracksPage() {
 
   return (
     <>
-      <section>
-        <h1 className="text-3xl font-semibold tracking-tight">Circuits</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          De bekendste outdoorcircuits van Europa staan er al in. Mis je er een, voeg het dan zelf toe.
-        </p>
-      </section>
+      <PageHeader icon="flag" title="Circuits" subtitle={`${rows.length} circuits in Europa · mis je er een? Voeg het toe.`} add="Circuit" />
 
       <section aria-label="Alle circuits" className={cardClass}>
         <TrackList tracks={sorted} />

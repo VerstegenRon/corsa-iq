@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { MoreDetails } from "@/components/form-controls";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 
@@ -39,20 +40,22 @@ export function DriverForm({ driver }: { driver?: DriverValues }) {
         Startnummer
         <input name="race_number" defaultValue={driver?.race_number ?? ""} placeholder="33" className={inputClass} />
       </label>
-      <label className={labelClass}>
-        Gewicht (kg)
-        <input
-          name="weight_kg"
-          inputMode="decimal"
-          defaultValue={driver?.weight_kg != null ? String(driver.weight_kg).replace(".", ",") : ""}
-          placeholder="68,5"
-          className={inputClass}
-        />
-      </label>
-      <label className={labelClass}>
-        Licentienummer
-        <input name="licence_number" defaultValue={driver?.licence_number ?? ""} className={inputClass} />
-      </label>
+      <MoreDetails defaultOpen={Boolean(driver && (driver.weight_kg !== null || driver.licence_number))}>
+        <label className={labelClass}>
+          Gewicht (kg)
+          <input
+            name="weight_kg"
+            inputMode="decimal"
+            defaultValue={driver?.weight_kg != null ? String(driver.weight_kg).replace(".", ",") : ""}
+            placeholder="68,5"
+            className={inputClass}
+          />
+        </label>
+        <label className={labelClass}>
+          Licentienummer
+          <input name="licence_number" defaultValue={driver?.licence_number ?? ""} className={inputClass} />
+        </label>
+      </MoreDetails>
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-4">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>

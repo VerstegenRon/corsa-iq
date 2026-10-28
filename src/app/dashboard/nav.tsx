@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { Icon, type IconName } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { sortByLabel } from "@/lib/karting";
 
-type NavItem = { href: string; key: keyof Dictionary["nav"]; also?: string[] };
+type NavItem = { href: string; key: keyof Dictionary["nav"]; icon: IconName; also?: string[] };
 
 // Grouped by what you are doing; A–Z within a group. The overview has no tab: the CorsaIQ logo is the
 // home link.
@@ -16,20 +17,20 @@ const groups: { key: keyof Dictionary["nav"]; items: NavItem[] }[] = [
   {
     key: "groupRacing",
     items: [
-      { href: "/dashboard/seasons", key: "seasons", also: ["/dashboard/events", "/dashboard/sessions"] },
-      { href: "/dashboard/tracks", key: "tracks" },
-      { href: "/dashboard/drivers", key: "drivers" },
+      { href: "/dashboard/seasons", key: "seasons", icon: "calendar", also: ["/dashboard/events", "/dashboard/sessions"] },
+      { href: "/dashboard/tracks", key: "tracks", icon: "flag" },
+      { href: "/dashboard/drivers", key: "drivers", icon: "user" },
     ],
   },
   {
     key: "groupEquipment",
     items: [
-      { href: "/dashboard/karts", key: "karts" },
-      { href: "/dashboard/parts", key: "parts" },
-      { href: "/dashboard/gear", key: "gear" },
+      { href: "/dashboard/karts", key: "karts", icon: "kart" },
+      { href: "/dashboard/parts", key: "parts", icon: "engine" },
+      { href: "/dashboard/gear", key: "gear", icon: "helmet" },
     ],
   },
-  { key: "groupFinance", items: [{ href: "/dashboard/costs", key: "costs" }] },
+  { key: "groupFinance", items: [{ href: "/dashboard/costs", key: "costs", icon: "euro" }] },
 ];
 
 function useNavGroups() {
@@ -78,10 +79,7 @@ export function SettingsLink() {
         isActive ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
       }`}
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-      </svg>
+      <Icon name="settings" className="size-4" />
       <span className="hidden xl:inline">{t.settings.link}</span>
       <span className="sr-only xl:hidden">{t.settings.link}</span>
     </Link>
@@ -110,10 +108,11 @@ export function DashboardNav() {
               key={item.href}
               href={item.href}
               aria-current={item.isActive ? "page" : undefined}
-              className={`rounded-full px-3.5 py-2 text-sm whitespace-nowrap transition-colors ${focusRing} ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm whitespace-nowrap transition-colors ${focusRing} ${
                 item.isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"
               }`}
             >
+              <Icon name={item.icon} className={`hidden size-4 xl:inline-block ${item.isActive ? "text-brand-300" : ""}`} />
               {item.label}
             </Link>
           ))}
@@ -156,46 +155,41 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
 
       {isOpen && (
         <div id="mobile-menu" className="absolute inset-x-0 top-full z-20 border-b border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
-          {/* One line per group, its pages as chips beside it, so the whole menu fits in a few lines. */}
-          <nav aria-label={t.common.navLabel} className="mx-auto flex max-w-6xl flex-col gap-3 px-6 pt-4 pb-3">
-            {navGroups.map((group) => (
-              <div key={group.key} role="group" aria-label={group.label} className="flex items-center gap-2">
-                <span aria-hidden="true" className="w-[4.5rem] shrink-0 text-[11px] font-medium tracking-wider text-zinc-500 uppercase">
-                  {group.label}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {group.links.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={item.isActive ? "page" : undefined}
-                      className={`inline-flex h-9 items-center rounded-full border px-3 text-sm whitespace-nowrap transition-colors ${focusRing} ${
-                        item.isActive
-                          ? "border-zinc-700 bg-zinc-800 text-white"
-                          : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
+          {/* All pages as icon tiles, four to a row, so the whole menu fits in two rows. */}
+          <nav aria-label={t.common.navLabel} className="mx-auto grid max-w-6xl grid-cols-4 gap-2 px-4 pt-4 pb-3 sm:px-6">
+            {navGroups.flatMap((group) => group.links).map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={item.isActive ? "page" : undefined}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-3 text-xs transition-colors ${focusRing} ${
+                  item.isActive
+                    ? "border-zinc-700 bg-zinc-800 text-white"
+                    : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
+                }`}
+              >
+                <Icon name={item.icon} className={`size-5 ${item.isActive ? "text-brand-300" : "text-zinc-400"}`} />
+                {item.label}
+              </Link>
             ))}
-          </nav>
-          <div className="mx-auto flex max-w-6xl flex-wrap gap-1.5 border-t border-zinc-800/80 px-6 py-3">
             <Link
               href="/dashboard/settings"
               aria-current={isSettings ? "page" : undefined}
-              className={`inline-flex h-9 items-center rounded-full border px-4 text-sm transition-colors ${focusRing} ${
-                isSettings ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
-              }`}
+              className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-3 text-xs transition-colors ${focusRing} ${
+                  isSettings
+                    ? "border-zinc-700 bg-zinc-800 text-white"
+                    : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
+                }`}
             >
+              <Icon name="settings" className={`size-5 ${isSettings ? "text-brand-300" : "text-zinc-400"}`} />
               {t.settings.link}
             </Link>
+          </nav>
+          <div className="mx-auto flex max-w-6xl justify-end border-t border-zinc-800/80 px-4 py-3 sm:px-6">
             <form action={signOut}>
               <button
                 type="submit"
-                className={`inline-flex h-9 items-center rounded-full border border-zinc-800 px-3 text-sm text-zinc-300 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
+                className={`inline-flex h-9 items-center rounded-full border border-zinc-800 px-4 text-sm text-zinc-300 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
               >
                 {t.common.signOut}
               </button>
