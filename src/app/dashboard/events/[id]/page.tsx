@@ -119,7 +119,9 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                 <li key={session.id} className="grid gap-3 py-4 sm:grid-cols-[1fr_auto]">
                   <div>
                     <p className="text-sm font-medium text-zinc-100">
-                      {labelFor(SESSION_TYPES, session.type)}
+                      <Link href={`/dashboard/sessions/${session.id}`} className={linkClass}>
+                        {labelFor(SESSION_TYPES, session.type)}
+                      </Link>
                       <span className="font-normal text-zinc-500">
                         {" "}
                         · {formatTime(session.started_at)} · {session.karts?.name} · {session.drivers?.name}

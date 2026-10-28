@@ -1025,7 +1025,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      replace_session_laps: {
+        Args: { p_data_import_id: string; p_laps: Json; p_session_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

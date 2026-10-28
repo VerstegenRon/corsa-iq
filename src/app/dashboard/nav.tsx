@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const items: { href: string; label: string; also?: string[] }[] = [
   { href: "/dashboard", label: "Overzicht" },
-  { href: "/dashboard/seasons", label: "Seizoen", also: ["/dashboard/events"] },
+  { href: "/dashboard/seasons", label: "Seizoen", also: ["/dashboard/events", "/dashboard/sessions"] },
   { href: "/dashboard/karts", label: "Karts" },
   { href: "/dashboard/parts", label: "Onderdelen" },
   { href: "/dashboard/costs", label: "Kosten" },
