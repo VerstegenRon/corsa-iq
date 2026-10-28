@@ -94,6 +94,12 @@ export default async function SeasonsPage() {
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id={`season-${season.id}`} className="text-lg font-semibold">
               {season.name}
+              <Link
+                href={`/dashboard/seasons/${season.id}`}
+                className="ml-3 text-xs font-normal text-zinc-500 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+              >
+                Bewerken
+              </Link>
             </h2>
             <p className="text-xs text-zinc-500">{[season.class, season.championship].filter(Boolean).join(" · ")}</p>
           </div>

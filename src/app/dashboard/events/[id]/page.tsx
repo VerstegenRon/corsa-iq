@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DeleteButton } from "@/components/delete-button";
+import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import {
@@ -19,6 +21,8 @@ import {
 } from "@/lib/karting";
 
 import { ExpenseForm } from "../../costs/expense-form";
+import { deleteEvent } from "../../season-actions";
+import { EventForm } from "../../seasons/event-form";
 import { ExpenseList } from "../../costs/expense-list";
 import { SessionForm } from "./session-form";
 
@@ -32,11 +36,12 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
 
-  const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult] = await Promise.all([
+  const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult, seasonsResult, tracksResult] =
+    await Promise.all([
     supabase
       .from("events")
       .select(
-        "id, name, type, starts_on, ends_on, notes, tracks(name, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, karts(name), drivers(name), setups(values), session_parts(part_id))",
+        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, karts(name), drivers(name), setups(values), session_parts(part_id))",
       )
       .eq("id", id)
       .eq("garage_id", garage.id)
@@ -58,6 +63,8 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       .eq("garage_id", garage.id)
       .order("spent_on", { ascending: false })
       .order("created_at", { ascending: false }),
+    supabase.from("seasons").select("id, name").eq("garage_id", garage.id).order("year", { ascending: false }),
+    supabase.from("tracks").select("id, name, country").order("name"),
   ]);
   if (eventResult.error) throw new Error(eventResult.error.message);
   const event = eventResult.data;
@@ -183,6 +190,23 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
           <ExpenseForm garageId={garage.id} eventId={event.id} defaultDate={event.starts_on} />
         </div>
       </section>
+
+      <EditSection
+        title="Evenement bewerken"
+        danger={
+          <DeleteButton
+            action={deleteEvent.bind(null, event.id)}
+            label="Evenement verwijderen"
+            confirmText={`${event.name} verwijderen?${event.sessions.length > 0 ? ` De ${event.sessions.length} ${event.sessions.length === 1 ? "sessie" : "sessies"} met afstellingen en rondetijden worden ook verwijderd.` : ""} Kosten blijven bewaard.`}
+          />
+        }
+      >
+        <EventForm
+          event={event}
+          seasons={(seasonsResult.data ?? []).map((s) => ({ id: s.id, label: s.name }))}
+          tracks={(tracksResult.data ?? []).map((t) => ({ id: t.id, label: t.country ? `${t.name} (${t.country})` : t.name }))}
+        />
+      </EditSection>
     </>
   );
 }

@@ -6,7 +6,7 @@ import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { EXPENSE_CATEGORIES } from "@/lib/karting";
 import { removeReceipt, uploadReceipt } from "@/lib/receipt-upload";
-import { RECEIPT_ACCEPT } from "@/lib/receipts";
+import { RECEIPT_ACCEPT } from "@/lib/storage";
 
 import { createExpense } from "../expense-actions";
 

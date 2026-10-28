@@ -3,7 +3,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 
-export const LOGGER_BUCKET = "logger-files";
+import { LOGGER_BUCKET } from "@/lib/storage";
 
 export async function uploadLoggerFile(garageId: string, file: File): Promise<{ path: string } | { error: string }> {
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z]/g, "") || "csv";

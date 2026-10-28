@@ -6,26 +6,51 @@ import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { SESSION_TYPES, WEATHER, type SetupValues } from "@/lib/karting";
 
-import { createSession } from "../../season-actions";
+import { createSession, updateSession } from "../../season-actions";
 
 const initialState: FormState = {};
 
 type Option = { id: string; label: string };
 
+export type SessionValues = {
+  id: string;
+  type: string;
+  kartName: string;
+  driverId: string;
+  /** "YYYY-MM-DDTHH:mm" in local (Dutch) time, for the datetime-local input. */
+  startedLocal: string;
+  durationMin: number;
+  bestLap: string | null;
+  hasLaps: boolean;
+  position: number | null;
+  conditions: { weather?: string; air_temp_c?: number; track_temp_c?: number };
+  driverFeedback: string | null;
+  setup: SetupValues;
+};
+
+/** "0.62" → "0,62", to match how drivers type decimals. */
+const decimal = (value: number | undefined) => (value === undefined ? undefined : String(value).replace(".", ","));
+
+/** Adds a session to an event, or edits one when `session` is given. */
 export function SessionForm({
   eventId,
   eventDate,
   karts,
   drivers,
   lastSetup,
+  session,
 }: {
   eventId: string;
   eventDate: string;
   karts: Option[];
   drivers: Option[];
   lastSetup: SetupValues | null;
+  session?: SessionValues;
 }) {
-  const [state, formAction, isPending] = useActionState(createSession.bind(null, eventId), initialState);
+  const [state, formAction, isPending] = useActionState(
+    session ? updateSession.bind(null, session.id) : createSession.bind(null, eventId),
+    initialState,
+  );
   const localStartRef = useRef<HTMLInputElement>(null);
   const isoStartRef = useRef<HTMLInputElement>(null);
 
@@ -35,7 +60,8 @@ export function SessionForm({
     if (isoStartRef.current) isoStartRef.current.value = local ? new Date(local).toISOString() : "";
   }
 
-  const s = lastSetup ?? {};
+  const s = session?.setup ?? lastSetup ?? {};
+  const c = session?.conditions ?? {};
 
   return (
     <form action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-8">
@@ -43,7 +69,7 @@ export function SessionForm({
         <legend className="mb-4 text-sm font-semibold text-zinc-200">Sessie</legend>
         <label className={labelClass}>
           Soort *
-          <select name="type" required defaultValue="practice" className={inputClass}>
+          <select name="type" required defaultValue={session?.type ?? "practice"} className={inputClass}>
             {Object.entries(SESSION_TYPES).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -53,17 +79,21 @@ export function SessionForm({
         </label>
         <label className={labelClass}>
           Kart *
-          <select name="kart_id" required defaultValue={karts[0]?.id} className={inputClass}>
-            {karts.map((kart) => (
-              <option key={kart.id} value={kart.id}>
-                {kart.label}
-              </option>
-            ))}
-          </select>
+          {session ? (
+            <span className={`${inputClass} flex items-center text-zinc-400`}>{session.kartName}</span>
+          ) : (
+            <select name="kart_id" required defaultValue={karts[0]?.id} className={inputClass}>
+              {karts.map((kart) => (
+                <option key={kart.id} value={kart.id}>
+                  {kart.label}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
         <label className={labelClass}>
           Coureur *
-          <select name="driver_id" required defaultValue={drivers[0]?.id} className={inputClass}>
+          <select name="driver_id" required defaultValue={session?.driverId ?? drivers[0]?.id} className={inputClass}>
             {drivers.map((driver) => (
               <option key={driver.id} value={driver.id}>
                 {driver.label}
@@ -77,22 +107,45 @@ export function SessionForm({
             ref={localStartRef}
             type="datetime-local"
             required
-            defaultValue={`${eventDate}T10:00`}
+            defaultValue={session?.startedLocal ?? `${eventDate}T10:00`}
             className={inputClass}
           />
           <input ref={isoStartRef} type="hidden" name="started_at_iso" />
         </label>
         <label className={labelClass}>
           Duur (minuten) *
-          <input name="duration_min" required inputMode="decimal" placeholder="15" className={inputClass} />
+          <input
+            name="duration_min"
+            required
+            inputMode="decimal"
+            defaultValue={decimal(session?.durationMin)}
+            placeholder="15"
+            className={inputClass}
+          />
         </label>
-        <label className={labelClass}>
-          Snelste ronde
-          <input name="best_lap" inputMode="decimal" placeholder="52.345" className={inputClass} />
-        </label>
+        {session?.hasLaps ? (
+          <p className="text-xs text-zinc-500 sm:pt-7">De snelste ronde volgt uit de geïmporteerde ronden.</p>
+        ) : (
+          <label className={labelClass}>
+            Snelste ronde
+            <input
+              name="best_lap"
+              inputMode="decimal"
+              defaultValue={session?.bestLap ?? ""}
+              placeholder="52.345"
+              className={inputClass}
+            />
+          </label>
+        )}
         <label className={labelClass}>
           Positie
-          <input name="position" inputMode="numeric" placeholder="3" className={inputClass} />
+          <input
+            name="position"
+            inputMode="numeric"
+            defaultValue={session?.position ?? ""}
+            placeholder="3"
+            className={inputClass}
+          />
         </label>
       </fieldset>
 
@@ -100,7 +153,7 @@ export function SessionForm({
         <legend className="mb-4 text-sm font-semibold text-zinc-200">Omstandigheden</legend>
         <label className={labelClass}>
           Weer
-          <select name="weather" defaultValue="dry" className={inputClass}>
+          <select name="weather" defaultValue={c.weather ?? "dry"} className={inputClass}>
             {Object.entries(WEATHER).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -110,26 +163,30 @@ export function SessionForm({
         </label>
         <label className={labelClass}>
           Luchttemperatuur (°C)
-          <input name="air_temp_c" inputMode="decimal" placeholder="18" className={inputClass} />
+          <input name="air_temp_c" inputMode="decimal" defaultValue={decimal(c.air_temp_c)} placeholder="18" className={inputClass} />
         </label>
         <label className={labelClass}>
           Baantemperatuur (°C)
-          <input name="track_temp_c" inputMode="decimal" placeholder="24" className={inputClass} />
+          <input name="track_temp_c" inputMode="decimal" defaultValue={decimal(c.track_temp_c)} placeholder="24" className={inputClass} />
         </label>
       </fieldset>
 
       <fieldset className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <legend className="mb-1 text-sm font-semibold text-zinc-200">Afstelling</legend>
         <p className="mb-3 text-xs text-zinc-500 sm:col-span-2 lg:col-span-4">
-          {lastSetup ? "Ingevuld met je vorige afstelling. Pas aan wat je veranderde." : "Vul in wat je bijhoudt; alles is optioneel."}
+          {session
+            ? "Een gewijzigde afstelling wordt als nieuwe momentopname bewaard."
+            : lastSetup
+              ? "Ingevuld met je vorige afstelling. Pas aan wat je veranderde."
+              : "Vul in wat je bijhoudt; alles is optioneel."}
         </p>
         <label className={labelClass}>
           Bandenspanning voor (bar, koud)
-          <input name="pressure_front" inputMode="decimal" defaultValue={s.tyre_pressure_cold_bar?.front} placeholder="0,62" className={inputClass} />
+          <input name="pressure_front" inputMode="decimal" defaultValue={decimal(s.tyre_pressure_cold_bar?.front)} placeholder="0,62" className={inputClass} />
         </label>
         <label className={labelClass}>
           Bandenspanning achter (bar, koud)
-          <input name="pressure_rear" inputMode="decimal" defaultValue={s.tyre_pressure_cold_bar?.rear} placeholder="0,60" className={inputClass} />
+          <input name="pressure_rear" inputMode="decimal" defaultValue={decimal(s.tyre_pressure_cold_bar?.rear)} placeholder="0,60" className={inputClass} />
         </label>
         <label className={labelClass}>
           Tandwiel voor (tanden)
@@ -166,6 +223,7 @@ export function SessionForm({
         <textarea
           name="driver_feedback"
           rows={3}
+          defaultValue={session?.driverFeedback ?? ""}
           placeholder="Onderstuur in bocht 3, goede tractie uit de haarspeld…"
           className={`${inputClass} h-auto py-3`}
         />
@@ -174,7 +232,7 @@ export function SessionForm({
       <div className="flex flex-col gap-4">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : "Sessie opslaan"}
+          {isPending ? "Opslaan…" : session ? "Wijzigingen opslaan" : "Sessie opslaan"}
         </button>
       </div>
     </form>

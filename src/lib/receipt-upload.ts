@@ -1,6 +1,6 @@
 // Receipt uploads run in the browser, straight to storage, so large photos never pass through a Server Action.
 
-import { RECEIPT_BUCKET, RECEIPT_MAX_BYTES } from "@/lib/receipts";
+import { RECEIPT_BUCKET, RECEIPT_MAX_BYTES } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 
 const MAX_IMAGE_SIDE = 2000;

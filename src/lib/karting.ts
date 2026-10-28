@@ -139,6 +139,11 @@ export function formatTime(value: string): string {
   return timeFormat.format(new Date(value));
 }
 
+/** An ISO timestamp as "YYYY-MM-DDTHH:mm" in Dutch time, for datetime-local inputs. */
+export function toLocalDateTimeInput(value: string): string {
+  return new Date(value).toLocaleString("sv-SE", { timeZone: "Europe/Amsterdam" }).slice(0, 16).replace(" ", "T");
+}
+
 /** Today's date as YYYY-MM-DD in Dutch time, for date inputs and defaults. */
 export function todayInAmsterdam(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DeleteButton } from "@/components/delete-button";
+import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import {
@@ -13,10 +15,13 @@ import {
   formatTime,
   labelFor,
   summarizeSetup,
+  toLocalDateTimeInput,
   type SetupValues,
 } from "@/lib/karting";
 import { formatDelta, summarizeLaps, type StoredLap } from "@/lib/lap-analysis";
 
+import { SessionForm } from "../../events/[id]/session-form";
+import { deleteSession } from "../../season-actions";
 import { LapImportForm } from "./lap-import-form";
 
 export const metadata: Metadata = {
@@ -38,16 +43,20 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
 
-  const { data: session, error } = await supabase
-    .from("sessions")
-    .select(
-      "id, type, started_at, duration_s, position, conditions, driver_feedback, events!inner(id, name, starts_on, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
-    )
-    .eq("id", id)
-    .eq("events.garage_id", garage.id)
-    .order("lap_number", { referencedTable: "laps" })
-    .maybeSingle();
-  if (error) throw new Error(error.message);
+  const [sessionResult, driversResult] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select(
+        "id, type, started_at, duration_s, best_lap_ms, driver_id, position, conditions, driver_feedback, events!inner(id, name, starts_on, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
+      )
+      .eq("id", id)
+      .eq("events.garage_id", garage.id)
+      .order("lap_number", { referencedTable: "laps" })
+      .maybeSingle(),
+    supabase.from("drivers").select("id, name").eq("garage_id", garage.id).order("created_at"),
+  ]);
+  if (sessionResult.error) throw new Error(sessionResult.error.message);
+  const session = sessionResult.data;
   if (!session) notFound();
 
   const laps = session.laps.map((lap) => ({
@@ -176,6 +185,39 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
         </p>
         <LapImportForm sessionId={session.id} garageId={garage.id} hasLaps={laps.length > 0} />
       </section>
+
+      <EditSection
+        title="Sessie bewerken"
+        danger={
+          <DeleteButton
+            action={deleteSession.bind(null, session.id)}
+            label="Sessie verwijderen"
+            confirmText={`Deze sessie verwijderen?${laps.length > 0 ? ` De ${laps.length} ronden gaan ook weg.` : ""} Draaiuren van de onderdelen tellen daarna niet meer mee.`}
+          />
+        }
+      >
+        <SessionForm
+          eventId={session.events.id}
+          eventDate={session.events.starts_on}
+          karts={[]}
+          drivers={(driversResult.data ?? []).map((d) => ({ id: d.id, label: d.name }))}
+          lastSetup={null}
+          session={{
+            id: session.id,
+            type: session.type,
+            kartName: session.karts?.name ?? "—",
+            driverId: session.driver_id,
+            startedLocal: toLocalDateTimeInput(session.started_at),
+            durationMin: Math.round(((session.duration_s ?? 0) / 60) * 10) / 10,
+            bestLap: session.best_lap_ms === null ? null : formatLapTime(session.best_lap_ms),
+            hasLaps: laps.length > 0,
+            position: session.position,
+            conditions,
+            driverFeedback: session.driver_feedback,
+            setup: (session.setups?.values ?? {}) as SetupValues,
+          }}
+        />
+      </EditSection>
     </>
   );
 }
