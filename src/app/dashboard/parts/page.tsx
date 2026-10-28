@@ -1,0 +1,106 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { cardClass, linkClass } from "@/components/ui";
+import { getCurrentGarage } from "@/lib/garage";
+import { PART_CATEGORIES, PART_STATUSES, formatCents, formatMinutes, labelFor } from "@/lib/karting";
+
+import { PartForm } from "./part-form";
+
+export const metadata: Metadata = {
+  title: "Onderdelen — CorsaIQ",
+};
+
+export default async function PartsPage() {
+  const { supabase, garage } = await getCurrentGarage();
+
+  const [partsResult, usageResult] = await Promise.all([
+    supabase
+      .from("parts")
+      .select(
+        "id, category, brand, model, serial_number, status, purchase_price_cents, usage_limit_minutes, part_installations(removed_at, karts(id, name))",
+      )
+      .eq("garage_id", garage.id)
+      .order("category")
+      .order("created_at"),
+    supabase.from("part_usage").select("part_id, minutes_since_reset").eq("garage_id", garage.id),
+  ]);
+  if (partsResult.error) throw new Error(partsResult.error.message);
+
+  const minutesByPart = new Map(
+    (usageResult.data ?? []).map((row) => [row.part_id, row.minutes_since_reset ?? 0]),
+  );
+  const parts = partsResult.data;
+
+  return (
+    <>
+      <section>
+        <h1 className="text-3xl font-semibold tracking-tight">Onderdelen</h1>
+        <p className="mt-2 text-sm text-zinc-400">
+          Alles wat je bezit: motoren, banden, assen, tandwielen en meer. Draaiuren tellen mee zodra je
+          sessies vastlegt.
+        </p>
+      </section>
+
+      {parts.length > 0 && (
+        <section aria-label="Voorraad" className={`${cardClass} overflow-x-auto p-0`}>
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="border-b border-zinc-800 text-xs tracking-wide text-zinc-500 uppercase">
+              <tr>
+                <th scope="col" className="px-6 py-3 font-medium">Onderdeel</th>
+                <th scope="col" className="px-6 py-3 font-medium">Nummer</th>
+                <th scope="col" className="px-6 py-3 font-medium">Status</th>
+                <th scope="col" className="px-6 py-3 font-medium">Draaitijd</th>
+                <th scope="col" className="px-6 py-3 text-right font-medium">Prijs</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800/80">
+              {parts.map((part) => {
+                const kart = part.part_installations.find((i) => i.removed_at === null)?.karts;
+                const minutes = minutesByPart.get(part.id) ?? 0;
+                const overLimit = part.usage_limit_minutes !== null && minutes >= part.usage_limit_minutes;
+                return (
+                  <tr key={part.id}>
+                    <td className="px-6 py-4">
+                      <p className="font-medium text-zinc-100">
+                        {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(PART_CATEGORIES, part.category)}
+                      </p>
+                      <p className="text-xs text-zinc-500">{labelFor(PART_CATEGORIES, part.category)}</p>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-400">{part.serial_number ?? "—"}</td>
+                    <td className="px-6 py-4">
+                      {kart ? (
+                        <Link href={`/dashboard/karts/${kart.id}`} className={linkClass}>
+                          Op {kart.name}
+                        </Link>
+                      ) : (
+                        <span className="text-zinc-300">{labelFor(PART_STATUSES, part.status)}</span>
+                      )}
+                    </td>
+                    <td className={`px-6 py-4 tabular-nums ${overLimit ? "text-amber-300" : "text-zinc-300"}`}>
+                      {formatMinutes(minutes)}
+                      {part.usage_limit_minutes !== null && (
+                        <span className="text-zinc-500"> / {formatMinutes(part.usage_limit_minutes)}</span>
+                      )}
+                      {overLimit && <span className="ml-2 text-xs">revisie nodig</span>}
+                    </td>
+                    <td className="px-6 py-4 text-right tabular-nums text-zinc-300">
+                      {formatCents(part.purchase_price_cents)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      <section aria-labelledby="add-part-heading" className={cardClass}>
+        <h2 id="add-part-heading" className="mb-6 text-lg font-semibold">
+          Onderdeel toevoegen
+        </h2>
+        <PartForm />
+      </section>
+    </>
+  );
+}
