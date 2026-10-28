@@ -155,33 +155,37 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
 
       {isOpen && (
         <div id="mobile-menu" className="absolute inset-x-0 top-full z-20 border-b border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
-          <nav aria-label={t.common.navLabel} className="mx-auto grid max-w-6xl gap-6 px-6 py-6 sm:grid-cols-3">
+          {/* One line per group, its pages as chips beside it, so the whole menu fits in a few lines. */}
+          <nav aria-label={t.common.navLabel} className="mx-auto flex max-w-6xl flex-col gap-3 px-6 pt-4 pb-3">
             {navGroups.map((group) => (
-              <div key={group.key}>
-                <p className="text-[11px] font-medium tracking-wider text-zinc-500 uppercase">{group.label}</p>
-                <ul className="mt-2 flex flex-col gap-1">
+              <div key={group.key} role="group" aria-label={group.label} className="flex items-center gap-2">
+                <span aria-hidden="true" className="w-[4.5rem] shrink-0 text-[11px] font-medium tracking-wider text-zinc-500 uppercase">
+                  {group.label}
+                </span>
+                <div className="flex flex-wrap gap-1">
                   {group.links.map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        aria-current={item.isActive ? "page" : undefined}
-                        className={`block rounded-xl px-3 py-2.5 text-base transition-colors ${focusRing} ${
-                          item.isActive ? "bg-zinc-800 text-white" : "text-zinc-300 hover:bg-zinc-900 hover:text-white"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={item.isActive ? "page" : undefined}
+                      className={`inline-flex h-9 items-center rounded-full border px-3 text-sm whitespace-nowrap transition-colors ${focusRing} ${
+                        item.isActive
+                          ? "border-zinc-700 bg-zinc-800 text-white"
+                          : "border-zinc-800 text-zinc-300 hover:border-cyan-400/40 hover:text-white"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </nav>
-          <div className="mx-auto flex max-w-6xl flex-wrap gap-2 border-t border-zinc-800/80 px-6 py-4">
+          <div className="mx-auto flex max-w-6xl flex-wrap gap-1.5 border-t border-zinc-800/80 px-6 py-3">
             <Link
               href="/dashboard/settings"
               aria-current={isSettings ? "page" : undefined}
-              className={`inline-flex h-10 items-center rounded-full border px-4 text-sm transition-colors ${focusRing} ${
+              className={`inline-flex h-9 items-center rounded-full border px-4 text-sm transition-colors ${focusRing} ${
                 isSettings ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-cyan-400/40 hover:text-white"
               }`}
             >
@@ -190,7 +194,7 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
             <form action={signOut}>
               <button
                 type="submit"
-                className={`inline-flex h-10 items-center rounded-full border border-zinc-800 px-4 text-sm text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white ${focusRing}`}
+                className={`inline-flex h-9 items-center rounded-full border border-zinc-800 px-3 text-sm text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white ${focusRing}`}
               >
                 {t.common.signOut}
               </button>
