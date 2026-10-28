@@ -31,10 +31,10 @@ export default function Home() {
           CorsaIQ
         </p>
         <Link
-          href="#cta"
+          href="/login"
           className="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
         >
-          Demo aanvragen
+          Inloggen
         </Link>
       </header>
 
@@ -51,7 +51,7 @@ export default function Home() {
             brengen. Minder zoeken. Meer vooruit.
           </p>
           <Link
-            href="#cta"
+            href="/login"
             className="inline-flex h-12 items-center justify-center rounded-full bg-cyan-400 px-8 text-sm font-semibold text-zinc-950 transition-colors hover:bg-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
           >
             Start met CorsaIQ
