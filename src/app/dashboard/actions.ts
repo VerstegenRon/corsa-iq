@@ -6,18 +6,7 @@ import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
 import { isPartCategory } from "@/lib/karting";
 
-function text(formData: FormData, key: string): string | null {
-  const value = String(formData.get(key) ?? "").trim();
-  return value === "" ? null : value;
-}
-
-/** Parses an optional number; returns undefined when the input is not a valid number. */
-function optionalNumber(formData: FormData, key: string): number | null | undefined {
-  const raw = text(formData, key);
-  if (raw === null) return null;
-  const value = Number(raw.replace(",", "."));
-  return Number.isFinite(value) && value >= 0 ? value : undefined;
-}
+import { optionalNumber, text } from "./form-data";
 
 export async function createKart(_prev: FormState, formData: FormData): Promise<FormState> {
   const name = text(formData, "name");
