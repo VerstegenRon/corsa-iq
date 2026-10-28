@@ -5,6 +5,8 @@ import { useActionState } from "react";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { EXPENSE_CATEGORIES } from "@/lib/karting";
+import { removeReceipt, uploadReceipt } from "@/lib/receipt-upload";
+import { RECEIPT_ACCEPT } from "@/lib/receipts";
 
 import { createExpense } from "../expense-actions";
 
@@ -17,19 +19,33 @@ type Option = { id: string; label: string };
  * picks a season and optionally an event.
  */
 export function ExpenseForm({
+  garageId,
   defaultDate,
   eventId,
   seasons = [],
   events = [],
   defaultSeasonId,
 }: {
+  garageId: string;
   defaultDate: string;
   eventId?: string;
   seasons?: Option[];
   events?: Option[];
   defaultSeasonId?: string;
 }) {
-  const [state, formAction, isPending] = useActionState(createExpense, initialState);
+  // Upload the receipt from the browser first, then hand only its storage path to the server.
+  const [state, formAction, isPending] = useActionState(async (prev: FormState, formData: FormData) => {
+    const file = formData.get("receipt");
+    formData.delete("receipt");
+    if (!(file instanceof File) || file.size === 0) return createExpense(prev, formData);
+
+    const upload = await uploadReceipt(garageId, file);
+    if ("error" in upload) return { error: upload.error };
+    formData.set("receipt_path", upload.path);
+    const result = await createExpense(prev, formData);
+    if (result.error) await removeReceipt(upload.path);
+    return result;
+  }, initialState);
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -84,6 +100,15 @@ export function ExpenseForm({
       <label className={`${labelClass} sm:col-span-2 lg:col-span-1`}>
         Omschrijving
         <input name="description" placeholder="Inschrijving NK ronde 1" className={inputClass} />
+      </label>
+      <label className={`${labelClass} sm:col-span-2`}>
+        Bonnetje (foto of pdf)
+        <input
+          name="receipt"
+          type="file"
+          accept={RECEIPT_ACCEPT}
+          className={`${inputClass} py-2.5 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-3 file:py-0.5 file:text-sm file:text-zinc-200`}
+        />
       </label>
 
       <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-3">

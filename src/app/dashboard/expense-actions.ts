@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
 import { isExpenseCategory } from "@/lib/karting";
+import { RECEIPT_BUCKET } from "@/lib/receipts";
 
 import { optionalNumber, text } from "./form-data";
 
@@ -36,6 +37,12 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
     seasonId = event.season_id;
   }
 
+  // Uploaded by the browser; only accept files inside this garage's folder.
+  const receiptPath = text(formData, "receipt_path");
+  if (receiptPath && !new RegExp(`^${garage.id}/[\\w-]+\\.[a-z]+$`).test(receiptPath)) {
+    return { error: "Het bonnetje kon niet gekoppeld worden. Probeer het opnieuw." };
+  }
+
   const { error } = await supabase.from("expenses").insert({
     garage_id: garage.id,
     season_id: seasonId,
@@ -44,6 +51,7 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
     spent_on: spentOn,
     amount_cents: Math.round(amount * 100),
     description: text(formData, "description"),
+    receipt_path: receiptPath,
   });
   if (error) return { error: `Opslaan mislukt: ${error.message}` };
 
@@ -53,7 +61,14 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
 
 export async function deleteExpense(expenseId: string) {
   const { supabase, garage } = await getCurrentGarage();
-  const { error } = await supabase.from("expenses").delete().eq("id", expenseId).eq("garage_id", garage.id);
+  const { data: expense, error } = await supabase
+    .from("expenses")
+    .delete()
+    .eq("id", expenseId)
+    .eq("garage_id", garage.id)
+    .select("receipt_path")
+    .maybeSingle();
   if (error) throw new Error(`Verwijderen mislukt: ${error.message}`);
+  if (expense?.receipt_path) await supabase.storage.from(RECEIPT_BUCKET).remove([expense.receipt_path]);
   revalidatePath("/dashboard", "layout");
 }
