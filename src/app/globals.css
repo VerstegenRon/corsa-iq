@@ -1,8 +1,55 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Themes. The UI is written with dark-first Tailwind colours (zinc for neutrals, cyan for the
+ * accent). The light theme re-maps those colour variables instead of adding light: variants to
+ * every class: the zinc scale is reversed (zinc-950 background becomes the lightest step), and the
+ * light accent and status steps used as text on dark become darker steps, so text keeps its
+ * contrast on a light surface. data-theme is set on <html> before paint (see app/layout.tsx).
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #09090b;
+  --foreground: #fafafa;
+  /* Card surface (zinc-900/50 on zinc-950), used where a mark needs a ring in the surface colour. */
+  --chart-surface: #111113;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(98.5% 0 none);
+  --foreground: oklch(14.1% 0.005 285.823);
+  --chart-surface: #f6f6f7;
+
+  /* Neutrals: the zinc scale reversed. */
+  --color-zinc-50: oklch(14.1% 0.005 285.823);
+  --color-zinc-100: oklch(21% 0.006 285.885);
+  --color-zinc-200: oklch(27.4% 0.006 286.033);
+  --color-zinc-300: oklch(37% 0.013 285.805);
+  --color-zinc-400: oklch(44.2% 0.017 285.786);
+  /* Muted text: a touch darker than zinc-500, so small notes reach 4.5:1 on the light card surface. */
+  --color-zinc-500: oklch(51% 0.016 285.938);
+  --color-zinc-600: oklch(70.5% 0.015 286.067);
+  --color-zinc-700: oklch(87.1% 0.006 286.286);
+  --color-zinc-800: oklch(92% 0.004 286.32);
+  --color-zinc-900: oklch(96.7% 0.001 286.375);
+  --color-zinc-950: oklch(98.5% 0 none);
+  /* "text-white" is the strongest text on dark; on light that is near-black. */
+  --color-white: oklch(14.1% 0.005 285.823);
+
+  /* Accent: the light cyans used as text and fills on dark become deep cyans on light. */
+  --color-cyan-100: oklch(39.8% 0.07 227.392);
+  --color-cyan-200: oklch(45% 0.085 224.283);
+  --color-cyan-300: oklch(45% 0.085 224.283);
+  --color-cyan-400: oklch(52% 0.105 223.128);
+
+  /* Status text: errors and warnings in darker steps. */
+  --color-red-200: oklch(44.4% 0.177 26.899);
+  --color-red-300: oklch(50.5% 0.213 27.518);
+  --color-red-400: oklch(57.7% 0.245 27.325);
+  --color-amber-300: oklch(55.5% 0.163 48.998);
+  --color-amber-400: oklch(66.6% 0.179 58.318);
 }
 
 @theme inline {
@@ -10,13 +57,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

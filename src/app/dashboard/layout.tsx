@@ -1,8 +1,7 @@
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { getDictionary } from "@/lib/i18n/server";
 
 import { signOut } from "../login/actions";
-import { DashboardNav, HomeLink } from "./nav";
+import { DashboardNav, HomeLink, SettingsLink } from "./nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const t = await getDictionary();
@@ -19,7 +18,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <DashboardNav />
           </div>
           <div className="order-2 ml-auto flex items-center gap-2 sm:order-3">
-            <LanguageSwitcher />
+            <SettingsLink />
             <form action={signOut}>
               <button
                 type="submit"

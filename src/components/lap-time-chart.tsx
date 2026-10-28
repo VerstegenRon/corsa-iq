@@ -7,14 +7,15 @@ import { format } from "@/lib/i18n/locales";
 import { formatLapTime } from "@/lib/karting";
 
 // One series of lap times as a line: the fastest point is the accent and is labelled,
-// everything else stays quiet. Colors are the app's dark-surface tokens (validated for
-// contrast against the card surface); text uses text tokens, never the series color.
+// everything else stays quiet. Colors are the theme's tokens (globals.css re-maps them for the
+// light theme, each validated for contrast against its card surface); text uses text tokens,
+// never the series color.
 const COLORS = {
-  line: "#22d3ee", // cyan-400, the app accent
-  surface: "#111113", // card surface (zinc-900/50 on zinc-950), used for marker rings
-  grid: "#27272a", // zinc-800 hairline
-  axis: "#71717a", // zinc-500, muted text
-  label: "#e4e4e7", // zinc-200, primary text
+  line: "var(--color-cyan-400)", // the app accent
+  surface: "var(--chart-surface)", // card surface, used for marker rings
+  grid: "var(--color-zinc-800)", // hairline
+  axis: "var(--color-zinc-500)", // muted text
+  label: "var(--color-zinc-200)", // primary text
 };
 
 export type LapPoint = {
