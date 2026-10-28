@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
+import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { cardClass, primaryButtonClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
@@ -60,35 +60,7 @@ export default async function Home() {
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem] bg-[radial-gradient(ellipse_at_top,_rgba(220,38,38,0.14),_transparent_60%)]"
       />
 
-      <header className="sticky top-0 z-20 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" className={`text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase ${focusRing}`}>
-            CorsaIQ
-          </Link>
-          <nav aria-label={h.navLabel} className="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
-            <a href="#features" className={`hover:text-white ${focusRing}`}>
-              {h.navFeatures}
-            </a>
-            <a href="#how" className={`hover:text-white ${focusRing}`}>
-              {h.navHow}
-            </a>
-            <a href="#faq" className={`hover:text-white ${focusRing}`}>
-              {h.navFaq}
-            </a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <div className="hidden lg:block">
-              <LanguageSwitcher />
-            </div>
-            <Link
-              href={signedIn ? "/dashboard" : "/login"}
-              className={`inline-flex h-9 items-center rounded-full border border-zinc-700 px-4 text-sm text-zinc-200 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
-            >
-              {signedIn ? h.toDashboard : h.signIn}
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader t={t} current="home" signedIn={signedIn} />
 
       <main className="flex-1">
         {/* Hero */}
@@ -227,16 +199,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-zinc-800/60">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            © 2026 {h.footer}
-          </p>
-          <div className="lg:hidden">
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </footer>
+      <SiteFooter t={t} current="home" />
     </div>
   );
 }

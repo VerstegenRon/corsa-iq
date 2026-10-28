@@ -115,6 +115,8 @@ export const fr: Dictionary = {
     navLabel: "Accueil",
     navFeatures: "Fonctions",
     navHow: "Comment ça marche",
+    navPricing: "Tarifs",
+    footerNavLabel: "Menu du site",
     navFaq: "Questions",
     signIn: "Se connecter",
     toDashboard: "Aller au tableau de bord",
@@ -252,6 +254,68 @@ export const fr: Dictionary = {
     finalTitle: "Prêt pour ta prochaine session ?",
     finalText: "Crée un compte et ajoute ton premier kart. En cinq minutes, tu as ton propre stand.",
     footer: "CorsaIQ · fait pour le karting",
+  },
+  pricing: {
+    metaTitle: "Tarifs — CorsaIQ",
+    metaDescription: "Commence gratuitement avec un kart. Pro pour le pilote qui roule chaque week-end, Team pour les équipes et les familles avec plusieurs pilotes.",
+    eyebrow: "Tarifs",
+    title: "Commence gratuitement, évolue avec ta saison",
+    intro: "Suivre un kart est gratuit. Si tu roules plus souvent ou veux que tes tickets soient lus pour toi, choisis Pro. Avec plusieurs pilotes, prends Team.",
+    launchNote: "CorsaIQ vient d'être lancé : pendant la phase de lancement, toutes les fonctions sont gratuites. Tu choisis un abonnement seulement quand le paiement sera disponible.",
+    plansLabel: "Abonnements",
+    recommended: "Recommandé",
+    perMonth: "par mois",
+    perYear: "ou {price} par an (2 mois offerts)",
+    forever: "Gratuit pour toujours",
+    cta: "Créer un compte",
+    vatNote: "Prix en euros, TVA comprise.",
+    plans: {
+      free: {
+        name: "Gratuit",
+        text: "Pour commencer avec un kart.",
+        price: "0 €",
+        yearly: "",
+        features: ["1 kart et 1 pilote", "Importer ou coller les temps au tour", "Suivre le temps de roulage et l'entretien", "Dépenses par saison"],
+      },
+      pro: {
+        name: "Pro",
+        text: "Pour le pilote qui est sur la piste chaque week-end.",
+        price: "7 €",
+        yearly: "70 €",
+        features: [
+          "Karts, moteurs et pièces illimités",
+          "Tickets et factures lus automatiquement",
+          "Limites par composant et alertes",
+          "Progression par circuit",
+        ],
+      },
+      team: {
+        name: "Team",
+        text: "Pour les équipes et les familles avec plusieurs pilotes.",
+        price: "19 €",
+        yearly: "190 €",
+        features: ["Tout ce qu'offre Pro", "Plusieurs pilotes et karts", "Garage partagé avec l'équipe (bientôt)", "Pour les parents, mécaniciens et team managers"],
+      },
+    },
+    faqTitle: "Questions sur les tarifs",
+    faq: {
+      now: {
+        question: "Combien coûte CorsaIQ aujourd'hui ?",
+        answer: "Rien. Pendant la phase de lancement, toutes les fonctions sont gratuites. Tu seras prévenu à l'avance quand les abonnements commenceront.",
+      },
+      switch: {
+        question: "Puis-je changer d'abonnement plus tard ?",
+        answer: "Oui. Tes karts, temps et dépenses restent en place quand tu changes d'abonnement.",
+      },
+      yearly: {
+        question: "Quelle différence entre mensuel et annuel ?",
+        answer: "Avec un abonnement annuel, tu paies dix mois et tu roules douze. Pratique si tu fais toute la saison.",
+      },
+      team: {
+        question: "Quand ai-je besoin de Team ?",
+        answer: "Quand plusieurs pilotes ou karts appartiennent au même garage, par exemple une famille avec deux pilotes ou une équipe qui suit plusieurs clients.",
+      },
+    },
   },
   options: {
     partCategories: {
