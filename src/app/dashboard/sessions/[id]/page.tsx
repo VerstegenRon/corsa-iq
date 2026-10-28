@@ -23,6 +23,7 @@ import { formatDelta, summarizeLaps, type StoredLap } from "@/lib/lap-analysis";
 import { SessionForm } from "../../events/[id]/session-form";
 import { deleteSession } from "../../season-actions";
 import { LapImportForm } from "./lap-import-form";
+import { SetupSection, type SetupSessionInfo } from "./setup-section";
 
 export const metadata: Metadata = {
   title: "Sessie — CorsaIQ",
@@ -39,8 +40,34 @@ const SOURCE_LABELS: Record<string, string> = {
   manual: "handmatig",
 };
 
-export default async function SessionPage({ params }: PageProps<"/dashboard/sessions/[id]">) {
-  const { id } = await params;
+const COMPARE_SELECT = "id, type, started_at, best_lap_ms, conditions, kart_id, karts(name), setups(values), events!inner(starts_on, track_id, garage_id)";
+
+type CompareRow = {
+  id: string;
+  type: string;
+  started_at: string;
+  best_lap_ms: number | null;
+  conditions: unknown;
+  karts: { name: string } | null;
+  setups: { values: unknown } | null;
+  events: { starts_on: string };
+};
+
+function toSetupInfo(row: CompareRow): SetupSessionInfo {
+  return {
+    id: row.id,
+    type: row.type,
+    startsOn: row.events.starts_on,
+    kartName: row.karts?.name ?? null,
+    bestLapMs: row.best_lap_ms,
+    conditions: (row.conditions ?? {}) as Conditions,
+    setup: (row.setups?.values ?? {}) as SetupValues,
+  };
+}
+
+export default async function SessionPage({ params, searchParams }: PageProps<"/dashboard/sessions/[id]">) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const vs = typeof query.vs === "string" ? query.vs : null;
   const { supabase, garage } = await getCurrentGarage();
   const t = await getDictionary();
 
@@ -48,7 +75,7 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
     supabase
       .from("sessions")
       .select(
-        "id, type, started_at, duration_s, best_lap_ms, driver_id, position, conditions, driver_feedback, events!inner(id, name, starts_on, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
+        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, events!inner(id, name, starts_on, track_id, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
       )
       .eq("id", id)
       .eq("events.garage_id", garage.id)
@@ -59,6 +86,21 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
   if (sessionResult.error) throw new Error(sessionResult.error.message);
   const session = sessionResult.data;
   if (!session) notFound();
+
+  // Sessions to compare the setup with: the same kart, and anything on the same circuit.
+  const [sameKart, sameTrack] = await Promise.all([
+    supabase.from("sessions").select(COMPARE_SELECT).eq("kart_id", session.kart_id).eq("events.garage_id", garage.id).neq("id", session.id).order("started_at", { ascending: false }).limit(30),
+    session.events.track_id
+      ? supabase.from("sessions").select(COMPARE_SELECT).eq("events.track_id", session.events.track_id).eq("events.garage_id", garage.id).neq("id", session.id).order("started_at", { ascending: false }).limit(30)
+      : Promise.resolve({ data: [] as CompareRow[] }),
+  ]);
+  const candidateRows = [...new Map([...(sameKart.data ?? []), ...(sameTrack.data ?? [])].map((row) => [row.id, row])).values()].sort(
+    (a, b) => b.started_at.localeCompare(a.started_at),
+  );
+  // Default: the kart's previous session, else the latest one on this circuit.
+  const defaultRow =
+    (sameKart.data ?? []).find((row) => row.started_at < session.started_at) ?? (sameTrack.data ?? [])[0] ?? null;
+  const compareRow = (vs && candidateRows.find((row) => row.id === vs)) || defaultRow;
 
   const laps = session.laps.map((lap) => ({
     ...lap,
@@ -203,9 +245,16 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
               </tbody>
             </table>
           </div>
-          {sectorCount > 0 && <p className="mt-3 text-xs text-zinc-500">Snelste ronde en snelste sectoren in cyaan.</p>}
+          {sectorCount > 0 && <p className="mt-3 text-xs text-zinc-500">Snelste ronde en snelste sectoren zijn uitgelicht.</p>}
         </section>
       )}
+
+      <SetupSection
+        session={toSetupInfo({ ...session, events: session.events })}
+        candidates={candidateRows.map(toSetupInfo)}
+        compareWith={compareRow ? toSetupInfo(compareRow) : null}
+        t={t}
+      />
 
       <section aria-labelledby="import-heading" className={cardClass}>
         <h2 id="import-heading" className="text-lg font-semibold">

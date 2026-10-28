@@ -7,6 +7,7 @@ import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
 import { getCurrentGarage } from "@/lib/garage";
 import { EVENT_TYPES, SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
+import { SETUP_FIELDS, setSetupValue } from "@/lib/setup";
 import { LOGGER_BUCKET } from "@/lib/storage";
 
 import { optionalNumber, optionalSignedNumber, text } from "./form-data";
@@ -162,32 +163,20 @@ export async function deleteEvent(eventId: string): Promise<FormState> {
 // ---------------------------------------------------------------------------
 
 function readSetup(formData: FormData): SetupValues | { error: string } {
-  const numbers = {
-    pressureFront: optionalNumber(formData, "pressure_front"),
-    pressureRear: optionalNumber(formData, "pressure_rear"),
-    frontTeeth: optionalNumber(formData, "front_teeth"),
-    rearTeeth: optionalNumber(formData, "rear_teeth"),
-    rearWidth: optionalNumber(formData, "rear_track_width_mm"),
-    frontWidth: optionalNumber(formData, "front_track_width_mm"),
-    mainJet: optionalNumber(formData, "main_jet"),
-  };
-  if (Object.values(numbers).some((value) => value === undefined)) {
-    return { error: "Controleer de afstelling: vul alleen getallen in." };
-  }
-  const n = (value: number | null | undefined) => value ?? undefined;
-
   const setup: SetupValues = {};
-  if (numbers.pressureFront !== null || numbers.pressureRear !== null) {
-    setup.tyre_pressure_cold_bar = { front: n(numbers.pressureFront), rear: n(numbers.pressureRear) };
+  for (const field of SETUP_FIELDS) {
+    if (field.kind === "text") {
+      const value = text(formData, field.name);
+      if (value) setSetupValue(setup, field, value);
+      continue;
+    }
+    const value = optionalNumber(formData, field.name);
+    if (value === null) continue;
+    if (value === undefined || (field.kind === "integer" && !Number.isInteger(value))) {
+      return { error: `Controleer de afstelling: ${field.label.toLowerCase()} moet een ${field.kind === "integer" ? "heel getal" : "getal"} zijn.` };
+    }
+    setSetupValue(setup, field, value);
   }
-  if (numbers.frontTeeth !== null || numbers.rearTeeth !== null) {
-    setup.gearing = { front_teeth: n(numbers.frontTeeth), rear_teeth: n(numbers.rearTeeth) };
-  }
-  const hardness = text(formData, "axle_hardness");
-  if (hardness) setup.rear_axle = { hardness };
-  if (numbers.rearWidth !== null) setup.rear_track_width_mm = n(numbers.rearWidth);
-  if (numbers.frontWidth !== null) setup.front_track_width_mm = n(numbers.frontWidth);
-  if (numbers.mainJet !== null) setup.carburettor = { main_jet: n(numbers.mainJet) };
   const notes = text(formData, "setup_notes");
   if (notes) setup.notes = notes;
   return setup;
