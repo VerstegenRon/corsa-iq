@@ -3,8 +3,9 @@
 import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { PART_CATEGORIES, PART_STATUSES, sortedEntries } from "@/lib/karting";
+import { sortedEntries } from "@/lib/karting";
 
 import { createPart, updatePart } from "../actions";
 
@@ -29,6 +30,7 @@ const decimal = (value: number | null, divisor: number) =>
 
 /** Adds a part, or edits one when `part` is given. */
 export function PartForm({ part }: { part?: PartValues }) {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(
     part ? updatePart.bind(null, part.id) : createPart,
     initialState,
@@ -42,7 +44,7 @@ export function PartForm({ part }: { part?: PartValues }) {
           <option value="" disabled>
             Kies…
           </option>
-          {sortedEntries(PART_CATEGORIES).map(([value, label]) => (
+          {sortedEntries(t.options.partCategories).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -95,7 +97,7 @@ export function PartForm({ part }: { part?: PartValues }) {
             </>
           ) : (
             <select name="status" defaultValue={part.status} className={inputClass}>
-              {sortedEntries(PART_STATUSES)
+              {sortedEntries(t.options.partStatuses)
                 .filter(([value]) => value !== "installed")
                 .map(([value, label]) => (
                   <option key={value} value={value}>

@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { useT } from "@/lib/i18n/client";
+
 import { authenticate, type AuthState } from "./actions";
 
 const initialState: AuthState = {};
@@ -10,12 +12,13 @@ const inputClass =
   "h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 text-sm text-zinc-50 placeholder:text-zinc-600 focus-visible:border-cyan-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400";
 
 export function LoginForm() {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(authenticate, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
       <label className="flex flex-col gap-2 text-sm text-zinc-300">
-        E-mailadres
+        {t.login.email}
         <input
           name="email"
           type="email"
@@ -27,7 +30,7 @@ export function LoginForm() {
       </label>
 
       <label className="flex flex-col gap-2 text-sm text-zinc-300">
-        Wachtwoord
+        {t.login.password}
         <input
           name="password"
           type="password"
@@ -56,7 +59,7 @@ export function LoginForm() {
           disabled={isPending}
           className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-cyan-400 px-6 text-sm font-semibold text-zinc-950 transition-colors hover:bg-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-60"
         >
-          Inloggen
+          {t.login.signIn}
         </button>
         <button
           type="submit"
@@ -65,7 +68,7 @@ export function LoginForm() {
           disabled={isPending}
           className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-semibold text-zinc-100 transition-colors hover:border-cyan-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-60"
         >
-          Account aanmaken
+          {t.login.signUp}
         </button>
       </div>
     </form>

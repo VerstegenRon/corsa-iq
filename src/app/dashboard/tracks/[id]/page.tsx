@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { DeleteButton } from "@/components/delete-button";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { EVENT_TYPES, countryName, formatDate, formatLapTime, labelFor } from "@/lib/karting";
+import { getDictionary } from "@/lib/i18n/server";
+import { countryName, formatDate, formatLapTime, labelFor } from "@/lib/karting";
 
 import { deleteTrack } from "../../track-actions";
 import { TrackForm } from "../track-form";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 export default async function TrackPage({ params }: PageProps<"/dashboard/tracks/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [trackResult, eventsResult] = await Promise.all([
     supabase.from("tracks").select("id, name, city, country, created_by_garage_id").eq("id", id).maybeSingle(),
@@ -81,7 +83,7 @@ export default async function TrackPage({ params }: PageProps<"/dashboard/tracks
                     <span className="font-medium text-zinc-100">{event.name}</span>
                     <span className="text-zinc-500">
                       {" "}
-                      · {labelFor(EVENT_TYPES, event.type)} · {formatDate(event.starts_on)}
+                      · {labelFor(t.options.eventTypes, event.type)} · {formatDate(event.starts_on)}
                     </span>
                   </span>
                   <span className="text-zinc-300 tabular-nums">{formatLapTime(event.best)}</span>

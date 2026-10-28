@@ -6,7 +6,9 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { KART_STATUSES, PART_CATEGORIES, formatDate, labelFor } from "@/lib/karting";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { getDictionary } from "@/lib/i18n/server";
+import { formatDate, labelFor } from "@/lib/karting";
 
 import { deleteKart, removePart } from "../../actions";
 import { KartForm } from "../kart-form";
@@ -16,14 +18,18 @@ export const metadata: Metadata = {
   title: "Kart — CorsaIQ",
 };
 
-function partLabel(part: { category: string; brand: string | null; model: string | null; serial_number: string | null }) {
-  const name = [part.brand, part.model].filter(Boolean).join(" ") || labelFor(PART_CATEGORIES, part.category);
+function partLabel(
+  part: { category: string; brand: string | null; model: string | null; serial_number: string | null },
+  t: Dictionary,
+) {
+  const name = [part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category);
   return part.serial_number ? `${name} (#${part.serial_number})` : name;
 }
 
 export default async function KartPage({ params }: PageProps<"/dashboard/karts/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [kartResult, stockResult] = await Promise.all([
     supabase
@@ -50,7 +56,7 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
   const history = kart.part_installations.filter((i) => i.removed_at !== null && i.parts);
   const stockOptions = (stockResult.data ?? []).map((part) => ({
     id: part.id,
-    label: `${labelFor(PART_CATEGORIES, part.category)}: ${partLabel(part)}`,
+    label: `${labelFor(t.options.partCategories, part.category)}: ${partLabel(part, t)}`,
   }));
 
   const details = [
@@ -68,7 +74,7 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
           ← Alle karts
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{kart.name}</h1>
-        <p className="mt-2 text-sm text-zinc-400">{labelFor(KART_STATUSES, kart.status)}</p>
+        <p className="mt-2 text-sm text-zinc-400">{labelFor(t.options.kartStatuses, kart.status)}</p>
       </section>
 
       {details.length > 0 && (
@@ -97,9 +103,9 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
               return (
                 <li key={installation.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
-                    <p className="text-sm font-medium text-zinc-100">{partLabel(part)}</p>
+                    <p className="text-sm font-medium text-zinc-100">{partLabel(part, t)}</p>
                     <p className="text-xs text-zinc-500">
-                      {labelFor(PART_CATEGORIES, part.category)} · sinds {formatDate(installation.installed_at)}
+                      {labelFor(t.options.partCategories, part.category)} · sinds {formatDate(installation.installed_at)}
                     </p>
                   </div>
                   <form action={removePart.bind(null, installation.id, part.id)}>
@@ -135,7 +141,7 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
           <ul className="mt-4 divide-y divide-zinc-800/80">
             {history.map((installation) => (
               <li key={installation.id} className="py-3 text-sm">
-                <p className="text-zinc-200">{partLabel(installation.parts!)}</p>
+                <p className="text-zinc-200">{partLabel(installation.parts!, t)}</p>
                 <p className="text-xs text-zinc-500">
                   {formatDate(installation.installed_at)} – {formatDate(installation.removed_at)}
                 </p>

@@ -3,8 +3,9 @@
 import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { KART_STATUSES, sortedEntries } from "@/lib/karting";
+import { sortedEntries } from "@/lib/karting";
 
 import { createKart, updateKart } from "../actions";
 
@@ -23,6 +24,7 @@ export type KartValues = {
 
 /** Adds a kart, or edits one when `kart` is given. */
 export function KartForm({ kart }: { kart?: KartValues }) {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(
     kart ? updateKart.bind(null, kart.id) : createKart,
     initialState,
@@ -64,7 +66,7 @@ export function KartForm({ kart }: { kart?: KartValues }) {
         <label className={labelClass}>
           Status
           <select name="status" defaultValue={kart.status} className={inputClass}>
-            {sortedEntries(KART_STATUSES).map(([value, label]) => (
+            {sortedEntries(t.options.kartStatuses).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>

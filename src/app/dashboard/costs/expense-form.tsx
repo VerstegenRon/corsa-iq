@@ -3,8 +3,9 @@
 import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { EXPENSE_CATEGORIES, sortByLabel, sortedEntries } from "@/lib/karting";
+import { sortByLabel, sortedEntries } from "@/lib/karting";
 import { removeReceipt, uploadReceipt } from "@/lib/receipt-upload";
 import { RECEIPT_ACCEPT } from "@/lib/storage";
 
@@ -34,6 +35,7 @@ export function ExpenseForm({
   defaultSeasonId?: string;
 }) {
   // Upload the receipt from the browser first, then hand only its storage path to the server.
+  const t = useT();
   const [state, formAction, isPending] = useActionState(async (prev: FormState, formData: FormData) => {
     const file = formData.get("receipt");
     formData.delete("receipt");
@@ -52,7 +54,7 @@ export function ExpenseForm({
       <label className={labelClass}>
         Categorie *
         <select name="category" required defaultValue="entry_fee" className={inputClass}>
-          {sortedEntries(EXPENSE_CATEGORIES).map(([value, label]) => (
+          {sortedEntries(t.options.expenseCategories).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>

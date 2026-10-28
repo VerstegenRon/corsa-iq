@@ -3,6 +3,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error?: string; message?: string; email?: string };
@@ -14,15 +16,16 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
+  const t = (await getDictionary()).login;
   if (!email || !password) {
-    return { error: "Vul je e-mailadres en wachtwoord in.", email };
+    return { error: t.missingFields, email };
   }
 
   const supabase = await createClient();
 
   if (intent === "signup") {
     if (password.length < MIN_PASSWORD_LENGTH) {
-      return { error: `Kies een wachtwoord van minstens ${MIN_PASSWORD_LENGTH} tekens.`, email };
+      return { error: format(t.passwordTooShort, { min: MIN_PASSWORD_LENGTH }), email };
     }
 
     const origin = (await headers()).get("origin") ?? "";
@@ -36,21 +39,12 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
     // Email confirmation disabled in Supabase: the user is signed in right away.
     if (data.session) redirect("/dashboard");
 
-    return {
-      message: "Account aangemaakt. Check je e-mail en klik op de bevestigingslink om in te loggen.",
-      email,
-    };
+    return { message: t.signUpDone, email };
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return {
-      error:
-        error.code === "email_not_confirmed"
-          ? "Bevestig eerst je e-mailadres via de link in je inbox."
-          : "E-mailadres of wachtwoord klopt niet.",
-      email,
-    };
+    return { error: error.code === "email_not_confirmed" ? t.emailNotConfirmed : t.invalidCredentials, email };
   }
 
   redirect("/dashboard");

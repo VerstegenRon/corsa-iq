@@ -7,9 +7,8 @@ import { EditSection } from "@/components/edit-section";
 import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { getDictionary } from "@/lib/i18n/server";
 import {
-  SESSION_TYPES,
-  WEATHER,
   formatDate,
   formatLapTime,
   formatMinutes,
@@ -43,6 +42,7 @@ const SOURCE_LABELS: Record<string, string> = {
 export default async function SessionPage({ params }: PageProps<"/dashboard/sessions/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [sessionResult, driversResult] = await Promise.all([
     supabase
@@ -113,11 +113,11 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
         <Link href={`/dashboard/events/${session.events.id}`} className={`${linkClass} text-sm`}>
           ← {session.events.name}
         </Link>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight">{labelFor(SESSION_TYPES, session.type)}</h1>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight">{labelFor(t.options.sessionTypes, session.type)}</h1>
         <p className="mt-2 text-sm text-zinc-400">
           {formatDate(session.events.starts_on)} · {formatTime(session.started_at)} · {session.karts?.name} ·{" "}
           {session.drivers?.name} · {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
-          {conditions.weather && ` · ${labelFor(WEATHER, conditions.weather)}`}
+          {conditions.weather && ` · ${labelFor(t.options.weather, conditions.weather)}`}
           {session.position !== null && ` · P${session.position}`}
         </p>
         {setup.length > 0 && <p className="mt-1 text-xs text-zinc-500">{setup.join(" · ")}</p>}

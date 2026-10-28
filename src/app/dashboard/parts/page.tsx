@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { PART_CATEGORIES, PART_STATUSES, formatCents, formatMinutes, labelFor } from "@/lib/karting";
+import { getDictionary } from "@/lib/i18n/server";
+import { formatCents, formatMinutes, labelFor } from "@/lib/karting";
 
 import { PartForm } from "./part-form";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function PartsPage() {
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   const [partsResult, usageResult] = await Promise.all([
     supabase
@@ -63,9 +65,9 @@ export default async function PartsPage() {
                   <tr key={part.id}>
                     <td className="px-6 py-4">
                       <Link href={`/dashboard/parts/${part.id}`} className={`${linkClass} font-medium`}>
-                        {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(PART_CATEGORIES, part.category)}
+                        {[part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category)}
                       </Link>
-                      <p className="text-xs text-zinc-500">{labelFor(PART_CATEGORIES, part.category)}</p>
+                      <p className="text-xs text-zinc-500">{labelFor(t.options.partCategories, part.category)}</p>
                     </td>
                     <td className="px-6 py-4 text-zinc-400">{part.serial_number ?? "—"}</td>
                     <td className="px-6 py-4">
@@ -74,7 +76,7 @@ export default async function PartsPage() {
                           Op {kart.name}
                         </Link>
                       ) : (
-                        <span className="text-zinc-300">{labelFor(PART_STATUSES, part.status)}</span>
+                        <span className="text-zinc-300">{labelFor(t.options.partStatuses, part.status)}</span>
                       )}
                     </td>
                     <td className={`px-6 py-4 tabular-nums ${overLimit ? "text-amber-300" : "text-zinc-300"}`}>
