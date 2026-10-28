@@ -26,6 +26,7 @@ const groups: { key: keyof Dictionary["nav"]; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard/karts", key: "karts" },
       { href: "/dashboard/parts", key: "parts" },
+      { href: "/dashboard/gear", key: "gear" },
     ],
   },
   { key: "groupFinance", items: [{ href: "/dashboard/costs", key: "costs" }] },
@@ -101,7 +102,7 @@ export function DashboardNav() {
           aria-label={group.label}
           className={`flex items-center gap-1 ${index > 0 ? "ml-3 border-l border-zinc-800 pl-3" : ""}`}
         >
-          <span aria-hidden="true" className="mr-1 hidden text-[11px] font-medium tracking-wider text-zinc-500 uppercase xl:inline">
+          <span aria-hidden="true" className="mr-1 hidden text-[11px] font-medium tracking-wider text-zinc-500 uppercase 2xl:inline">
             {group.label}
           </span>
           {group.links.map((item) => (

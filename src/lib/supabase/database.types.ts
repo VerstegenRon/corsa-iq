@@ -183,6 +183,7 @@ export type Database = {
           description: string | null
           event_id: string | null
           garage_id: string
+          gear_item_id: string | null
           id: string
           maintenance_record_id: string | null
           part_id: string | null
@@ -198,6 +199,7 @@ export type Database = {
           description?: string | null
           event_id?: string | null
           garage_id: string
+          gear_item_id?: string | null
           id?: string
           maintenance_record_id?: string | null
           part_id?: string | null
@@ -213,6 +215,7 @@ export type Database = {
           description?: string | null
           event_id?: string | null
           garage_id?: string
+          gear_item_id?: string | null
           id?: string
           maintenance_record_id?: string | null
           part_id?: string | null
@@ -226,6 +229,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_gear_item_id_fkey"
+            columns: ["gear_item_id"]
+            isOneToOne: false
+            referencedRelation: "gear_items"
             referencedColumns: ["id"]
           },
           {
@@ -261,6 +271,72 @@ export type Database = {
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gear_items: {
+        Row: {
+          brand: string | null
+          category: string
+          created_at: string
+          driver_id: string | null
+          garage_id: string
+          homologation: string | null
+          id: string
+          model: string | null
+          notes: string | null
+          purchase_price_cents: number | null
+          purchased_on: string | null
+          size: string | null
+          status: string
+          valid_until: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category: string
+          created_at?: string
+          driver_id?: string | null
+          garage_id: string
+          homologation?: string | null
+          id?: string
+          model?: string | null
+          notes?: string | null
+          purchase_price_cents?: number | null
+          purchased_on?: string | null
+          size?: string | null
+          status?: string
+          valid_until?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category?: string
+          created_at?: string
+          driver_id?: string | null
+          garage_id?: string
+          homologation?: string | null
+          id?: string
+          model?: string | null
+          notes?: string | null
+          purchase_price_cents?: number | null
+          purchased_on?: string | null
+          size?: string | null
+          status?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gear_items_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gear_items_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
             referencedColumns: ["id"]
           },
         ]

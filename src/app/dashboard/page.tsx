@@ -3,9 +3,10 @@ import Link from "next/link";
 
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { format } from "@/lib/i18n/locales";
+import { gearValidity } from "@/lib/gear";
+import { format, plural } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
-import { CHASSIS_COMPONENTS, ENGINE_COMPONENTS, formatCents, formatMinutes, labelFor } from "@/lib/karting";
+import { CHASSIS_COMPONENTS, ENGINE_COMPONENTS, formatCents, formatDate, formatMinutes, labelFor, todayInAmsterdam } from "@/lib/karting";
 import { computeUsage, dueChecks, readLimits } from "@/lib/part-usage";
 
 import { TrackProgress } from "./track-progress";
@@ -17,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DashboardPage() {
   const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
 
-  const [karts, parts, installed, season, progress, activeParts, activeKarts] = await Promise.all([
+  const [karts, parts, installed, season, progress, activeParts, activeKarts, activeGear] = await Promise.all([
     supabase.from("karts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase.from("parts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase
@@ -49,7 +50,20 @@ export default async function DashboardPage() {
       .select("id, name, usage_limit_minutes, component_limits, sessions(started_at, duration_s), maintenance_records(performed_on, resets_usage, components)")
       .eq("garage_id", garage.id)
       .in("status", ["active", "spare"]),
+    supabase
+      .from("gear_items")
+      .select("id, category, brand, model, valid_until, drivers(name)")
+      .eq("garage_id", garage.id)
+      .neq("status", "retired")
+      .not("valid_until", "is", null),
   ]);
+
+  // Gear whose homologation runs out within two months, or has run out; soonest first.
+  const today = todayInAmsterdam();
+  const gearAlerts = (activeGear.data ?? [])
+    .map((item) => ({ ...item, validity: gearValidity(item.valid_until, today)! }))
+    .filter((item) => item.validity.tone !== "ok")
+    .sort((a, b) => a.validity.daysLeft - b.validity.daysLeft);
 
   // Every counter (a part or kart as a whole, or one of its components) at 90% or more of its limit,
   // most urgent first.
@@ -143,6 +157,35 @@ export default async function DashboardPage() {
                     <span className={`ml-2 text-xs font-medium ${item.tone === "due" ? "text-red-300" : "text-amber-300"}`}>
                       <span aria-hidden="true">{item.tone === "due" ? "● " : "▲ "}</span>
                       {item.tone === "due" ? t.overview.due : t.overview.soon}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {gearAlerts.length > 0 && (
+        <section aria-labelledby="gear-heading" className={`${cardClass} border-amber-400/30`}>
+          <h2 id="gear-heading" className="text-lg font-semibold">
+            {t.overview.gearTitle}
+          </h2>
+          <ul className="mt-3 divide-y divide-zinc-800/80">
+            {gearAlerts.map((item) => {
+              const expired = item.validity.tone === "expired";
+              const date = formatDate(item.valid_until);
+              return (
+                <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm">
+                  <Link href={`/dashboard/gear/${item.id}`} className={linkClass}>
+                    {[labelFor(t.options.gearCategories, item.category), item.brand, item.model].filter(Boolean).join(" ")}
+                    {item.drivers && <span className="text-zinc-500"> · {item.drivers.name}</span>}
+                  </Link>
+                  <span className="text-zinc-400 tabular-nums">
+                    {format(expired ? t.overview.gearExpired : t.overview.gearUntil, { date })}
+                    <span className={`ml-2 text-xs font-medium ${expired ? "text-red-300" : "text-amber-300"}`}>
+                      <span aria-hidden="true">{expired ? "● " : "▲ "}</span>
+                      {expired ? t.overview.gearExpiredShort : plural(item.validity.daysLeft, t.overview.gearDaysLeft)}
                     </span>
                   </span>
                 </li>

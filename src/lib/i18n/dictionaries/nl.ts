@@ -4,6 +4,8 @@
 
 import {
   CHASSIS_COMPONENTS,
+  GEAR_CATEGORIES,
+  GEAR_STATUSES,
   ENGINE_COMPONENTS,
   EVENT_TYPES,
   EXPENSE_CATEGORIES,
@@ -32,6 +34,7 @@ export const nl = {
     karts: "Karts",
     costs: "Kosten",
     parts: "Onderdelen",
+    gear: "Uitrusting",
     seasons: "Seizoen",
     groupRacing: "Racen",
     groupEquipment: "Materiaal",
@@ -68,6 +71,11 @@ export const nl = {
     startText: "Voeg je chassis toe en daarna je motor, banden en andere onderdelen.",
     startLink: "Kart toevoegen",
     dueTitle: "Onderhoud nodig",
+    gearTitle: "Homologatie verloopt",
+    gearExpired: "verlopen op {date}",
+    gearUntil: "geldig tot {date}",
+    gearDaysLeft: { one: "nog {count} dag", other: "nog {count} dagen" },
+    gearExpiredShort: "niet meer geldig",
     sinceRevision: "{used} / {limit} sinds revisie",
     sinceService: "{used} / {limit} sinds groot onderhoud",
     componentUsage: "{component}: {used} / {limit}",
@@ -343,6 +351,8 @@ export const nl = {
     maintenanceTypes: MAINTENANCE_TYPES,
     engineComponents: ENGINE_COMPONENTS,
     chassisComponents: CHASSIS_COMPONENTS,
+    gearCategories: GEAR_CATEGORIES,
+    gearStatuses: GEAR_STATUSES,
   },
 };
 

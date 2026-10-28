@@ -29,6 +29,7 @@ erDiagram
     parts ||--o{ part_installations : "wordt gemonteerd"
     parts ||--o{ maintenance_records : "onderhoud"
     karts ||--o{ maintenance_records : "chassisonderhoud"
+    drivers ||--o{ gear_items : "uitrusting"
 
     seasons ||--o{ events : bevat
     tracks ||--o{ events : "locatie van"
@@ -184,6 +185,23 @@ De **totale draaitijd** van een onderdeel loopt altijd door. Daarnaast zijn er t
 Voor een kart werkt het net zo, gemeten over de sessies waarin die kart reed: totaal, *sinds groot onderhoud* en per chassiscomponent. Elke teller kan een eigen grens hebben (`usage_limit_minutes`, `component_limits`); vanaf 90% staat hij onder “Onderhoud nodig” op het overzicht.
 
 ---
+
+### `gear_items`
+Uitrusting van een coureur: helm, overall, handschoenen, schoenen, bodyprotector, nekbescherming, regenpak. Helm en overall hebben een homologatie die verloopt; vanaf 60 dagen voor `valid_until` (en daarna) verschijnt het item op het overzicht onder "Homologatie verloopt" (`lib/gear.ts`).
+
+| kolom | type | toelichting |
+|---|---|---|
+| id | uuid PK | |
+| garage_id | uuid FK | |
+| driver_id | uuid FK, nullable | van wie; leeg = gedeeld. RLS eist een coureur uit dezelfde garage |
+| category | text | `helmet`, `suit`, `gloves`, `boots`, `rib_protector`, `neck_brace`, `rain_suit`, `other` |
+| brand, model, size | text, nullable | |
+| homologation | text, nullable | bijv. "Snell K2020", "CIK-FIA Level 2" |
+| valid_until | date, nullable | laatste dag dat de homologatie geldt |
+| status | text | `in_use`, `spare`, `retired` (afgedankt telt niet mee voor waarschuwingen) |
+| purchased_on | date, nullable | |
+| purchase_price_cents | int, nullable | ook geboekt als uitgave (categorie `gear`), net als bij onderdelen |
+| notes | text, nullable | |
 
 ## 3. Seizoen, circuits en evenementen
 
@@ -386,6 +404,7 @@ Gedetailleerde telemetrie (samples van 10–100 Hz) blijft buiten de database; d
 | event_id | uuid FK, nullable | |
 | part_id | uuid FK, nullable | aankoop van een onderdeel |
 | maintenance_record_id | uuid FK, nullable | kosten van een revisie |
+| gear_item_id | uuid FK, nullable | aankoop van uitrusting |
 | spent_on | date | |
 | category | text | `entry_fee`, `tyres`, `fuel_oil`, `parts`, `engine_revision`, `track_rental`, `travel`, `accommodation`, `licence`, `gear` (kleding/helm), `other` |
 | amount_cents | int | |

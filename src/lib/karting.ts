@@ -41,6 +41,30 @@ export const KART_STATUSES = {
 
 export type KartStatus = keyof typeof KART_STATUSES;
 
+/** Driver gear; helmets and suits carry a homologation that runs out. */
+export const GEAR_CATEGORIES = {
+  helmet: "Helm",
+  suit: "Overall",
+  gloves: "Handschoenen",
+  boots: "Schoenen",
+  rib_protector: "Bodyprotector",
+  neck_brace: "Nekbescherming",
+  rain_suit: "Regenpak",
+  other: "Overig",
+} as const;
+
+export type GearCategory = keyof typeof GEAR_CATEGORIES;
+
+export const GEAR_STATUSES = {
+  in_use: "In gebruik",
+  spare: "Reserve",
+  retired: "Afgedankt",
+} as const;
+
+export function isGearCategory(value: string): value is GearCategory {
+  return value in GEAR_CATEGORIES;
+}
+
 export const MAINTENANCE_TYPES = {
   revision: "Revisie",
   service: "Onderhoud",
