@@ -49,7 +49,9 @@ export const fr: Dictionary = {
     startLink: "Ajouter un kart",
     dueTitle: "Entretien à prévoir",
     sinceRevision: "{used} / {limit} depuis la révision",
-    due: "révision nécessaire",
+    sinceService: "{used} / {limit} depuis le grand entretien",
+    componentUsage: "{component} : {used} / {limit}",
+    due: "à faire",
     soon: "bientôt",
   },
   progress: {
@@ -180,6 +182,14 @@ export const fr: Dictionary = {
       reed_valve: "Clapets / admission",
       clutch: "Embrayage",
       gaskets: "Joints & joints spi",
+    },
+    chassisComponents: {
+      frame: "Cadre (contrôle/redressage)",
+      axle_bearings: "Roulements d'axe",
+      wheel_bearings: "Roulements de roues avant",
+      steering: "Direction & fusées",
+      brakes: "Système de freinage (purge, liquide)",
+      fasteners: "Vis & écrous",
     },
   },
 };

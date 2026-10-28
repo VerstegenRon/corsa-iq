@@ -7,14 +7,42 @@ import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { sortedEntries } from "@/lib/karting";
 
-import { createMaintenance } from "../../actions";
+import { createMaintenance, type MaintenanceTarget } from "../actions";
+import type { ComponentSet } from "./maintenance-sections";
 
 const initialState: FormState = {};
 
-export function MaintenanceForm({ partId, isEngine, today }: { partId: string; isEngine: boolean; today: string }) {
+const copy = {
+  part: {
+    componentsHelp: "Elk aangevinkt component begint opnieuw te tellen. De totale draaitijd van de motor loopt altijd door.",
+    reset: "Teller “sinds laatste revisie” op nul zetten",
+    resetHelp: "Gebruik dit bij een volledige revisie; daarmee wordt ook de revisiegrens opnieuw gemeten.",
+    byPlaceholder: "Zelf, of je motorbouwer",
+    descriptionPlaceholder: "Nieuwe zuiger 54,00 mm, big-end vervangen…",
+  },
+  kart: {
+    componentsHelp: "Elk aangevinkt onderdeel van het chassis begint opnieuw te tellen. De totale draaitijd van de kart loopt altijd door.",
+    reset: "Teller “sinds groot onderhoud” op nul zetten",
+    resetHelp: "Gebruik dit bij een volledige beurt van het chassis; daarmee wordt ook de onderhoudsgrens opnieuw gemeten.",
+    byPlaceholder: "Zelf, of je team",
+    descriptionPlaceholder: "Frame gemeten, aslagers vervangen…",
+  },
+};
+
+export function MaintenanceForm({
+  target,
+  componentSet,
+  today,
+}: {
+  target: MaintenanceTarget;
+  componentSet: ComponentSet | null;
+  today: string;
+}) {
   const t = useT();
-  const [state, formAction, isPending] = useActionState(createMaintenance.bind(null, partId), initialState);
+  const [state, formAction, isPending] = useActionState(createMaintenance.bind(null, target), initialState);
   const [type, setType] = useState("revision");
+  const text = copy[target.kind];
+  const components = componentSet === "engine" ? t.options.engineComponents : componentSet === "chassis" ? t.options.chassisComponents : null;
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -34,17 +62,15 @@ export function MaintenanceForm({ partId, isEngine, today }: { partId: string; i
       </label>
       <label className={labelClass}>
         Uitgevoerd door
-        <input name="performed_by" placeholder="Zelf, of je motorbouwer" className={inputClass} />
+        <input name="performed_by" placeholder={text.byPlaceholder} className={inputClass} />
       </label>
 
-      {isEngine && (
+      {components && (
         <fieldset className="sm:col-span-2 lg:col-span-3">
           <legend className="text-sm text-zinc-300">Vervangen of gereviseerd</legend>
-          <p className="mt-1 text-xs text-zinc-500">
-            Elk aangevinkt component begint opnieuw te tellen. De totale draaitijd van de motor loopt altijd door.
-          </p>
+          <p className="mt-1 text-xs text-zinc-500">{text.componentsHelp}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {sortedEntries(t.options.engineComponents).map(([value, label]) => (
+            {sortedEntries(components).map(([value, label]) => (
               <label key={value} className="flex items-center gap-2 text-sm text-zinc-300">
                 <input type="checkbox" name="components" value={value} className="size-4 accent-cyan-400" />
                 {label}
@@ -64,16 +90,14 @@ export function MaintenanceForm({ partId, isEngine, today }: { partId: string; i
           className="mt-0.5 size-4 accent-cyan-400"
         />
         <span>
-          Teller “sinds laatste revisie” op nul zetten
-          <span className="block text-xs text-zinc-500">
-            Gebruik dit bij een volledige revisie; daarmee wordt ook de revisiegrens opnieuw gemeten.
-          </span>
+          {text.reset}
+          <span className="block text-xs text-zinc-500">{text.resetHelp}</span>
         </span>
       </label>
 
       <label className={`${labelClass} sm:col-span-2`}>
         Omschrijving
-        <input name="description" placeholder="Nieuwe zuiger 54,00 mm, big-end vervangen…" className={inputClass} />
+        <input name="description" placeholder={text.descriptionPlaceholder} className={inputClass} />
       </label>
       <label className={labelClass}>
         Kosten (€)

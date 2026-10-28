@@ -6,33 +6,16 @@ import { DeleteButton } from "@/components/delete-button";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
-import {
-  ENGINE_COMPONENTS,
-  formatCents,
-  formatDate,
-  formatMinutes,
-  labelFor,
-  sortedEntries,
-  todayInAmsterdam,
-} from "@/lib/karting";
-import { computePartUsage } from "@/lib/part-usage";
+import { ENGINE_COMPONENTS, formatCents, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
+import { computeUsage, readLimits } from "@/lib/part-usage";
 
-import { deleteMaintenance, deletePart } from "../../actions";
+import { ComponentsSection, MaintenanceSection, UsageCards } from "../../_maintenance/maintenance-sections";
+import { deletePart, type MaintenanceTarget } from "../../actions";
 import { PartForm } from "../part-form";
-import { MaintenanceForm } from "./maintenance-form";
 
 export const metadata: Metadata = {
   title: "Onderdeel — CorsaIQ",
 };
-
-/** Share of the limit used: below 90% normal, from 90% warning, at 100% due. */
-function limitState(minutes: number, limit: number | null) {
-  if (limit === null) return null;
-  const share = minutes / limit;
-  return { share, tone: share >= 1 ? "due" : share >= 0.9 ? "soon" : "ok" } as const;
-}
-
-const toneClass = { ok: "bg-cyan-400", soon: "bg-amber-400", due: "bg-red-400" };
 
 export default async function PartPage({ params }: PageProps<"/dashboard/parts/[id]">) {
   const { id } = await params;
@@ -42,7 +25,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
   const { data: part, error } = await supabase
     .from("parts")
     .select(
-      "id, category, brand, model, serial_number, status, purchased_on, purchase_price_cents, usage_limit_minutes, notes, part_installations(removed_at, karts(id, name)), session_parts(sessions(started_at, duration_s)), maintenance_records(id, performed_on, type, performed_by, description, resets_usage, components, created_at, expenses(amount_cents))",
+      "id, category, brand, model, serial_number, status, purchased_on, purchase_price_cents, usage_limit_minutes, component_limits, notes, part_installations(removed_at, karts(id, name)), session_parts(sessions(started_at, duration_s)), maintenance_records(id, performed_on, type, performed_by, description, resets_usage, components, created_at, expenses(amount_cents))",
     )
     .eq("id", id)
     .eq("garage_id", garage.id)
@@ -56,8 +39,9 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
   const isEngine = part.category === "engine";
   const sessions = part.session_parts.flatMap((sp) => (sp.sessions ? [sp.sessions] : []));
   const records = part.maintenance_records;
-  const usage = computePartUsage(sessions, records, Object.keys(ENGINE_COMPONENTS));
-  const limit = limitState(usage.sinceResetMinutes, part.usage_limit_minutes);
+  const usage = computeUsage(sessions, records, Object.keys(ENGINE_COMPONENTS));
+  const componentLimits = readLimits(part.component_limits, Object.keys(ENGINE_COMPONENTS));
+  const target: MaintenanceTarget = { kind: "part", id: part.id };
 
   const details = [
     ["Status", kart ? `Op ${kart.name}` : labelFor(t.options.partStatuses, part.status)],
@@ -103,126 +87,11 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
         </dl>
       </section>
 
-      <section aria-label="Draaitijd" className="grid gap-4 sm:grid-cols-2">
-        <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Totale draaitijd</p>
-          <p className="mt-2 text-3xl font-semibold">{formatMinutes(usage.totalMinutes)}</p>
-          <p className="mt-1 text-xs text-zinc-500">Loopt altijd door, ook na revisies en vervangen onderdelen.</p>
-        </div>
-        <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Sinds laatste revisie</p>
-          <p className="mt-2 text-3xl font-semibold">
-            {formatMinutes(usage.sinceResetMinutes)}
-            {part.usage_limit_minutes !== null && (
-              <span className="text-base font-normal text-zinc-500"> / {formatMinutes(part.usage_limit_minutes)}</span>
-            )}
-          </p>
-          {limit ? (
-            <>
-              <div
-                role="meter"
-                aria-label="Deel van de revisiegrens gebruikt"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(Math.min(limit.share, 1) * 100)}
-                className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-800"
-              >
-                <div className={`h-full rounded-full ${toneClass[limit.tone]}`} style={{ width: `${Math.min(limit.share, 1) * 100}%` }} />
-              </div>
-              <p className="mt-2 text-xs text-zinc-500">
-                {limit.tone === "due"
-                  ? "Revisie nodig."
-                  : `Nog ${formatMinutes(part.usage_limit_minutes! - usage.sinceResetMinutes)} tot de revisiegrens.`}
-              </p>
-            </>
-          ) : (
-            <p className="mt-1 text-xs text-zinc-500">Stel bij Bewerken een revisiegrens in om te zien wanneer het tijd is.</p>
-          )}
-        </div>
-      </section>
+      <UsageCards kind="part" usage={usage} limit={part.usage_limit_minutes} />
 
-      {isEngine && (
-        <section aria-labelledby="components-heading" className={cardClass}>
-          <h2 id="components-heading" className="text-lg font-semibold">
-            Componenten
-          </h2>
-          <p className="mt-1 text-sm text-zinc-400">Draaitijd sinds elk component voor het laatst is vervangen of gereviseerd.</p>
-          <table className="mt-4 w-full text-left text-sm">
-            <thead className="text-xs text-zinc-500">
-              <tr className="border-b border-zinc-800">
-                <th scope="col" className="py-2 pr-4 font-medium">Component</th>
-                <th scope="col" className="py-2 pr-4 font-medium">Laatst gedaan</th>
-                <th scope="col" className="py-2 text-right font-medium">Draaitijd sindsdien</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/80">
-              {sortedEntries(t.options.engineComponents).map(([key, label]) => {
-                const component = usage.components[key];
-                return (
-                  <tr key={key}>
-                    <td className="py-2 pr-4 text-zinc-200">{label}</td>
-                    <td className="py-2 pr-4 text-zinc-400">{component.lastOn ? formatDate(component.lastOn) : "nog niet (sinds nieuw)"}</td>
-                    <td className="py-2 text-right text-zinc-200 tabular-nums">{formatMinutes(component.minutes)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
-      )}
+      {isEngine && <ComponentsSection target={target} componentSet="engine" usage={usage} limits={componentLimits} t={t} />}
 
-      <section aria-labelledby="maintenance-heading" className={cardClass}>
-        <h2 id="maintenance-heading" className="text-lg font-semibold">
-          Onderhoud
-        </h2>
-        {records.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-400">Nog geen onderhoud vastgelegd.</p>
-        ) : (
-          <ul className="mt-4 divide-y divide-zinc-800/80">
-            {records.map((record) => {
-              const cost = record.expenses.reduce((sum, e) => sum + e.amount_cents, 0);
-              const title = `${labelFor(t.options.maintenanceTypes, record.type)} van ${formatDate(record.performed_on)}`;
-              return (
-                <li key={record.id} className="flex items-start justify-between gap-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-zinc-100">
-                      {labelFor(t.options.maintenanceTypes, record.type)}
-                      <span className="font-normal text-zinc-500">
-                        {" "}
-                        · {formatDate(record.performed_on)}
-                        {record.performed_by && ` · ${record.performed_by}`}
-                        {record.resets_usage && " · teller op nul"}
-                      </span>
-                    </p>
-                    {record.components.length > 0 && (
-                      <p className="mt-1 text-xs text-zinc-400">
-                        {record.components.map((c) => labelFor(t.options.engineComponents, c)).join(" · ")}
-                      </p>
-                    )}
-                    {record.description && <p className="mt-1 text-xs text-zinc-500">{record.description}</p>}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {cost > 0 && <span className="text-sm tabular-nums">{formatCents(cost)}</span>}
-                    <DeleteButton
-                      compact
-                      action={deleteMaintenance.bind(null, record.id)}
-                      label={`${title} verwijderen`}
-                      confirmText={`${title} verwijderen?${cost > 0 ? " De kosten verdwijnen ook uit je overzicht." : ""} De tellers rekenen dan weer vanaf het vorige onderhoud.`}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <div className="mt-6 border-t border-zinc-800/80 pt-6">
-          <h3 className="mb-4 text-sm font-semibold text-zinc-200">Onderhoud vastleggen</h3>
-          <MaintenanceForm partId={part.id} isEngine={isEngine} today={todayInAmsterdam()} />
-          <p className="mt-3 text-xs text-zinc-500">
-            Sessies op de dag van het onderhoud tellen nog mee voor de oude stand; vanaf de volgende dag begint de teller opnieuw.
-          </p>
-        </div>
-      </section>
+      <MaintenanceSection target={target} componentSet={isEngine ? "engine" : null} records={records} today={todayInAmsterdam()} t={t} />
 
       <section aria-labelledby="edit-heading" className={cardClass}>
         <h2 id="edit-heading" className="mb-6 text-lg font-semibold">

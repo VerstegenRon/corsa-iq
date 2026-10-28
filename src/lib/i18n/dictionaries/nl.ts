@@ -3,6 +3,7 @@
 // dictionary can be handed to Client Components; use {placeholders} and `plural` for variable parts.
 
 import {
+  CHASSIS_COMPONENTS,
   ENGINE_COMPONENTS,
   EVENT_TYPES,
   EXPENSE_CATEGORIES,
@@ -63,7 +64,9 @@ export const nl = {
     startLink: "Kart toevoegen",
     dueTitle: "Onderhoud nodig",
     sinceRevision: "{used} / {limit} sinds revisie",
-    due: "revisie nodig",
+    sinceService: "{used} / {limit} sinds groot onderhoud",
+    componentUsage: "{component}: {used} / {limit}",
+    due: "nu nodig",
     soon: "bijna",
   },
   progress: {
@@ -125,6 +128,7 @@ export const nl = {
     expenseCategories: EXPENSE_CATEGORIES,
     maintenanceTypes: MAINTENANCE_TYPES,
     engineComponents: ENGINE_COMPONENTS,
+    chassisComponents: CHASSIS_COMPONENTS,
   },
 };
 

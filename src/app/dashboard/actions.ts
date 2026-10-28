@@ -7,6 +7,7 @@ import type { FormState } from "@/components/form-message";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import {
+  CHASSIS_COMPONENTS,
   ENGINE_COMPONENTS,
   KART_STATUSES,
   MAINTENANCE_TYPES,
@@ -29,9 +30,15 @@ function readKart(formData: FormData) {
     return { error: "Vul een geldig bouwjaar in." };
   }
 
+  const limitHours = optionalNumber(formData, "usage_limit_hours");
+  if (limitHours === undefined || limitHours === 0) {
+    return { error: "Vul een geldig aantal draaiuren in, of laat het veld leeg." };
+  }
+
   return {
     values: {
       name,
+      usage_limit_minutes: limitHours === null ? null : Math.round(limitHours * 60),
       chassis_brand: text(formData, "chassis_brand"),
       chassis_model: text(formData, "chassis_model"),
       chassis_year: year === null ? null : Math.round(year),
@@ -254,28 +261,46 @@ export async function deletePart(partId: string): Promise<FormState> {
   redirect("/dashboard/parts");
 }
 
-export async function createMaintenance(partId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+/** A maintenance job is done on a part (engine, gearbox…) or on a kart's chassis. */
+export type MaintenanceTarget = { kind: "part" | "kart"; id: string };
+
+/** The components a job on this target can cover: engine parts or the chassis; none for other parts. */
+async function maintenanceSubject(supabase: Supabase, garageId: string, target: MaintenanceTarget) {
+  if (target.kind === "kart") {
+    const { data } = await supabase.from("karts").select("id").eq("id", target.id).eq("garage_id", garageId).maybeSingle();
+    return data ? { category: null, components: CHASSIS_COMPONENTS as Record<string, string> } : null;
+  }
+  const { data } = await supabase.from("parts").select("category").eq("id", target.id).eq("garage_id", garageId).maybeSingle();
+  if (!data) return null;
+  return {
+    category: data.category,
+    components: (data.category === "engine" ? ENGINE_COMPONENTS : {}) as Record<string, string>,
+  };
+}
+
+export async function createMaintenance(target: MaintenanceTarget, _prev: FormState, formData: FormData): Promise<FormState> {
   const performedOn = text(formData, "performed_on");
   const type = text(formData, "type");
   if (!performedOn) return { error: "Vul de datum in." };
   if (!type || !(type in MAINTENANCE_TYPES)) return { error: "Kies het soort onderhoud." };
-
-  const components = formData.getAll("components").map(String);
-  if (components.some((c) => !(c in ENGINE_COMPONENTS))) return { error: "Onbekend component gekozen." };
 
   const cost = optionalNumber(formData, "cost");
   if (cost === undefined) return { error: "Vul een geldig bedrag in, of laat het veld leeg." };
 
   const { supabase, garage } = await getCurrentGarage();
   const t = await getDictionary();
-  const { data: part } = await supabase.from("parts").select("category").eq("id", partId).eq("garage_id", garage.id).maybeSingle();
-  if (!part) return { error: "Dit onderdeel bestaat niet meer." };
+  const subject = await maintenanceSubject(supabase, garage.id, target);
+  if (!subject) return { error: target.kind === "kart" ? "Deze kart bestaat niet meer." : "Dit onderdeel bestaat niet meer." };
+
+  const components = formData.getAll("components").map(String);
+  if (components.some((c) => !(c in subject.components))) return { error: "Onbekend component gekozen." };
 
   const { data: record, error } = await supabase
     .from("maintenance_records")
     .insert({
       garage_id: garage.id,
-      part_id: partId,
+      part_id: target.kind === "part" ? target.id : null,
+      kart_id: target.kind === "kart" ? target.id : null,
       performed_on: performedOn,
       type,
       performed_by: text(formData, "performed_by"),
@@ -292,10 +317,13 @@ export async function createMaintenance(partId: string, _prev: FormState, formDa
       garage_id: garage.id,
       season_id: await seasonIdForDate(supabase, garage.id, performedOn),
       maintenance_record_id: record.id,
-      category: part.category === "engine" ? "engine_revision" : "parts",
+      category: subject.category === "engine" ? "engine_revision" : "parts",
       spent_on: performedOn,
       amount_cents: Math.round(cost * 100),
-      description: [labelFor(t.options.maintenanceTypes, type), labelFor(t.options.partCategories, part.category).toLowerCase()].join(" "),
+      description: [
+        labelFor(t.options.maintenanceTypes, type),
+        subject.category ? labelFor(t.options.partCategories, subject.category).toLowerCase() : "chassis",
+      ].join(" "),
     });
     if (expenseError) return { error: `Onderhoud opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
   }
@@ -313,6 +341,31 @@ export async function deleteMaintenance(recordId: string): Promise<FormState> {
 
   revalidatePath("/dashboard", "layout");
   return {};
+}
+
+/** Saves the hours each component may run before it is due; an empty field removes that limit. */
+export async function updateComponentLimits(target: MaintenanceTarget, _prev: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, garage } = await getCurrentGarage();
+  const subject = await maintenanceSubject(supabase, garage.id, target);
+  if (!subject) return { error: target.kind === "kart" ? "Deze kart bestaat niet meer." : "Dit onderdeel bestaat niet meer." };
+
+  const limits: Record<string, number> = {};
+  for (const key of Object.keys(subject.components)) {
+    const hours = optionalNumber(formData, `limit_${key}`);
+    if (hours === undefined || hours === 0) {
+      return { error: `Vul bij ${labelFor(subject.components, key).toLowerCase()} een geldig aantal uren in, of laat het leeg.` };
+    }
+    if (hours !== null) limits[key] = Math.round(hours * 60);
+  }
+
+  const { error } =
+    target.kind === "kart"
+      ? await supabase.from("karts").update({ component_limits: limits }).eq("id", target.id).eq("garage_id", garage.id)
+      : await supabase.from("parts").update({ component_limits: limits }).eq("id", target.id).eq("garage_id", garage.id);
+  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+
+  revalidatePath("/dashboard", "layout");
+  return { success: "Grenzen opgeslagen." };
 }
 
 export async function installPart(kartId: string, _prev: FormState, formData: FormData): Promise<FormState> {

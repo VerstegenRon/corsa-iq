@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { sortedEntries } from "@/lib/karting";
+import { decimalInput, sortedEntries } from "@/lib/karting";
 
 import { createKart, updateKart } from "../actions";
 
@@ -20,6 +20,7 @@ export type KartValues = {
   chassis_year: number | null;
   serial_number: string | null;
   status: string;
+  usage_limit_minutes: number | null;
 };
 
 /** Adds a kart, or edits one when `kart` is given. */
@@ -61,6 +62,16 @@ export function KartForm({ kart }: { kart?: KartValues }) {
       <label className={labelClass}>
         Chassisnummer
         <input name="serial_number" defaultValue={kart?.serial_number ?? ""} className={inputClass} />
+      </label>
+      <label className={labelClass}>
+        Groot onderhoud na (uren)
+        <input
+          name="usage_limit_hours"
+          inputMode="decimal"
+          defaultValue={decimalInput(kart?.usage_limit_minutes, 60)}
+          placeholder="30"
+          className={inputClass}
+        />
       </label>
       {kart && (
         <label className={labelClass}>

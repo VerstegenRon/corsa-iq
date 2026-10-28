@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { sortedEntries } from "@/lib/karting";
+import { decimalInput, sortedEntries } from "@/lib/karting";
 
 import { createPart, updatePart } from "../actions";
 
@@ -23,10 +23,6 @@ export type PartValues = {
   notes: string | null;
   status: string;
 };
-
-/** "249,95" for the price field, so it reads like the placeholder. */
-const decimal = (value: number | null, divisor: number) =>
-  value === null ? "" : String(value / divisor).replace(".", ",");
 
 /** Adds a part, or edits one when `part` is given. */
 export function PartForm({ part }: { part?: PartValues }) {
@@ -72,7 +68,7 @@ export function PartForm({ part }: { part?: PartValues }) {
         <input
           name="purchase_price"
           inputMode="decimal"
-          defaultValue={part ? decimal(part.purchase_price_cents, 100) : undefined}
+          defaultValue={part ? decimalInput(part.purchase_price_cents, 100) : undefined}
           placeholder="249,95"
           className={inputClass}
         />
@@ -82,7 +78,7 @@ export function PartForm({ part }: { part?: PartValues }) {
         <input
           name="usage_limit_hours"
           inputMode="decimal"
-          defaultValue={part ? decimal(part.usage_limit_minutes, 60) : undefined}
+          defaultValue={part ? decimalInput(part.usage_limit_minutes, 60) : undefined}
           placeholder="10"
           className={inputClass}
         />

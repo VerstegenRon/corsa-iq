@@ -49,7 +49,9 @@ export const de: Dictionary = {
     startLink: "Kart hinzufügen",
     dueTitle: "Wartung fällig",
     sinceRevision: "{used} / {limit} seit Revision",
-    due: "Revision fällig",
+    sinceService: "{used} / {limit} seit großer Wartung",
+    componentUsage: "{component}: {used} / {limit}",
+    due: "jetzt fällig",
     soon: "bald",
   },
   progress: {
@@ -180,6 +182,14 @@ export const de: Dictionary = {
       reed_valve: "Membran / Einlass",
       clutch: "Kupplung",
       gaskets: "Dichtungen & Simmerringe",
+    },
+    chassisComponents: {
+      frame: "Rahmen (prüfen/richten)",
+      axle_bearings: "Achslager",
+      wheel_bearings: "Radlager vorne",
+      steering: "Lenkung & Achsschenkel",
+      brakes: "Bremsanlage (entlüften, Flüssigkeit)",
+      fasteners: "Schrauben & Muttern",
     },
   },
 };

@@ -49,7 +49,9 @@ export const en: Dictionary = {
     startLink: "Add kart",
     dueTitle: "Maintenance due",
     sinceRevision: "{used} / {limit} since rebuild",
-    due: "rebuild due",
+    sinceService: "{used} / {limit} since major service",
+    componentUsage: "{component}: {used} / {limit}",
+    due: "due now",
     soon: "soon",
   },
   progress: {
@@ -180,6 +182,14 @@ export const en: Dictionary = {
       reed_valve: "Reed valve / intake",
       clutch: "Clutch",
       gaskets: "Gaskets & seals",
+    },
+    chassisComponents: {
+      frame: "Frame (check/straighten)",
+      axle_bearings: "Axle bearings",
+      wheel_bearings: "Front wheel bearings",
+      steering: "Steering & stub axles",
+      brakes: "Brake system (bleed, fluid)",
+      fasteners: "Nuts & bolts",
     },
   },
 };

@@ -323,6 +323,8 @@ export type Database = {
       }
       karts: {
         Row: {
+          component_limits: Json
+          usage_limit_minutes: number | null
           chassis_brand: string | null
           chassis_model: string | null
           chassis_year: number | null
@@ -337,6 +339,8 @@ export type Database = {
           status: string
         }
         Insert: {
+          component_limits?: Json
+          usage_limit_minutes?: number | null
           chassis_brand?: string | null
           chassis_model?: string | null
           chassis_year?: number | null
@@ -351,6 +355,8 @@ export type Database = {
           status?: string
         }
         Update: {
+          component_limits?: Json
+          usage_limit_minutes?: number | null
           chassis_brand?: string | null
           chassis_model?: string | null
           chassis_year?: number | null
@@ -569,6 +575,7 @@ export type Database = {
       }
       parts: {
         Row: {
+          component_limits: Json
           brand: string | null
           category: string
           created_at: string
@@ -584,6 +591,7 @@ export type Database = {
           usage_limit_minutes: number | null
         }
         Insert: {
+          component_limits?: Json
           brand?: string | null
           category: string
           created_at?: string
@@ -599,6 +607,7 @@ export type Database = {
           usage_limit_minutes?: number | null
         }
         Update: {
+          component_limits?: Json
           brand?: string | null
           category?: string
           created_at?: string
