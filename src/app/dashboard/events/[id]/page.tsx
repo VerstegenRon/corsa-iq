@@ -16,7 +16,9 @@ import {
   formatMinutes,
   formatTime,
   labelFor,
+  ownOrOfficial,
   summarizeSetup,
+  trackLabel,
   type SetupValues,
 } from "@/lib/karting";
 
@@ -41,7 +43,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
     supabase
       .from("events")
       .select(
-        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, karts(name), drivers(name), setups(values), session_parts(part_id))",
+        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, city, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, karts(name), drivers(name), setups(values), session_parts(part_id))",
       )
       .eq("id", id)
       .eq("garage_id", garage.id)
@@ -64,7 +66,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       .order("spent_on", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase.from("seasons").select("id, name").eq("garage_id", garage.id).order("year", { ascending: false }),
-    supabase.from("tracks").select("id, name, country").order("name"),
+    supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
   ]);
   if (eventResult.error) throw new Error(eventResult.error.message);
   const event = eventResult.data;
@@ -86,8 +88,8 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{event.name}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {labelFor(EVENT_TYPES, event.type)} · {event.tracks?.name}
-          {event.tracks?.country && ` (${event.tracks.country})`} · {formatDate(event.starts_on)}
+          {labelFor(EVENT_TYPES, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"} ·{" "}
+          {formatDate(event.starts_on)}
           {event.ends_on && event.ends_on !== event.starts_on && ` – ${formatDate(event.ends_on)}`}
           {event.seasons && ` · ${event.seasons.name}`}
         </p>
@@ -204,7 +206,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         <EventForm
           event={event}
           seasons={(seasonsResult.data ?? []).map((s) => ({ id: s.id, label: s.name }))}
-          tracks={(tracksResult.data ?? []).map((t) => ({ id: t.id, label: t.country ? `${t.name} (${t.country})` : t.name }))}
+          tracks={(tracksResult.data ?? []).map((t) => ({ id: t.id, label: trackLabel(t) }))}
         />
       </EditSection>
     </>

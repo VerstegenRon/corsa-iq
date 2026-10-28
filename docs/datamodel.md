@@ -158,6 +158,8 @@ Geschiedenis van welk onderdeel wanneer op welke kart zat.
 
 Regel: één onderdeel kan op één moment maar op één kart zitten.
 
+> **Coureurs:** `drivers` heeft `first_name` (verplicht) en `last_name`; `name` is een door de database berekende kolom (voornaam + achternaam) voor weergave.
+
 ### `maintenance_records`
 Revisies, onderhoud en reparaties.
 

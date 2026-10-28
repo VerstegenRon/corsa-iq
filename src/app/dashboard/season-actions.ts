@@ -94,6 +94,7 @@ async function readEvent(supabase: Supabase, garageId: string, formData: FormDat
       .from("tracks")
       .insert({
         name: newTrackName,
+        city: text(formData, "new_track_city"),
         country: text(formData, "new_track_country")?.toUpperCase().slice(0, 2) ?? null,
         created_by_garage_id: garageId,
       })

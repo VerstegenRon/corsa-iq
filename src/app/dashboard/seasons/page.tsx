@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { EVENT_TYPES, formatCents, formatDate, labelFor } from "@/lib/karting";
+import { EVENT_TYPES, formatCents, formatDate, labelFor, ownOrOfficial, trackLabel } from "@/lib/karting";
 
 import { EventForm } from "./event-form";
 import { SeasonForm } from "./season-form";
@@ -19,7 +19,7 @@ type EventRow = {
   starts_on: string;
   ends_on: string | null;
   season_id: string | null;
-  tracks: { name: string } | null;
+  tracks: { name: string; city: string | null; country: string | null } | null;
   sessions: { id: string }[];
 };
 
@@ -36,7 +36,7 @@ function EventList({ events }: { events: EventRow[] }) {
             <span>
               <span className="block text-sm font-medium text-zinc-100">{event.name}</span>
               <span className="block text-xs text-zinc-500">
-                {labelFor(EVENT_TYPES, event.type)} · {event.tracks?.name ?? "Onbekend circuit"}
+                {labelFor(EVENT_TYPES, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"}
               </span>
             </span>
             <span className="text-right text-xs text-zinc-400">
@@ -64,10 +64,10 @@ export default async function SeasonsPage() {
       .order("year", { ascending: false }),
     supabase
       .from("events")
-      .select("id, name, type, starts_on, ends_on, season_id, tracks(name), sessions(id)")
+      .select("id, name, type, starts_on, ends_on, season_id, tracks(name, city, country), sessions(id)")
       .eq("garage_id", garage.id)
       .order("starts_on", { ascending: false }),
-    supabase.from("tracks").select("id, name, country").order("name"),
+    supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
   ]);
   if (seasonsResult.error) throw new Error(seasonsResult.error.message);
   if (eventsResult.error) throw new Error(eventsResult.error.message);
@@ -77,7 +77,7 @@ export default async function SeasonsPage() {
   const looseEvents = events.filter((event) => event.season_id === null);
   const tracks = (tracksResult.data ?? []).map((track) => ({
     id: track.id,
-    label: track.country ? `${track.name} (${track.country})` : track.name,
+    label: trackLabel(track),
   }));
 
   return (

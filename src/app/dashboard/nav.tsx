@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 
 // A–Z by label.
 const items: { href: string; label: string; also?: string[] }[] = [
+  { href: "/dashboard/tracks", label: "Circuits" },
+  { href: "/dashboard/drivers", label: "Coureurs" },
   { href: "/dashboard/karts", label: "Karts" },
   { href: "/dashboard/costs", label: "Kosten" },
   { href: "/dashboard/parts", label: "Onderdelen" },
@@ -16,7 +18,7 @@ export function DashboardNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Dashboard" className="flex gap-1 overflow-x-auto">
+    <nav aria-label="Dashboard" className="flex flex-wrap gap-1">
       {items.map((item) => {
         const isActive =
           item.href === "/dashboard"

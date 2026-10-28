@@ -68,8 +68,10 @@ export type Database = {
       drivers: {
         Row: {
           created_at: string
+          first_name: string
           garage_id: string
           id: string
+          last_name: string | null
           licence_number: string | null
           name: string
           race_number: string | null
@@ -78,20 +80,22 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          first_name: string
           garage_id: string
           id?: string
+          last_name?: string | null
           licence_number?: string | null
-          name: string
           race_number?: string | null
           user_id?: string | null
           weight_kg?: number | null
         }
         Update: {
           created_at?: string
+          first_name?: string
           garage_id?: string
           id?: string
+          last_name?: string | null
           licence_number?: string | null
-          name?: string
           race_number?: string | null
           user_id?: string | null
           weight_kg?: number | null
@@ -969,6 +973,7 @@ export type Database = {
       }
       tracks: {
         Row: {
+          city: string | null
           country: string | null
           created_at: string
           created_by_garage_id: string | null
@@ -978,6 +983,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          city?: string | null
           country?: string | null
           created_at?: string
           created_by_garage_id?: string | null
@@ -987,6 +993,7 @@ export type Database = {
           name: string
         }
         Update: {
+          city?: string | null
           country?: string | null
           created_at?: string
           created_by_garage_id?: string | null
