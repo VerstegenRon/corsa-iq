@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const items = [
+const items: { href: string; label: string; also?: string[] }[] = [
   { href: "/dashboard", label: "Overzicht" },
+  { href: "/dashboard/seasons", label: "Seizoen", also: ["/dashboard/events"] },
   { href: "/dashboard/karts", label: "Karts" },
   { href: "/dashboard/parts", label: "Onderdelen" },
-] as const;
+];
 
 export function DashboardNav() {
   const pathname = usePathname();
@@ -16,7 +17,9 @@ export function DashboardNav() {
     <nav aria-label="Dashboard" className="flex gap-1 overflow-x-auto">
       {items.map((item) => {
         const isActive =
-          item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
+          item.href === "/dashboard"
+            ? pathname === item.href
+            : [item.href, ...(item.also ?? [])].some((prefix) => pathname.startsWith(prefix));
         return (
           <Link
             key={item.href}
