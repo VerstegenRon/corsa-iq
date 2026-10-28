@@ -10,6 +10,8 @@ export type SetupField = {
   /** Form field name. */
   name: string;
   path: [string] | [string, string];
+  /** Where older setups kept this value (one pressure per axle before per-wheel pressures). */
+  legacyPath?: [string, string];
   group: SetupGroup;
   label: string;
   /** Column header and diff label. */
@@ -27,10 +29,14 @@ export const SETUP_GROUPS: Record<SetupGroup, string> = {
 };
 
 export const SETUP_FIELDS: SetupField[] = [
-  { name: "pressure_front", path: ["tyre_pressure_cold_bar", "front"], group: "tyres", label: "Druk voor, koud (bar)", short: "Druk v koud", unit: "bar", kind: "decimal", placeholder: "0,62" },
-  { name: "pressure_rear", path: ["tyre_pressure_cold_bar", "rear"], group: "tyres", label: "Druk achter, koud (bar)", short: "Druk a koud", unit: "bar", kind: "decimal", placeholder: "0,60" },
-  { name: "hot_pressure_front", path: ["tyre_pressure_hot_bar", "front"], group: "tyres", label: "Druk voor, warm (bar)", short: "Druk v warm", unit: "bar", kind: "decimal", placeholder: "0,82" },
-  { name: "hot_pressure_rear", path: ["tyre_pressure_hot_bar", "rear"], group: "tyres", label: "Druk achter, warm (bar)", short: "Druk a warm", unit: "bar", kind: "decimal", placeholder: "0,80" },
+  { name: "pressure_fl", path: ["tyre_pressure_cold_bar", "fl"], legacyPath: ["tyre_pressure_cold_bar", "front"], group: "tyres", label: "Linksvoor, koud (bar)", short: "LV koud", unit: "bar", kind: "decimal", placeholder: "0,62" },
+  { name: "pressure_fr", path: ["tyre_pressure_cold_bar", "fr"], legacyPath: ["tyre_pressure_cold_bar", "front"], group: "tyres", label: "Rechtsvoor, koud (bar)", short: "RV koud", unit: "bar", kind: "decimal", placeholder: "0,62" },
+  { name: "pressure_rl", path: ["tyre_pressure_cold_bar", "rl"], legacyPath: ["tyre_pressure_cold_bar", "rear"], group: "tyres", label: "Linksachter, koud (bar)", short: "LA koud", unit: "bar", kind: "decimal", placeholder: "0,60" },
+  { name: "pressure_rr", path: ["tyre_pressure_cold_bar", "rr"], legacyPath: ["tyre_pressure_cold_bar", "rear"], group: "tyres", label: "Rechtsachter, koud (bar)", short: "RA koud", unit: "bar", kind: "decimal", placeholder: "0,60" },
+  { name: "hot_pressure_fl", path: ["tyre_pressure_hot_bar", "fl"], legacyPath: ["tyre_pressure_hot_bar", "front"], group: "tyres", label: "Linksvoor, warm (bar)", short: "LV warm", unit: "bar", kind: "decimal", placeholder: "0,82" },
+  { name: "hot_pressure_fr", path: ["tyre_pressure_hot_bar", "fr"], legacyPath: ["tyre_pressure_hot_bar", "front"], group: "tyres", label: "Rechtsvoor, warm (bar)", short: "RV warm", unit: "bar", kind: "decimal", placeholder: "0,82" },
+  { name: "hot_pressure_rl", path: ["tyre_pressure_hot_bar", "rl"], legacyPath: ["tyre_pressure_hot_bar", "rear"], group: "tyres", label: "Linksachter, warm (bar)", short: "LA warm", unit: "bar", kind: "decimal", placeholder: "0,80" },
+  { name: "hot_pressure_rr", path: ["tyre_pressure_hot_bar", "rr"], legacyPath: ["tyre_pressure_hot_bar", "rear"], group: "tyres", label: "Rechtsachter, warm (bar)", short: "RA warm", unit: "bar", kind: "decimal", placeholder: "0,80" },
   { name: "front_teeth", path: ["gearing", "front_teeth"], group: "gearing", label: "Tandwiel voor (tanden)", short: "Tandw. v", kind: "integer", placeholder: "12" },
   { name: "rear_teeth", path: ["gearing", "rear_teeth"], group: "gearing", label: "Tandwiel achter (tanden)", short: "Tandw. a", kind: "integer", placeholder: "82" },
   { name: "axle_hardness", path: ["rear_axle", "hardness"], group: "chassis", label: "Achteras (hardheid)", short: "As", kind: "text", placeholder: "medium" },
@@ -51,12 +57,16 @@ export const SETUP_FIELDS: SetupField[] = [
 
 type Value = string | number;
 
-export function getSetupValue(values: SetupValues, field: SetupField): Value | undefined {
+function readPath(values: SetupValues, field: SetupField, [first, second]: [string] | [string, string]): Value | undefined {
   const record = values as Record<string, unknown>;
-  const [first, second] = field.path;
   const raw = second === undefined ? record[first] : (record[first] as Record<string, unknown> | undefined)?.[second];
   if (field.kind === "text") return typeof raw === "string" && raw !== "" ? raw : undefined;
   return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+export function getSetupValue(values: SetupValues, field: SetupField): Value | undefined {
+  const value = readPath(values, field, field.path);
+  return value === undefined && field.legacyPath ? readPath(values, field, field.legacyPath) : value;
 }
 
 export function setSetupValue(values: SetupValues, field: SetupField, value: Value) {

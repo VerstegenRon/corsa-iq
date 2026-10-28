@@ -296,12 +296,12 @@ Een vastgelegde afstelling, **niet meer aan te passen** na koppeling aan een ses
 | values | jsonb | zie hieronder |
 | created_at | timestamptz | |
 
-Waarom `jsonb`: welke instellingen bestaan verschilt per klasse en chassis. De velden staan op één plek in `src/lib/setup.ts` (`SETUP_FIELDS`: pad, label, eenheid en soort waarde); het sessieformulier, het opslaan, de samenvattingen en de vergelijkingen lezen die lijst. Een veld toevoegen kan zonder migratie; oudere setups missen het dan gewoon.
+Waarom `jsonb`: welke instellingen bestaan verschilt per klasse en chassis. De velden staan op één plek in `src/lib/setup.ts` (`SETUP_FIELDS`: pad, label, eenheid en soort waarde); het sessieformulier, het opslaan, de samenvattingen en de vergelijkingen lezen die lijst. Een veld toevoegen kan zonder migratie; oudere setups missen het dan gewoon. Bandenspanning staat per wiel (fl, fr, rl, rr = linksvoor, rechtsvoor, linksachter, rechtsachter); oudere setups met één waarde per as (`front`, `rear`) gelden voor beide wielen van die as (`legacyPath`).
 
 ```json
 {
-  "tyre_pressure_cold_bar": { "front": 0.62, "rear": 0.60 },
-  "tyre_pressure_hot_bar":  { "front": 0.84, "rear": 0.81 },
+  "tyre_pressure_cold_bar": { "fl": 0.62, "fr": 0.62, "rl": 0.60, "rr": 0.60 },
+  "tyre_pressure_hot_bar":  { "fl": 0.84, "fr": 0.85, "rl": 0.81, "rr": 0.82 },
   "gearing": { "front_teeth": 12, "rear_teeth": 82 },
   "rear_axle": { "hardness": "medium" },
   "rear_track_width_mm": 1395,

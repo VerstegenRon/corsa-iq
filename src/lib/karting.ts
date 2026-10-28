@@ -222,10 +222,13 @@ export function todayInAmsterdam(): string {
  * Setup snapshot stored in setups.values (jsonb). All fields optional: drivers fill in what they track.
  * Field names follow docs/datamodel.md.
  */
+type TyrePressures = { fl?: number; fr?: number; rl?: number; rr?: number; front?: number; rear?: number };
+
 /** A setup snapshot (setups.values). The fields are described in lib/setup.ts. */
 export type SetupValues = {
-  tyre_pressure_cold_bar?: { front?: number; rear?: number };
-  tyre_pressure_hot_bar?: { front?: number; rear?: number };
+  /** Per wheel (fl, fr, rl, rr); older setups have one value per axle (front, rear). */
+  tyre_pressure_cold_bar?: TyrePressures;
+  tyre_pressure_hot_bar?: TyrePressures;
   gearing?: { front_teeth?: number; rear_teeth?: number };
   rear_axle?: { hardness?: string };
   rear_track_width_mm?: number;
@@ -244,8 +247,16 @@ export function summarizeSetup(values: SetupValues): string[] {
   const parts: string[] = [];
   const { tyre_pressure_cold_bar: p, tyre_pressure_hot_bar: hot, gearing: g } = values;
   const bar = (value: number | undefined) => (value === undefined ? "–" : pressureFormat.format(value));
-  if (p?.front !== undefined || p?.rear !== undefined) parts.push(`Druk ${bar(p.front)} / ${bar(p.rear)} bar`);
-  if (hot?.front !== undefined || hot?.rear !== undefined) parts.push(`warm ${bar(hot.front)} / ${bar(hot.rear)} bar`);
+  // LV RV / LA RA; an older setup's axle value counts for both wheels.
+  const wheels = (q: TyrePressures | undefined) => {
+    if (!q) return null;
+    const v = [q.fl ?? q.front, q.fr ?? q.front, q.rl ?? q.rear, q.rr ?? q.rear];
+    return v.every((x) => x === undefined) ? null : `${bar(v[0])} ${bar(v[1])} / ${bar(v[2])} ${bar(v[3])} bar`;
+  };
+  const cold = wheels(p);
+  const warm = wheels(hot);
+  if (cold) parts.push(`Druk ${cold}`);
+  if (warm) parts.push(`warm ${warm}`);
   if (g?.front_teeth || g?.rear_teeth) parts.push(`Gearing ${g.front_teeth ?? "–"}/${g.rear_teeth ?? "–"}`);
   if (values.rear_axle?.hardness) parts.push(`As ${values.rear_axle.hardness}`);
   if (values.rear_track_width_mm) parts.push(`Achter ${values.rear_track_width_mm} mm`);
