@@ -1,0 +1,82 @@
+# CorsaIQ — Next.js App Router, Tailwind CSS, TypeScript
+
+Keep this file as project-wide defaults. Prefer Server Components, typed APIs, and utility-first Tailwind.
+
+## Next.js (App Router)
+
+- Use the App Router under `src/app`. Folders define routes; `page.tsx` and `layout.tsx` define UI.
+- Keep the root layout as the only place with `<html>` and `<body>`. Nested layouts wrap `children`.
+- Default to Server Components. Add `"use client"` only for state, effects, event handlers, or browser APIs.
+- Colocate Client Components at the leaves. Fetch data and secrets in Server Components; pass serializable props down.
+- Use `next/link` for internal navigation (prefetch). Use `<a>` only for external URLs.
+- Use `next/image` for images (`alt`, explicit width/height or `fill`).
+- Export `metadata` or `generateMetadata` from Server Components. Do not set document title in client effects.
+- Await `params` and `searchParams` (they are Promises). Type route props; do not use `any`.
+- Put Route Handlers in `route.ts`. Keep secrets on the server; never expose them to the client bundle.
+- Prefer the `@/` alias from `tsconfig.json` (`@/*` → `src/*`).
+
+```tsx
+// ❌ BAD — client page for static marketing UI
+"use client";
+export default function Page() {
+  return <h1>CorsaIQ</h1>;
+}
+
+// ✅ GOOD — Server Component + Link
+import Link from "next/link";
+
+export default function Page() {
+  return (
+    <main>
+      <h1>CorsaIQ</h1>
+      <Link href="#features">Bekijk features</Link>
+    </main>
+  );
+}
+```
+
+## TypeScript
+
+- Keep `strict` on. Prefer `unknown` + narrowing over `any`.
+- Type public component props explicitly. Derive unions from `as const` data when possible.
+- Handle errors with typed results or custom error classes; do not swallow exceptions.
+- Prefer named exports for shared modules; default-export only `page`, `layout`, and `route` files.
+
+```ts
+// ❌ BAD
+function score(value: any) {
+  return value.points;
+}
+
+// ✅ GOOD
+type Metric = { points: number };
+
+function score(value: Metric): number {
+  return value.points;
+}
+```
+
+## Tailwind CSS (v4)
+
+- Style with utilities. Put design tokens in `src/app/globals.css` (`@theme inline`), not scattered magic numbers.
+- Use `globals.css` for resets and tokens only. Prefer utilities in components over new CSS files.
+- Mobile-first: unprefixed classes, then `sm:`, `md:`, `lg:`.
+- Prefer semantic HTML + Tailwind over extra wrappers. Use `gap-*` instead of margin soup.
+- Keep hover/focus styles and visible focus rings. Do not remove outlines without a replacement.
+- Avoid `@apply` except for a tiny set of repeated primitives.
+
+```tsx
+// ❌ BAD
+<div className="box" style={{ marginTop: 32 }} />
+
+// ✅ GOOD
+<section className="mt-8 grid gap-6 md:grid-cols-3">
+  <article className="rounded-2xl border border-zinc-800 p-6" />
+</section>
+```
+
+## Accessibility and quality
+
+- One `h1` per page. Nest headings in order.
+- Buttons and links need an accessible name. Icons-only controls need `aria-label`.
+- Do not commit `.env` secrets. Use `NEXT_PUBLIC_` only for values that must run in the browser.
