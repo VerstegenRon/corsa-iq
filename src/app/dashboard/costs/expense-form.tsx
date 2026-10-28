@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { EXPENSE_CATEGORIES } from "@/lib/karting";
+import { EXPENSE_CATEGORIES, sortByLabel, sortedEntries } from "@/lib/karting";
 import { removeReceipt, uploadReceipt } from "@/lib/receipt-upload";
 import { RECEIPT_ACCEPT } from "@/lib/storage";
 
@@ -52,7 +52,7 @@ export function ExpenseForm({
       <label className={labelClass}>
         Categorie *
         <select name="category" required defaultValue="entry_fee" className={inputClass}>
-          {Object.entries(EXPENSE_CATEGORIES).map(([value, label]) => (
+          {sortedEntries(EXPENSE_CATEGORIES).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -76,7 +76,7 @@ export function ExpenseForm({
             Seizoen
             <select name="season_id" defaultValue={defaultSeasonId ?? ""} className={inputClass}>
               <option value="">Geen seizoen</option>
-              {seasons.map((season) => (
+              {sortByLabel(seasons).map((season) => (
                 <option key={season.id} value={season.id}>
                   {season.label}
                 </option>
@@ -87,7 +87,7 @@ export function ExpenseForm({
             Evenement
             <select name="event_id" defaultValue="" className={inputClass}>
               <option value="">Geen evenement</option>
-              {events.map((event) => (
+              {sortByLabel(events).map((event) => (
                 <option key={event.id} value={event.id}>
                   {event.label}
                 </option>

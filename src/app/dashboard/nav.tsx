@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// A–Z by label.
 const items: { href: string; label: string; also?: string[] }[] = [
+  { href: "/dashboard/karts", label: "Karts" },
+  { href: "/dashboard/costs", label: "Kosten" },
+  { href: "/dashboard/parts", label: "Onderdelen" },
   { href: "/dashboard", label: "Overzicht" },
   { href: "/dashboard/seasons", label: "Seizoen", also: ["/dashboard/events", "/dashboard/sessions"] },
-  { href: "/dashboard/karts", label: "Karts" },
-  { href: "/dashboard/parts", label: "Onderdelen" },
-  { href: "/dashboard/costs", label: "Kosten" },
 ];
 
 export function DashboardNav() {

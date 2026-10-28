@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { PART_CATEGORIES, PART_STATUSES } from "@/lib/karting";
+import { PART_CATEGORIES, PART_STATUSES, sortedEntries } from "@/lib/karting";
 
 import { createPart, updatePart } from "../actions";
 
@@ -42,7 +42,7 @@ export function PartForm({ part }: { part?: PartValues }) {
           <option value="" disabled>
             Kies…
           </option>
-          {Object.entries(PART_CATEGORIES).map(([value, label]) => (
+          {sortedEntries(PART_CATEGORIES).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -95,7 +95,7 @@ export function PartForm({ part }: { part?: PartValues }) {
             </>
           ) : (
             <select name="status" defaultValue={part.status} className={inputClass}>
-              {Object.entries(PART_STATUSES)
+              {sortedEntries(PART_STATUSES)
                 .filter(([value]) => value !== "installed")
                 .map(([value, label]) => (
                   <option key={value} value={value}>

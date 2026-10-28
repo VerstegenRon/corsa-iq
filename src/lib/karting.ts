@@ -86,6 +86,20 @@ export function isExpenseCategory(value: string): value is ExpenseCategory {
   return value in EXPENSE_CATEGORIES;
 }
 
+const collator = new Intl.Collator("nl", { sensitivity: "base", numeric: true });
+
+/** Sorts options A–Z by their label, the way a Dutch reader expects ("Kart 2" before "Kart 10"). */
+export function sortByLabel<T extends { label: string }>(options: readonly T[]): T[] {
+  return [...options].sort((a, b) => collator.compare(a.label, b.label));
+}
+
+/** A label map as [value, label] pairs, A–Z by label, with the catch-all "other" kept last. */
+export function sortedEntries(labels: Record<string, string>): [string, string][] {
+  return Object.entries(labels).sort(([a, labelA], [b, labelB]) =>
+    a === "other" ? 1 : b === "other" ? -1 : collator.compare(labelA, labelB),
+  );
+}
+
 export function labelFor<T extends Record<string, string>>(labels: T, key: string): string {
   return key in labels ? labels[key as keyof T] : key;
 }

@@ -4,7 +4,7 @@ import { useActionState, useRef } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { SESSION_TYPES, WEATHER, type SetupValues } from "@/lib/karting";
+import { SESSION_TYPES, WEATHER, sortByLabel, sortedEntries, type SetupValues } from "@/lib/karting";
 
 import { createSession, updateSession } from "../../season-actions";
 
@@ -70,7 +70,7 @@ export function SessionForm({
         <label className={labelClass}>
           Soort *
           <select name="type" required defaultValue={session?.type ?? "practice"} className={inputClass}>
-            {Object.entries(SESSION_TYPES).map(([value, label]) => (
+            {sortedEntries(SESSION_TYPES).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -83,7 +83,7 @@ export function SessionForm({
             <span className={`${inputClass} flex items-center text-zinc-400`}>{session.kartName}</span>
           ) : (
             <select name="kart_id" required defaultValue={karts[0]?.id} className={inputClass}>
-              {karts.map((kart) => (
+              {sortByLabel(karts).map((kart) => (
                 <option key={kart.id} value={kart.id}>
                   {kart.label}
                 </option>
@@ -94,7 +94,7 @@ export function SessionForm({
         <label className={labelClass}>
           Coureur *
           <select name="driver_id" required defaultValue={session?.driverId ?? drivers[0]?.id} className={inputClass}>
-            {drivers.map((driver) => (
+            {sortByLabel(drivers).map((driver) => (
               <option key={driver.id} value={driver.id}>
                 {driver.label}
               </option>
@@ -154,7 +154,7 @@ export function SessionForm({
         <label className={labelClass}>
           Weer
           <select name="weather" defaultValue={c.weather ?? "dry"} className={inputClass}>
-            {Object.entries(WEATHER).map(([value, label]) => (
+            {sortedEntries(WEATHER).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
