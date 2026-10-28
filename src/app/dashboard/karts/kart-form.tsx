@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { KART_STATUSES } from "@/lib/karting";
+import { KART_STATUSES, sortedEntries } from "@/lib/karting";
 
 import { createKart, updateKart } from "../actions";
 
@@ -64,7 +64,7 @@ export function KartForm({ kart }: { kart?: KartValues }) {
         <label className={labelClass}>
           Status
           <select name="status" defaultValue={kart.status} className={inputClass}>
-            {Object.entries(KART_STATUSES).map(([value, label]) => (
+            {sortedEntries(KART_STATUSES).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>

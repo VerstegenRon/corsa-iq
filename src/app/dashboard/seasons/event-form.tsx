@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { EVENT_TYPES } from "@/lib/karting";
+import { EVENT_TYPES, sortByLabel, sortedEntries } from "@/lib/karting";
 
 import { createEvent, updateEvent } from "../season-actions";
 
@@ -39,7 +39,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
       <label className={labelClass}>
         Soort *
         <select name="type" required defaultValue={event?.type ?? "race"} className={inputClass}>
-          {Object.entries(EVENT_TYPES).map(([value, label]) => (
+          {sortedEntries(EVENT_TYPES).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -54,7 +54,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
           className={inputClass}
         >
           <option value="">Geen (losse training)</option>
-          {seasons.map((season) => (
+          {sortByLabel(seasons).map((season) => (
             <option key={season.id} value={season.id}>
               {season.label}
             </option>
@@ -83,7 +83,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
               Kies…
             </option>
           )}
-          {tracks.map((track) => (
+          {sortByLabel(tracks).map((track) => (
             <option key={track.id} value={track.id}>
               {track.label}
             </option>

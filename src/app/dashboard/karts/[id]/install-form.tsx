@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
+import { sortByLabel } from "@/lib/karting";
 
 import { installPart } from "../../actions";
 
@@ -23,7 +24,7 @@ export function InstallForm({ kartId, options }: { kartId: string; options: Opti
             <option value="" disabled>
               Kies…
             </option>
-            {options.map((option) => (
+            {sortByLabel(options).map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
               </option>
