@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AddSection } from "@/components/edit-section";
+import { EXPENSE_ICONS, Icon, iconFor } from "@/components/icons";
+import { PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -75,10 +77,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
   return (
     <>
       <section>
-        <h1 className="text-3xl font-semibold tracking-tight">Kosten</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Wat je seizoen kost, per categorie en per evenement. Onderdelen met een aankoopprijs tellen automatisch mee.
-        </p>
+        <PageHeader icon="euro" title="Kosten" subtitle="Aankopen van onderdelen en uitrusting tellen vanzelf mee." add="Uitgave" />
         <nav aria-label="Seizoen kiezen" className="mt-6 flex flex-wrap gap-2">
           {filters.map((f) => (
             <Link
@@ -87,7 +86,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               aria-current={filter === f.value ? "page" : undefined}
               className={`rounded-full border px-4 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 ${
                 filter === f.value
-                  ? "border-brand-400/50 bg-brand-400/10 text-brand-100"
+                  ? "border-zinc-600 bg-zinc-800 text-white"
                   : "border-zinc-800 text-zinc-400 hover:text-white"
               }`}
             >
@@ -141,8 +140,11 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
             <ul className="mt-4 flex flex-col gap-3">
               {byCategory.map(([category, cents]) => (
                 <li key={category}>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-zinc-300">{labelFor(t.options.expenseCategories, category)}</span>
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-2 text-zinc-300">
+                      <Icon name={iconFor(EXPENSE_ICONS, category)} className="size-4 text-zinc-500" />
+                      {labelFor(t.options.expenseCategories, category)}
+                    </span>
                     <span className="tabular-nums">{formatCents(cents)}</span>
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-800">

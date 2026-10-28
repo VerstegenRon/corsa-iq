@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
+import { MoreDetails } from "@/components/form-controls";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { decimalInput, sortedEntries } from "@/lib/karting";
@@ -41,38 +42,43 @@ export function KartForm({ kart }: { kart?: KartValues }) {
         Klasse
         <input name="class" defaultValue={kart?.class ?? ""} placeholder="Rotax Max Senior" className={inputClass} />
       </label>
-      <label className={labelClass}>
-        Chassismerk
-        <input name="chassis_brand" defaultValue={kart?.chassis_brand ?? ""} placeholder="Tony Kart" className={inputClass} />
-      </label>
-      <label className={labelClass}>
-        Model
-        <input name="chassis_model" defaultValue={kart?.chassis_model ?? ""} placeholder="Racer 401 RR" className={inputClass} />
-      </label>
-      <label className={labelClass}>
-        Bouwjaar
-        <input
-          name="chassis_year"
-          inputMode="numeric"
-          defaultValue={kart?.chassis_year ?? ""}
-          placeholder="2026"
-          className={inputClass}
-        />
-      </label>
-      <label className={labelClass}>
-        Chassisnummer
-        <input name="serial_number" defaultValue={kart?.serial_number ?? ""} className={inputClass} />
-      </label>
-      <label className={labelClass}>
-        Groot onderhoud na (uren)
-        <input
-          name="usage_limit_hours"
-          inputMode="decimal"
-          defaultValue={decimalInput(kart?.usage_limit_minutes, 60)}
-          placeholder="30"
-          className={inputClass}
-        />
-      </label>
+      <MoreDetails
+        title="Chassis en onderhoud"
+        defaultOpen={Boolean(kart && (kart.chassis_brand || kart.chassis_model || kart.chassis_year || kart.serial_number || kart.usage_limit_minutes))}
+      >
+        <label className={labelClass}>
+          Chassismerk
+          <input name="chassis_brand" defaultValue={kart?.chassis_brand ?? ""} placeholder="Tony Kart" className={inputClass} />
+        </label>
+        <label className={labelClass}>
+          Model
+          <input name="chassis_model" defaultValue={kart?.chassis_model ?? ""} placeholder="Racer 401 RR" className={inputClass} />
+        </label>
+        <label className={labelClass}>
+          Bouwjaar
+          <input
+            name="chassis_year"
+            inputMode="numeric"
+            defaultValue={kart?.chassis_year ?? ""}
+            placeholder="2026"
+            className={inputClass}
+          />
+        </label>
+        <label className={labelClass}>
+          Chassisnummer
+          <input name="serial_number" defaultValue={kart?.serial_number ?? ""} className={inputClass} />
+        </label>
+        <label className={labelClass}>
+          Groot onderhoud na (uren)
+          <input
+            name="usage_limit_hours"
+            inputMode="decimal"
+            defaultValue={decimalInput(kart?.usage_limit_minutes, 60)}
+            placeholder="30"
+            className={inputClass}
+          />
+        </label>
+      </MoreDetails>
       {kart && (
         <label className={labelClass}>
           Status

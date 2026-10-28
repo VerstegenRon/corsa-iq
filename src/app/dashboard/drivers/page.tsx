@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 
 import { DeleteButton } from "@/components/delete-button";
 import { AddSection, EditSection } from "@/components/edit-section";
+import { Icon } from "@/components/icons";
+import { Chip } from "@/components/meter";
+import { PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { formatMinutes, sortByLabel } from "@/lib/karting";
@@ -28,32 +31,48 @@ export default async function DriversPage() {
 
   return (
     <>
-      <section>
-        <h1 className="text-3xl font-semibold tracking-tight">Coureurs</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Wie er rijdt in je garage, bijvoorbeeld jij en je zoon of dochter, of de coureurs van je team.
-        </p>
-      </section>
+      <PageHeader
+        icon="user"
+        title="Coureurs"
+        subtitle={`${drivers.length} ${drivers.length === 1 ? "coureur" : "coureurs"}`}
+        add="Coureur"
+      />
 
       {drivers.map((driver) => {
         const minutes = Math.round(driver.sessions.reduce((sum, s) => sum + (s.duration_s ?? 0), 0) / 60);
-        const details = [
-          driver.race_number && `#${driver.race_number}`,
-          driver.weight_kg !== null && `${String(driver.weight_kg).replace(".", ",")} kg`,
-          driver.licence_number && `licentie ${driver.licence_number}`,
-        ].filter(Boolean);
+        const initials = [driver.first_name, driver.last_name]
+          .filter(Boolean)
+          .map((part) => part!.trim()[0]?.toUpperCase())
+          .join("");
         return (
           <section key={driver.id} aria-labelledby={`driver-${driver.id}`} className={cardClass}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 id={`driver-${driver.id}`} className="text-lg font-semibold">
-                {driver.name}
-                {driver.user_id && <span className="ml-2 text-xs font-normal text-zinc-500">jouw account</span>}
-              </h2>
-              <p className="text-sm text-zinc-400">
-                {driver.sessions.length} {driver.sessions.length === 1 ? "sessie" : "sessies"} · {formatMinutes(minutes)}
-              </p>
+            <div className="flex items-center gap-4">
+              <span
+                aria-hidden="true"
+                className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-base font-semibold text-on-brand"
+              >
+                {initials || <Icon name="user" className="size-5" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 id={`driver-${driver.id}`} className="truncate text-lg font-semibold">
+                  {driver.name}
+                </h2>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {driver.user_id && <Chip tone="brand">jouw account</Chip>}
+                  {driver.weight_kg !== null && <Chip>{String(driver.weight_kg).replace(".", ",")} kg</Chip>}
+                  {driver.licence_number && <Chip>licentie {driver.licence_number}</Chip>}
+                  <Chip>
+                    <Icon name="stopwatch" className="size-3" />
+                    {driver.sessions.length} {driver.sessions.length === 1 ? "sessie" : "sessies"} · {formatMinutes(minutes)}
+                  </Chip>
+                </div>
+              </div>
+              {driver.race_number && (
+                <span className="shrink-0 rounded-xl border-2 border-zinc-700 px-2.5 py-1 font-mono text-xl font-bold tabular-nums">
+                  {driver.race_number}
+                </span>
+              )}
             </div>
-            {details.length > 0 && <p className="mt-1 text-sm text-zinc-500">{details.join(" · ")}</p>}
 
             <div className="mt-4 -mx-6 -mb-6 border-t border-zinc-800/80">
               <EditSection
