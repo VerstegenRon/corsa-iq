@@ -59,7 +59,7 @@ export default async function SeasonsPage() {
   const [seasonsResult, eventsResult, tracksResult] = await Promise.all([
     supabase
       .from("seasons")
-      .select("id, name, year, class, championship, budget_cents")
+      .select("id, name, year, class, championship, budget_cents, expenses(amount_cents)")
       .eq("garage_id", garage.id)
       .order("year", { ascending: false }),
     supabase
@@ -95,11 +95,15 @@ export default async function SeasonsPage() {
             <h2 id={`season-${season.id}`} className="text-lg font-semibold">
               {season.name}
             </h2>
-            <p className="text-xs text-zinc-500">
-              {[season.class, season.championship].filter(Boolean).join(" · ")}
-              {season.budget_cents !== null && ` · budget ${formatCents(season.budget_cents)}`}
-            </p>
+            <p className="text-xs text-zinc-500">{[season.class, season.championship].filter(Boolean).join(" · ")}</p>
           </div>
+          <Link
+            href={`/dashboard/costs?season=${season.id}`}
+            className="mt-1 inline-block text-xs text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+          >
+            {formatCents(season.expenses.reduce((sum, e) => sum + e.amount_cents, 0))} uitgegeven
+            {season.budget_cents !== null && ` van ${formatCents(season.budget_cents)} budget`}
+          </Link>
           <EventList events={events.filter((event) => event.season_id === season.id)} />
         </section>
       ))}

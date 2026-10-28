@@ -8,6 +8,7 @@ import {
   EVENT_TYPES,
   SESSION_TYPES,
   WEATHER,
+  formatCents,
   formatDate,
   formatLapTime,
   formatMinutes,
@@ -17,6 +18,8 @@ import {
   type SetupValues,
 } from "@/lib/karting";
 
+import { ExpenseForm } from "../../costs/expense-form";
+import { ExpenseList } from "../../costs/expense-list";
 import { SessionForm } from "./session-form";
 
 export const metadata: Metadata = {
@@ -29,7 +32,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
 
-  const [eventResult, kartsResult, driversResult, lastSetupResult] = await Promise.all([
+  const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -48,6 +51,13 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("expenses")
+      .select("id, category, spent_on, amount_cents, description, events(id, name)")
+      .eq("event_id", id)
+      .eq("garage_id", garage.id)
+      .order("spent_on", { ascending: false })
+      .order("created_at", { ascending: false }),
   ]);
   if (eventResult.error) throw new Error(eventResult.error.message);
   const event = eventResult.data;
@@ -58,6 +68,8 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const lapTimes = event.sessions.map((s) => s.best_lap_ms).filter((ms): ms is number => ms !== null);
   const bestLap = lapTimes.length > 0 ? Math.min(...lapTimes) : null;
   const totalMinutes = Math.round(event.sessions.reduce((sum, s) => sum + (s.duration_s ?? 0), 0) / 60);
+  const expenses = expensesResult.data ?? [];
+  const totalCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
 
   return (
     <>
@@ -74,7 +86,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </p>
       </section>
 
-      <section aria-label="Samenvatting" className="grid gap-4 sm:grid-cols-3">
+      <section aria-label="Samenvatting" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Sessies</p>
           <p className="mt-2 text-3xl font-semibold tabular-nums">{event.sessions.length}</p>
@@ -86,6 +98,10 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">Rijtijd</p>
           <p className="mt-2 text-3xl font-semibold tabular-nums">{formatMinutes(totalMinutes)}</p>
+        </div>
+        <div className={cardClass}>
+          <p className="text-sm text-zinc-400">Kosten</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums">{formatCents(totalCents)}</p>
         </div>
       </section>
 
@@ -154,6 +170,16 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
             lastSetup={(lastSetupResult.data?.values as SetupValues | undefined) ?? null}
           />
         )}
+      </section>
+
+      <section aria-labelledby="costs-heading" className={cardClass}>
+        <h2 id="costs-heading" className="text-lg font-semibold">
+          Kosten
+        </h2>
+        <ExpenseList expenses={expenses} showEvent={false} />
+        <div className="mt-6 border-t border-zinc-800/80 pt-6">
+          <ExpenseForm eventId={event.id} defaultDate={event.starts_on} />
+        </div>
       </section>
     </>
   );

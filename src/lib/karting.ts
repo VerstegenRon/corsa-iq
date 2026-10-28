@@ -62,8 +62,28 @@ export const WEATHER = {
   wet: "Nat",
 } as const;
 
+export const EXPENSE_CATEGORIES = {
+  entry_fee: "Inschrijfgeld",
+  tyres: "Banden",
+  fuel_oil: "Brandstof & olie",
+  parts: "Onderdelen",
+  engine_revision: "Motorrevisie",
+  track_rental: "Baanhuur",
+  travel: "Reiskosten",
+  accommodation: "Overnachting",
+  licence: "Licentie",
+  gear: "Kleding & uitrusting",
+  other: "Overig",
+} as const;
+
+export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES;
+
 export function isPartCategory(value: string): value is PartCategory {
   return value in PART_CATEGORIES;
+}
+
+export function isExpenseCategory(value: string): value is ExpenseCategory {
+  return value in EXPENSE_CATEGORIES;
 }
 
 export function labelFor<T extends Record<string, string>>(labels: T, key: string): string {
@@ -117,6 +137,11 @@ const timeFormat = new Intl.DateTimeFormat("nl-NL", {
 
 export function formatTime(value: string): string {
   return timeFormat.format(new Date(value));
+}
+
+/** Today's date as YYYY-MM-DD in Dutch time, for date inputs and defaults. */
+export function todayInAmsterdam(): string {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
 }
 
 /**
