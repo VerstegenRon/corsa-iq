@@ -17,7 +17,7 @@ export function componentLabels(t: Dictionary, set: ComponentSet) {
   return set === "engine" ? t.options.engineComponents : t.options.chassisComponents;
 }
 
-const barClass: Record<LimitTone, string> = { ok: "bg-cyan-400", soon: "bg-amber-400", due: "bg-red-400" };
+const barClass: Record<LimitTone, string> = { ok: "bg-zinc-300", soon: "bg-amber-400", due: "bg-red-400" };
 const statusText: Record<LimitTone, string> = { ok: "", soon: "bijna", due: "nu nodig" };
 const statusClass: Record<LimitTone, string> = { ok: "", soon: "text-amber-300", due: "text-red-300" };
 
@@ -147,7 +147,7 @@ export function ComponentsSection({
         </table>
       </div>
       <details className="group mt-6 border-t border-zinc-800/80 pt-6">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
           <span className="inline-flex items-center gap-2">
             Grenzen per component instellen
             <span aria-hidden="true" className="text-zinc-500 transition-transform group-open:rotate-90">
@@ -238,9 +238,9 @@ export function MaintenanceSection({
         </ul>
       )}
       <details open={records.length === 0 || undefined} className="group mt-6 border-t border-zinc-800/80 pt-6">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
           <span className="inline-flex items-center gap-2">
-            <span aria-hidden="true" className="inline-flex size-5 items-center justify-center rounded-full bg-cyan-400/15 text-cyan-300 transition-transform group-open:rotate-45">
+            <span aria-hidden="true" className="inline-flex size-5 items-center justify-center rounded-full bg-brand-400/15 text-brand-300 transition-transform group-open:rotate-45">
               +
             </span>
             Onderhoud vastleggen

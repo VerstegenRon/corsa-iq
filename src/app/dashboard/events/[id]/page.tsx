@@ -148,7 +148,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                     )}
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className={`text-lg font-semibold tabular-nums ${isBest ? "text-cyan-300" : "text-zinc-100"}`}>
+                    <p className={`text-lg font-semibold tabular-nums ${isBest ? "text-brand-300" : "text-zinc-100"}`}>
                       {formatLapTime(session.best_lap_ms)}
                     </p>
                     {session.position !== null && <p className="text-xs text-zinc-500">P{session.position}</p>}

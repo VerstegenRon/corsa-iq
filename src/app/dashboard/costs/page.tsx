@@ -85,9 +85,9 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               key={f.value}
               href={`/dashboard/costs?season=${f.value}`}
               aria-current={filter === f.value ? "page" : undefined}
-              className={`rounded-full border px-4 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 ${
+              className={`rounded-full border px-4 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 ${
                 filter === f.value
-                  ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
+                  ? "border-brand-400/50 bg-brand-400/10 text-brand-100"
                   : "border-zinc-800 text-zinc-400 hover:text-white"
               }`}
             >
@@ -119,7 +119,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-800"
             >
               <div
-                className={`h-full rounded-full ${total > budget ? "bg-red-400" : "bg-cyan-400"}`}
+                className={`h-full rounded-full ${total > budget ? "bg-red-400" : "bg-zinc-300"}`}
                 style={{ width: `${usedShare * 100}%` }}
               />
             </div>
@@ -146,7 +146,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
                     <span className="tabular-nums">{formatCents(cents)}</span>
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-800">
-                    <div className="h-full rounded-full bg-cyan-400/80" style={{ width: `${(cents / total) * 100}%` }} />
+                    <div className="h-full rounded-full bg-zinc-400" style={{ width: `${(cents / total) * 100}%` }} />
                   </div>
                 </li>
               ))}
@@ -165,7 +165,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
                   <li key={event.id}>
                     <Link
                       href={`/dashboard/events/${event.id}`}
-                      className="flex justify-between gap-4 py-2.5 text-sm hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                      className="flex justify-between gap-4 py-2.5 text-sm hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                     >
                       <span className="text-zinc-300">{event.name}</span>
                       <span className="tabular-nums">{formatCents(event.cents)}</span>

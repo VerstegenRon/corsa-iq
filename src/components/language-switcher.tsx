@@ -22,7 +22,7 @@ export function LanguageSwitcher() {
           const next = event.target.value;
           startTransition(() => setLocale(next));
         }}
-        className="h-9 appearance-none rounded-full border border-zinc-800 bg-zinc-950 pr-8 pl-3 text-sm text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-60"
+        className="h-9 appearance-none rounded-full border border-zinc-800 bg-zinc-950 pr-8 pl-3 text-sm text-zinc-300 transition-colors hover:border-brand-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 disabled:opacity-60"
       >
         {LOCALES.map((code) => (
           <option key={code} value={code}>

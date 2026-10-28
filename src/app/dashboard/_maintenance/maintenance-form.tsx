@@ -72,7 +72,7 @@ export function MaintenanceForm({
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {sortedEntries(components).map(([value, label]) => (
               <label key={value} className="flex items-center gap-2 text-sm text-zinc-300">
-                <input type="checkbox" name="components" value={value} className="size-4 accent-cyan-400" />
+                <input type="checkbox" name="components" value={value} className="size-4 accent-brand-400" />
                 {label}
               </label>
             ))}
@@ -87,7 +87,7 @@ export function MaintenanceForm({
           type="checkbox"
           name="resets_usage"
           defaultChecked={type === "revision"}
-          className="mt-0.5 size-4 accent-cyan-400"
+          className="mt-0.5 size-4 accent-brand-400"
         />
         <span>
           {text.reset}

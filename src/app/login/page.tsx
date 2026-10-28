@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
         <Link
           href="/"
-          className="text-sm font-semibold tracking-[0.2em] text-cyan-300 uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+          className="text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
         >
           CorsaIQ
         </Link>
@@ -34,7 +34,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <h1 className="text-2xl font-semibold tracking-tight">{t.login.heading}</h1>
           <p className="mt-2 mb-8 text-sm text-zinc-400">{t.login.intro}</p>
           {confirmed === "1" && (
-            <p role="status" className="mb-5 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+            <p role="status" className="mb-5 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100">
               {t.login.confirmed}
             </p>
           )}

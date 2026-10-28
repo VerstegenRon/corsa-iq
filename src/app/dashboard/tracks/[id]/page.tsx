@@ -77,7 +77,7 @@ export default async function TrackPage({ params }: PageProps<"/dashboard/tracks
               <li key={event.id}>
                 <Link
                   href={`/dashboard/events/${event.id}`}
-                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                  className="flex flex-wrap items-baseline justify-between gap-2 py-2.5 text-sm hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                 >
                   <span>
                     <span className="font-medium text-zinc-100">{event.name}</span>

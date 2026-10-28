@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <form action={signOut}>
               <button
                 type="submit"
-                className="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                className="rounded-full border border-zinc-800 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-brand-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
               >
                 {t.common.signOut}
               </button>

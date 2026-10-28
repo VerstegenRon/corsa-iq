@@ -34,7 +34,7 @@ function EventList({ events, t }: { events: EventRow[]; t: Dictionary }) {
         <li key={event.id}>
           <Link
             href={`/dashboard/events/${event.id}`}
-            className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+            className="flex flex-wrap items-center justify-between gap-2 py-3 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
           >
             <span>
               <span className="block text-sm font-medium text-zinc-100">{event.name}</span>
@@ -100,7 +100,7 @@ export default async function SeasonsPage() {
               {season.name}
               <Link
                 href={`/dashboard/seasons/${season.id}`}
-                className="ml-3 text-xs font-normal text-zinc-500 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                className="ml-3 text-xs font-normal text-zinc-500 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
               >
                 Bewerken
               </Link>
@@ -109,7 +109,7 @@ export default async function SeasonsPage() {
           </div>
           <Link
             href={`/dashboard/costs?season=${season.id}`}
-            className="mt-1 inline-block text-xs text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+            className="mt-1 inline-block text-xs text-zinc-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
           >
             {formatCents(season.expenses.reduce((sum, e) => sum + e.amount_cents, 0))} uitgegeven
             {season.budget_cents !== null && ` van ${formatCents(season.budget_cents)} budget`}

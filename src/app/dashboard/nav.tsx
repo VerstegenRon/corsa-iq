@@ -47,7 +47,7 @@ function useNavGroups() {
   }));
 }
 
-const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400";
+const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
 /** The CorsaIQ logo, linking to the overview; marked as the current page while you are on it. */
 export function HomeLink() {
@@ -58,7 +58,7 @@ export function HomeLink() {
       href="/dashboard"
       aria-label={t.common.homeLabel}
       aria-current={isHome ? "page" : undefined}
-      className="text-sm font-semibold tracking-[0.2em] text-cyan-300 uppercase transition-colors hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+      className="text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase transition-colors hover:text-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
     >
       CorsaIQ
     </Link>
@@ -73,8 +73,8 @@ export function SettingsLink() {
     <Link
       href="/dashboard/settings"
       aria-current={isActive ? "page" : undefined}
-      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 ${
-        isActive ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-cyan-400/40 hover:text-white"
+      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 ${
+        isActive ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
       }`}
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -146,7 +146,7 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
         aria-controls="mobile-menu"
         aria-label={isOpen ? t.nav.closeMenu : t.nav.openMenu}
         onClick={() => setOpenOn(isOpen ? null : pathname)}
-        className={`inline-flex size-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-200 transition-colors hover:border-cyan-400/40 hover:text-white ${focusRing}`}
+        className={`inline-flex size-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-200 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
           {isOpen ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
@@ -171,7 +171,7 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
                       className={`inline-flex h-9 items-center rounded-full border px-3 text-sm whitespace-nowrap transition-colors ${focusRing} ${
                         item.isActive
                           ? "border-zinc-700 bg-zinc-800 text-white"
-                          : "border-zinc-800 text-zinc-300 hover:border-cyan-400/40 hover:text-white"
+                          : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
                       }`}
                     >
                       {item.label}
@@ -186,7 +186,7 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
               href="/dashboard/settings"
               aria-current={isSettings ? "page" : undefined}
               className={`inline-flex h-9 items-center rounded-full border px-4 text-sm transition-colors ${focusRing} ${
-                isSettings ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-cyan-400/40 hover:text-white"
+                isSettings ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
               }`}
             >
               {t.settings.link}
@@ -194,7 +194,7 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
             <form action={signOut}>
               <button
                 type="submit"
-                className={`inline-flex h-9 items-center rounded-full border border-zinc-800 px-3 text-sm text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white ${focusRing}`}
+                className={`inline-flex h-9 items-center rounded-full border border-zinc-800 px-3 text-sm text-zinc-300 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
               >
                 {t.common.signOut}
               </button>

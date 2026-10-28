@@ -9,7 +9,7 @@ import { authenticate, type AuthState } from "./actions";
 const initialState: AuthState = {};
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 text-sm text-zinc-50 placeholder:text-zinc-600 focus-visible:border-cyan-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400";
+  "h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 text-sm text-zinc-50 placeholder:text-zinc-600 focus-visible:border-brand-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
 export function LoginForm() {
   const t = useT();
@@ -46,7 +46,7 @@ export function LoginForm() {
         </p>
       )}
       {state.message && (
-        <p role="status" className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+        <p role="status" className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100">
           {state.message}
         </p>
       )}
@@ -57,7 +57,7 @@ export function LoginForm() {
           name="intent"
           value="signin"
           disabled={isPending}
-          className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-cyan-400 px-6 text-sm font-semibold text-zinc-950 transition-colors hover:bg-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-60"
+          className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-brand-500 px-6 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 disabled:opacity-60"
         >
           {t.login.signIn}
         </button>
@@ -66,7 +66,7 @@ export function LoginForm() {
           name="intent"
           value="signup"
           disabled={isPending}
-          className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-semibold text-zinc-100 transition-colors hover:border-cyan-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-60"
+          className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-semibold text-zinc-100 transition-colors hover:border-brand-400/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 disabled:opacity-60"
         >
           {t.login.signUp}
         </button>

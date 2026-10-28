@@ -19,8 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.home.metaTitle, description: t.home.metaDescription };
 }
 
-const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400";
-const ghostButtonClass = `inline-flex h-11 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-medium text-zinc-200 transition-colors hover:border-cyan-400/40 hover:text-white ${focusRing}`;
+const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
+const ghostButtonClass = `inline-flex h-11 items-center justify-center rounded-full border border-zinc-700 px-6 text-sm font-medium text-zinc-200 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`;
 
 const LOGGERS = ["AiM / MyChron", "Alfano", "Unipro"];
 
@@ -57,12 +57,12 @@ export default async function Home() {
     <div className="relative isolate flex min-h-full flex-1 flex-col overflow-x-clip bg-zinc-950 text-zinc-50">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem] bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.14),_transparent_60%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem] bg-[radial-gradient(ellipse_at_top,_rgba(220,38,38,0.14),_transparent_60%)]"
       />
 
       <header className="sticky top-0 z-20 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" className={`text-sm font-semibold tracking-[0.2em] text-cyan-300 uppercase ${focusRing}`}>
+          <Link href="/" className={`text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase ${focusRing}`}>
             CorsaIQ
           </Link>
           <nav aria-label={h.navLabel} className="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
@@ -82,7 +82,7 @@ export default async function Home() {
             </div>
             <Link
               href={signedIn ? "/dashboard" : "/login"}
-              className={`inline-flex h-9 items-center rounded-full border border-zinc-700 px-4 text-sm text-zinc-200 transition-colors hover:border-cyan-400/40 hover:text-white ${focusRing}`}
+              className={`inline-flex h-9 items-center rounded-full border border-zinc-700 px-4 text-sm text-zinc-200 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
             >
               {signedIn ? h.toDashboard : h.signIn}
             </Link>
@@ -94,7 +94,7 @@ export default async function Home() {
         {/* Hero */}
         <section className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-12 pb-16 sm:px-6 sm:pt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pb-24">
           <div className="flex flex-col items-start gap-6">
-            <p className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1 text-xs font-medium tracking-wide text-cyan-200 uppercase">
+            <p className="rounded-full border border-brand-400/20 bg-brand-400/5 px-3 py-1 text-xs font-medium tracking-wide text-brand-200 uppercase">
               {h.eyebrow}
             </p>
             <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-5xl">{h.heroTitle}</h1>
@@ -134,8 +134,8 @@ export default async function Home() {
           </div>
           <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(Object.keys(FEATURE_ICONS) as (keyof typeof FEATURE_ICONS)[]).map((key) => (
-              <li key={key} className={`${cardClass} transition-colors hover:border-cyan-400/30`}>
-                <span className="inline-flex size-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+              <li key={key} className={`${cardClass} transition-colors hover:border-brand-400/30`}>
+                <span className="inline-flex size-10 items-center justify-center rounded-xl bg-brand-400/10 text-brand-300">
                   {FEATURE_ICONS[key]}
                 </span>
                 <h3 className="mt-4 text-lg font-semibold tracking-tight">{h.features[key].title}</h3>
@@ -173,7 +173,7 @@ export default async function Home() {
             <ol className="mt-10 grid gap-8 md:grid-cols-3">
               {(["one", "two", "three"] as const).map((key, index) => (
                 <li key={key} className="relative flex flex-col gap-3">
-                  <span className="text-5xl font-semibold text-cyan-400/80 tabular-nums">{index + 1}</span>
+                  <span className="text-5xl font-semibold text-brand-400/80 tabular-nums">{index + 1}</span>
                   <h3 className="text-lg font-semibold tracking-tight">{h.steps[key].title}</h3>
                   <p className="text-sm leading-6 text-zinc-400">{h.steps[key].text}</p>
                 </li>
@@ -211,10 +211,10 @@ export default async function Home() {
 
         {/* Final call to action */}
         <section className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6">
-          <div className="relative overflow-hidden rounded-3xl border border-cyan-400/20 bg-zinc-900/60 px-6 py-12 sm:px-12">
+          <div className="relative overflow-hidden rounded-3xl border border-brand-400/20 bg-zinc-900/60 px-6 py-12 sm:px-12">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(34,211,238,0.16),_transparent_60%)]"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(220,38,38,0.16),_transparent_60%)]"
             />
             <div className="relative flex flex-col items-start gap-5">
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{h.finalTitle}</h2>
@@ -259,14 +259,14 @@ function Spotlight({
   return (
     <section className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
       <div className={reverse ? "lg:order-2" : undefined}>
-        <p className="text-sm font-semibold tracking-wide text-cyan-300 uppercase">{eyebrow}</p>
+        <p className="text-sm font-semibold tracking-wide text-brand-300 uppercase">{eyebrow}</p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance">{title}</h2>
         <p className="mt-4 leading-7 text-pretty text-zinc-400">{text}</p>
         {points && (
           <ul className="mt-6 flex flex-col gap-3 text-sm text-zinc-300">
             {points.map((point) => (
               <li key={point} className="flex gap-3">
-                <span aria-hidden="true" className="mt-0.5 text-cyan-300">
+                <span aria-hidden="true" className="mt-0.5 text-brand-300">
                   ✓
                 </span>
                 {point}
@@ -284,7 +284,7 @@ function Spotlight({
 function ExampleFrame({ label, children }: { label: string; children: ReactNode }) {
   return (
     <figure className="relative">
-      <div aria-hidden="true" className="absolute -inset-4 -z-10 rounded-[2rem] bg-cyan-400/5 blur-2xl" />
+      <div aria-hidden="true" className="absolute -inset-4 -z-10 rounded-[2rem] bg-brand-400/5 blur-2xl" />
       <div className="rounded-3xl border border-zinc-800 bg-zinc-950/80 p-3 shadow-2xl shadow-black/20 sm:p-4">
         {children}
       </div>
@@ -293,7 +293,7 @@ function ExampleFrame({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-const barClass = { ok: "bg-cyan-400", soon: "bg-amber-400", due: "bg-red-400" } as const;
+const barClass = { ok: "bg-zinc-300", soon: "bg-amber-400", due: "bg-red-400" } as const;
 
 function Meter({ share, tone }: { share: number; tone: keyof typeof barClass }) {
   return (
@@ -350,7 +350,7 @@ function DemoOverview({ t, locale }: { t: Dictionary; locale: string }) {
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3">
           <p className="text-xs text-zinc-400">{d.bestLap}</p>
           <p className="mt-1 text-lg font-semibold tabular-nums sm:text-xl">{formatLapTime(best)}</p>
-          <p className="mt-0.5 text-[0.7rem] text-cyan-300">{d.bestLapDelta}</p>
+          <p className="mt-0.5 text-[0.7rem] text-zinc-300">{d.bestLapDelta}</p>
         </div>
         <div className="col-span-2 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3 sm:col-span-1">
           <p className="text-xs text-zinc-400">{d.engine}</p>
@@ -448,20 +448,20 @@ function ReceiptCard({ t }: { t: Dictionary }) {
             <span>€ 378,00</span>
           </p>
         </div>
-        <div aria-hidden="true" className="text-center text-xl text-cyan-300">
+        <div aria-hidden="true" className="text-center text-xl text-brand-300">
           <span className="sm:hidden">↓</span>
           <span className="hidden sm:inline">→</span>
         </div>
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3">
-          <p className="mb-3 flex items-center gap-2 text-xs font-medium text-cyan-300">
-            <span className="inline-block size-1.5 rounded-full bg-cyan-400" />
+          <p className="mb-3 flex items-center gap-2 text-xs font-medium text-brand-300">
+            <span className="inline-block size-1.5 rounded-full bg-brand-400" />
             {r.reading}
           </p>
           <dl className="grid grid-cols-2 gap-2">
             {fields.map((field) => (
               <div key={field.label} className={field.wide ? "col-span-2" : undefined}>
                 <dt className="text-[0.7rem] text-zinc-500">{field.label}</dt>
-                <dd className="mt-1 truncate rounded-lg border border-cyan-400/30 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-100">
+                <dd className="mt-1 truncate rounded-lg border border-brand-400/30 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-100">
                   {field.value}
                 </dd>
               </div>
@@ -504,13 +504,13 @@ function LapsCard({ t }: { t: Dictionary }) {
               // Bar length shows the gap to the fastest lap.
               const share = worst === best ? 0 : (ms - best) / (worst - best);
               return (
-                <tr key={index} className={isBest ? "text-cyan-300" : "text-zinc-300"}>
+                <tr key={index} className={isBest ? "text-brand-300" : "text-zinc-300"}>
                   <td className="py-1.5">{index + 2}</td>
                   <td className="py-1.5 font-medium">{formatLapTime(ms)}</td>
                   <td className="py-1.5 pr-3">
                     <div aria-hidden="true" className="h-1.5 rounded-full bg-zinc-800">
                       <div
-                        className={`h-full rounded-full ${isBest ? "bg-cyan-400" : "bg-zinc-600"}`}
+                        className={`h-full rounded-full ${isBest ? "bg-brand-400" : "bg-zinc-600"}`}
                         style={{ width: `${isBest ? 4 : 8 + share * 92}%` }}
                       />
                     </div>
