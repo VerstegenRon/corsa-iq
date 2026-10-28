@@ -23,13 +23,11 @@ export default async function PartsPage() {
       .eq("garage_id", garage.id)
       .order("category")
       .order("created_at"),
-    supabase.from("part_usage").select("part_id, minutes_since_reset").eq("garage_id", garage.id),
+    supabase.from("part_usage").select("part_id, minutes_since_reset, minutes_total").eq("garage_id", garage.id),
   ]);
   if (partsResult.error) throw new Error(partsResult.error.message);
 
-  const minutesByPart = new Map(
-    (usageResult.data ?? []).map((row) => [row.part_id, row.minutes_since_reset ?? 0]),
-  );
+  const usageByPart = new Map((usageResult.data ?? []).map((row) => [row.part_id, row]));
   const parts = partsResult.data;
 
   return (
@@ -50,14 +48,16 @@ export default async function PartsPage() {
                 <th scope="col" className="px-6 py-3 font-medium">Onderdeel</th>
                 <th scope="col" className="px-6 py-3 font-medium">Nummer</th>
                 <th scope="col" className="px-6 py-3 font-medium">Status</th>
-                <th scope="col" className="px-6 py-3 font-medium">Draaitijd</th>
+                <th scope="col" className="px-6 py-3 font-medium">Sinds revisie</th>
                 <th scope="col" className="px-6 py-3 text-right font-medium">Prijs</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/80">
               {parts.map((part) => {
                 const kart = part.part_installations.find((i) => i.removed_at === null)?.karts;
-                const minutes = minutesByPart.get(part.id) ?? 0;
+                const usage = usageByPart.get(part.id);
+                const minutes = usage?.minutes_since_reset ?? 0;
+                const totalMinutes = usage?.minutes_total ?? 0;
                 const overLimit = part.usage_limit_minutes !== null && minutes >= part.usage_limit_minutes;
                 return (
                   <tr key={part.id}>
@@ -83,6 +83,9 @@ export default async function PartsPage() {
                         <span className="text-zinc-500"> / {formatMinutes(part.usage_limit_minutes)}</span>
                       )}
                       {overLimit && <span className="ml-2 text-xs">revisie nodig</span>}
+                      {totalMinutes !== minutes && (
+                        <span className="block text-xs text-zinc-500">totaal {formatMinutes(totalMinutes)}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right tabular-nums text-zinc-300">
                       {formatCents(part.purchase_price_cents)}

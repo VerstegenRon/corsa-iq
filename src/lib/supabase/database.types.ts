@@ -448,6 +448,7 @@ export type Database = {
       }
       maintenance_records: {
         Row: {
+          components: string[]
           created_at: string
           description: string | null
           garage_id: string
@@ -460,6 +461,7 @@ export type Database = {
           type: string
         }
         Insert: {
+          components?: string[]
           created_at?: string
           description?: string | null
           garage_id: string
@@ -472,6 +474,7 @@ export type Database = {
           type: string
         }
         Update: {
+          components?: string[]
           created_at?: string
           description?: string | null
           garage_id?: string
