@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { getDictionary } from "@/lib/i18n/server";
 
 import { LoginForm } from "./login-form";
@@ -22,7 +23,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         >
           CorsaIQ
         </Link>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-2">
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-24">
