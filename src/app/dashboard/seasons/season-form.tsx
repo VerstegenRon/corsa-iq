@@ -26,8 +26,8 @@ export function SeasonForm({ defaultYear, season }: { defaultYear: number; seaso
   );
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
-      <label className={labelClass}>
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4">
+      <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Naam *
         <input
           name="name"
@@ -45,7 +45,7 @@ export function SeasonForm({ defaultYear, season }: { defaultYear: number; seaso
         Klasse
         <input name="class" defaultValue={season?.class ?? ""} placeholder="Rotax Max Senior" className={inputClass} />
       </label>
-      <label className={labelClass}>
+      <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Kampioenschap
         <input
           name="championship"
@@ -65,7 +65,7 @@ export function SeasonForm({ defaultYear, season }: { defaultYear: number; seaso
         />
       </label>
 
-      <div className="flex flex-col gap-4 sm:col-span-2">
+      <div className="flex flex-col gap-4 col-span-2">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : season ? "Wijzigingen opslaan" : "Seizoen toevoegen"}

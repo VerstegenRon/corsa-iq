@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AddSection } from "@/components/edit-section";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -56,12 +57,9 @@ export default async function KartsPage() {
         </section>
       )}
 
-      <section aria-labelledby="add-kart-heading" className={cardClass}>
-        <h2 id="add-kart-heading" className="mb-6 text-lg font-semibold">
-          Kart toevoegen
-        </h2>
+      <AddSection title="Kart toevoegen" defaultOpen={karts.length === 0}>
         <KartForm />
-      </section>
+      </AddSection>
     </>
   );
 }

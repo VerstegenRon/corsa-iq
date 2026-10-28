@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { DeleteButton } from "@/components/delete-button";
-import { EditSection } from "@/components/edit-section";
+import { AddSection, EditSection } from "@/components/edit-section";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { formatMinutes, sortByLabel } from "@/lib/karting";
@@ -82,12 +82,9 @@ export default async function DriversPage() {
         );
       })}
 
-      <section aria-labelledby="add-driver-heading" className={cardClass}>
-        <h2 id="add-driver-heading" className="mb-6 text-lg font-semibold">
-          Coureur toevoegen
-        </h2>
+      <AddSection title="Coureur toevoegen" defaultOpen={drivers.length === 0}>
         <DriverForm />
-      </section>
+      </AddSection>
     </>
   );
 }

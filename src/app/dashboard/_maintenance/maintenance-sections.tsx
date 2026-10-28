@@ -237,13 +237,22 @@ export function MaintenanceSection({
           })}
         </ul>
       )}
-      <div className="mt-6 border-t border-zinc-800/80 pt-6">
-        <h3 className="mb-4 text-sm font-semibold text-zinc-200">Onderhoud vastleggen</h3>
-        <MaintenanceForm target={target} componentSet={componentSet} today={today} />
-        <p className="mt-3 text-xs text-zinc-500">
-          Sessies op de dag van het onderhoud tellen nog mee voor de oude stand; vanaf de volgende dag begint de teller opnieuw.
-        </p>
-      </div>
+      <details open={records.length === 0 || undefined} className="group mt-6 border-t border-zinc-800/80 pt-6">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-400 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden="true" className="inline-flex size-5 items-center justify-center rounded-full bg-cyan-400/15 text-cyan-300 transition-transform group-open:rotate-45">
+              +
+            </span>
+            Onderhoud vastleggen
+          </span>
+        </summary>
+        <div className="mt-4">
+          <MaintenanceForm target={target} componentSet={componentSet} today={today} />
+          <p className="mt-3 text-xs text-zinc-500">
+            Sessies op de dag van het onderhoud tellen nog mee voor de oude stand; vanaf de volgende dag begint de teller opnieuw.
+          </p>
+        </div>
+      </details>
     </section>
   );
 }

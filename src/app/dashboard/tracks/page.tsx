@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AddSection } from "@/components/edit-section";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { countryName, ownOrOfficial, sortByLabel } from "@/lib/karting";
@@ -48,12 +49,9 @@ export default async function TracksPage() {
         <TrackList tracks={sorted} />
       </section>
 
-      <section aria-labelledby="add-track-heading" className={cardClass}>
-        <h2 id="add-track-heading" className="mb-6 text-lg font-semibold">
-          Circuit toevoegen
-        </h2>
+      <AddSection title="Circuit toevoegen">
         <TrackForm />
-      </section>
+      </AddSection>
     </>
   );
 }

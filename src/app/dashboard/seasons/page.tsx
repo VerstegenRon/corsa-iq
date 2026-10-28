@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AddSection } from "@/components/edit-section";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
@@ -126,19 +127,13 @@ export default async function SeasonsPage() {
         </section>
       )}
 
-      <section aria-labelledby="add-event-heading" className={cardClass}>
-        <h2 id="add-event-heading" className="mb-6 text-lg font-semibold">
-          Evenement toevoegen
-        </h2>
+      <AddSection title="Evenement toevoegen" defaultOpen={events.length === 0}>
         <EventForm seasons={seasons.map((s) => ({ id: s.id, label: s.name }))} tracks={tracks} />
-      </section>
+      </AddSection>
 
-      <section aria-labelledby="add-season-heading" className={cardClass}>
-        <h2 id="add-season-heading" className="mb-6 text-lg font-semibold">
-          Seizoen toevoegen
-        </h2>
+      <AddSection title="Seizoen toevoegen" defaultOpen={seasons.length === 0}>
         <SeasonForm defaultYear={new Date().getFullYear() + (new Date().getMonth() >= 9 ? 1 : 0)} />
-      </section>
+      </AddSection>
     </>
   );
 }

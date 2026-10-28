@@ -69,7 +69,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
       </section>
 
       <section aria-label="Gegevens" className={cardClass}>
-        <dl className="grid gap-4 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {details.map(([label, value]) => (
             <div key={label}>
               <dt className="text-xs tracking-wide text-zinc-500 uppercase">{label}</dt>

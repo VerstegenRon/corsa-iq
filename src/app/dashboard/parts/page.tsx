@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AddSection } from "@/components/edit-section";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -100,12 +101,9 @@ export default async function PartsPage() {
         </section>
       )}
 
-      <section aria-labelledby="add-part-heading" className={cardClass}>
-        <h2 id="add-part-heading" className="mb-6 text-lg font-semibold">
-          Onderdeel toevoegen
-        </h2>
+      <AddSection title="Onderdeel toevoegen" defaultOpen={parts.length === 0}>
         <PartForm />
-      </section>
+      </AddSection>
     </>
   );
 }

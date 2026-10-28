@@ -32,7 +32,7 @@ export function KartForm({ kart }: { kart?: KartValues }) {
   );
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4">
       <label className={labelClass}>
         Naam *
         <input name="name" required defaultValue={kart?.name} placeholder="Kart A" className={inputClass} />
@@ -86,7 +86,7 @@ export function KartForm({ kart }: { kart?: KartValues }) {
         </label>
       )}
 
-      <div className="flex flex-col gap-4 sm:col-span-2">
+      <div className="flex flex-col gap-4 col-span-2">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : kart ? "Wijzigingen opslaan" : "Kart toevoegen"}

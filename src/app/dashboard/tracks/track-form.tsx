@@ -19,8 +19,8 @@ export function TrackForm({ track }: { track?: TrackValues }) {
   );
 
   return (
-    <form action={formAction} className="grid gap-4 sm:grid-cols-3">
-      <label className={labelClass}>
+    <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3">
+      <label className={`${labelClass} col-span-2 sm:col-span-1`}>
         Naam *
         <input name="name" required defaultValue={track?.name} placeholder="Kartbaan De Polder" className={inputClass} />
       </label>
@@ -38,7 +38,7 @@ export function TrackForm({ track }: { track?: TrackValues }) {
           className={`${inputClass} uppercase`}
         />
       </label>
-      <div className="flex flex-col gap-4 sm:col-span-3">
+      <div className="flex flex-col gap-4 col-span-2 sm:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
           {isPending ? "Opslaan…" : track ? "Wijzigingen opslaan" : "Circuit toevoegen"}

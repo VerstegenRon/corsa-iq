@@ -102,11 +102,11 @@ export default async function DashboardPage() {
         <p className="mt-2 text-sm text-zinc-400">{format(t.overview.signedInAs, { email: user.email ?? "" })}</p>
       </section>
 
-      <section aria-label={t.overview.statsLabel} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label={t.overview.statsLabel} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className={`${cardClass} transition-colors hover:border-cyan-400/40`}>
             <p className="text-sm text-zinc-400">{stat.label}</p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums">{stat.value}</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{stat.value}</p>
           </Link>
         ))}
       </section>
