@@ -85,7 +85,7 @@ export const de: Dictionary = {
     language: "Sprache",
     languageHelp: "Wird in diesem Browser gemerkt und in deinem Konto gespeichert.",
     theme: "Design",
-    themeHelp: "Automatisch ist von 07:00 bis 20:00 hell und danach dunkel. Gilt für dieses Gerät.",
+    themeHelp: "Automatisch ist von 09:00 bis 21:00 hell und danach dunkel. Gilt für dieses Gerät.",
     profile: "Profil",
     displayName: "Dein Name",
     garageName: "Name deiner Garage",

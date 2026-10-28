@@ -11,9 +11,9 @@ export const THEME_STORAGE_KEY = "theme-preference";
 /** Pages that always follow the time of day, whatever the visitor chose elsewhere (the homepage). */
 export const AUTO_THEME_PATHS = ["/"];
 
-/** "auto" is light from 07:00 up to 20:00 local time, dark in the evening and at night. */
-export const DAY_STARTS_AT = 7;
-export const NIGHT_STARTS_AT = 20;
+/** "auto" is light from 09:00 up to 21:00 local time, dark in the evening and at night. */
+export const DAY_STARTS_AT = 9;
+export const NIGHT_STARTS_AT = 21;
 
 export function isThemePreference(value: unknown): value is ThemePreference {
   return THEME_PREFERENCES.includes(value as ThemePreference);

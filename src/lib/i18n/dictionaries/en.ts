@@ -85,7 +85,7 @@ export const en: Dictionary = {
     language: "Language",
     languageHelp: "Remembered in this browser and saved to your account.",
     theme: "Theme",
-    themeHelp: "Automatic is light from 07:00 to 20:00 and dark after that. Applies to this device.",
+    themeHelp: "Automatic is light from 09:00 to 21:00 and dark after that. Applies to this device.",
     profile: "Profile",
     displayName: "Your name",
     garageName: "Name of your garage",

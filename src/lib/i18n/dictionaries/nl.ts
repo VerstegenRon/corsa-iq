@@ -100,7 +100,7 @@ export const nl = {
     language: "Taal",
     languageHelp: "Wordt in deze browser onthouden en bij je account opgeslagen.",
     theme: "Thema",
-    themeHelp: "Automatisch is licht van 07:00 tot 20:00 en daarna donker. Geldt voor dit apparaat.",
+    themeHelp: "Automatisch is licht van 09:00 tot 21:00 en daarna donker. Geldt voor dit apparaat.",
     profile: "Profiel",
     displayName: "Jouw naam",
     garageName: "Naam van je garage",

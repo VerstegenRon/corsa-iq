@@ -7,7 +7,7 @@ import { applyTheme } from "@/lib/theme-client";
 
 /**
  * Keeps "auto" in step with the clock while a page stays open: checks every minute and when the
- * tab becomes visible again, so the theme turns dark at 20:00 without a reload. Also re-applies
+ * tab becomes visible again, so the theme turns dark at 21:00 without a reload. Also re-applies
  * the theme after client-side navigation, since some pages ignore the stored preference.
  */
 export function ThemeWatcher() {
