@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
 import { EditSection } from "@/components/edit-section";
+import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import {
@@ -64,6 +65,28 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
     sectors: [...lap.lap_sectors].sort((a, b) => a.sector_number - b.sector_number).map((s) => s.sector_time_ms),
   })) satisfies StoredLap[];
   const summary = summarizeLaps(laps);
+  // The chart shows the laps that count; out laps and outliers would only flatten the line.
+  const chartLaps = laps.filter((lap) => lap.is_valid && !lap.is_pit_lap);
+  // A left-out lap breaks the line; any run of left-out laps adds only a sliver of room,
+  // so the break shows without a hole in the chart.
+  const chartPoints: LapPoint[] = [];
+  for (const [i, lap] of chartLaps.entries()) {
+    const previous = chartPoints.at(-1);
+    const breakBefore = i > 0 && lap.lap_number !== chartLaps[i - 1].lap_number + 1;
+    chartPoints.push({
+      key: String(lap.lap_number),
+      xLabel: String(lap.lap_number),
+      ms: lap.lap_time_ms,
+      position: previous ? previous.position! + (breakBefore ? 1.1 : 1) : 0,
+      breakBefore,
+      title: `Ronde ${lap.lap_number}`,
+      detail:
+        summary.bestMs !== null && lap.lap_time_ms !== summary.bestMs
+          ? `${formatDelta(lap.lap_time_ms - summary.bestMs)} t.o.v. snelste`
+          : "snelste ronde",
+    });
+  }
+  const hiddenLaps = laps.length - chartLaps.length;
   const sectorCount = Math.max(0, ...laps.map((lap) => lap.sectors.length));
   const hasSpeed = laps.some((lap) => lap.max_speed_kmh !== null);
   const hasRpm = laps.some((lap) => lap.max_rpm !== null);
@@ -124,7 +147,16 @@ export default async function SessionPage({ params }: PageProps<"/dashboard/sess
               </p>
             )}
           </div>
-          <div className="mt-4 overflow-x-auto">
+          {chartPoints.length >= 2 && (
+            <div className="mt-6">
+              <p className="mb-2 text-xs text-zinc-500">
+                Rondetijd per ronde · lager is sneller
+                {hiddenLaps > 0 && ` · ${hiddenLaps} ${hiddenLaps === 1 ? "ronde telt" : "ronden tellen"} niet mee en ${hiddenLaps === 1 ? "staat" : "staan"} alleen in de tabel`}
+              </p>
+              <LapTimeChart points={chartPoints} label="Rondetijd per ronde" />
+            </div>
+          )}
+          <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm tabular-nums">
               <thead className="text-left text-xs text-zinc-400">
                 <tr className="border-b border-zinc-800">

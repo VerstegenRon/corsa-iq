@@ -5,6 +5,8 @@ import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { formatCents } from "@/lib/karting";
 
+import { TrackProgress } from "./track-progress";
+
 export const metadata: Metadata = {
   title: "Dashboard — CorsaIQ",
 };
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const { supabase, user, garage } = await getCurrentGarage();
 
-  const [karts, parts, installed, season] = await Promise.all([
+  const [karts, parts, installed, season, progress] = await Promise.all([
     supabase.from("karts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase.from("parts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
     supabase
@@ -27,6 +29,11 @@ export default async function DashboardPage() {
       .order("year", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("sessions")
+      .select("best_lap_ms, events!inner(id, name, starts_on, garage_id, tracks(id, name))")
+      .eq("events.garage_id", garage.id)
+      .not("best_lap_ms", "is", null),
   ]);
 
   const stats = [
@@ -69,6 +76,8 @@ export default async function DashboardPage() {
           </p>
         </section>
       )}
+
+      <TrackProgress sessions={progress.data ?? []} />
     </>
   );
 }
