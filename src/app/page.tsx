@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { cardClass, primaryButtonClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
@@ -78,8 +77,7 @@ export default async function Home() {
             </a>
           </nav>
           <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 lg:flex">
-              <ThemeSwitcher />
+            <div className="hidden lg:block">
               <LanguageSwitcher />
             </div>
             <Link
@@ -234,8 +232,7 @@ export default async function Home() {
           <p>
             © 2026 {h.footer}
           </p>
-          <div className="flex items-center gap-2 lg:hidden">
-            <ThemeSwitcher />
+          <div className="lg:hidden">
             <LanguageSwitcher />
           </div>
         </div>

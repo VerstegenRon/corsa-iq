@@ -8,6 +8,9 @@ export type Theme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "theme-preference";
 
+/** Pages that always follow the time of day, whatever the visitor chose elsewhere (the homepage). */
+export const AUTO_THEME_PATHS = ["/"];
+
 /** "auto" is light from 07:00 up to 20:00 local time, dark in the evening and at night. */
 export const DAY_STARTS_AT = 7;
 export const NIGHT_STARTS_AT = 20;
@@ -23,4 +26,4 @@ export function resolveTheme(preference: ThemePreference, now = new Date()): The
 }
 
 /** Runs in <head> before anything is painted; mirrors resolveTheme without imports. */
-export const themeScript = `(function(){try{var p=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(p!=="light"&&p!=="dark")p="auto";var t=p;if(p==="auto"){var h=new Date().getHours();t=h>=${DAY_STARTS_AT}&&h<${NIGHT_STARTS_AT}?"light":"dark"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
+export const themeScript = `(function(){try{var p=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(p!=="light"&&p!=="dark"||${JSON.stringify(AUTO_THEME_PATHS)}.indexOf(location.pathname)>=0)p="auto";var t=p;if(p==="auto"){var h=new Date().getHours();t=h>=${DAY_STARTS_AT}&&h<${NIGHT_STARTS_AT}?"light":"dark"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
