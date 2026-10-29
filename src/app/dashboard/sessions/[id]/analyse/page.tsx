@@ -27,7 +27,7 @@ import { TelemetryImportForm } from "./telemetry-import-form";
 import { TraceChart } from "./trace-chart";
 
 export const metadata: Metadata = {
-  title: "Analyse — Corsa IQ",
+  title: "Analyse — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";

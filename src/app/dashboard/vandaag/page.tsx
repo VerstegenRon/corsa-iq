@@ -15,7 +15,7 @@ import { fetchWeather } from "@/lib/weather";
 import { PrestartBoard, type BoardRow, type BoardTyre } from "./prestart-board";
 
 export const metadata: Metadata = {
-  title: "Vandaag — Corsa IQ",
+  title: "Vandaag — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";

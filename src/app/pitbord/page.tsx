@@ -5,7 +5,7 @@ import { getCurrentGarage } from "@/lib/garage";
 import { PitboardScreen, type BoardSession } from "./pitboard-screen";
 
 export const metadata: Metadata = {
-  title: "Pitbord — Corsa IQ",
+  title: "Pitbord — CorsaIQ",
 };
 
 /** The digital pit board: one message and the live gap, big enough to read from the kart. */

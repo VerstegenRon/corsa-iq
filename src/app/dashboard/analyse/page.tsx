@@ -8,7 +8,7 @@ import { getDictionary } from "@/lib/i18n/server";
 import { formatDate, formatLapTime, formatTime, labelFor } from "@/lib/karting";
 
 export const metadata: Metadata = {
-  title: "Analyse — Corsa IQ",
+  title: "Analyse — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";

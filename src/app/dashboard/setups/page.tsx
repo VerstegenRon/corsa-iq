@@ -12,7 +12,7 @@ import { loadSetupTree } from "@/lib/setup-tree-data";
 import { SetupGraph } from "./setup-graph";
 
 export const metadata: Metadata = {
-  title: "Setup — Corsa IQ",
+  title: "Setup — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";

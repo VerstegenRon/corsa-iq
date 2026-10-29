@@ -6,7 +6,7 @@ import { getLocale } from "@/lib/i18n/server";
 import { COMPANY, LEGAL_REVIEWED, LEGAL_VERSION, LEGAL_VERSION_EN, MIN_ACCOUNT_AGE } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Voorwaarden — Corsa IQ",
+  title: "Voorwaarden — CorsaIQ",
 };
 
 const draft = !LEGAL_REVIEWED;
@@ -17,7 +17,7 @@ function Dutch() {
       <section>
         <h2>1. Over deze voorwaarden</h2>
         <p>
-          Deze voorwaarden gelden voor het gebruik van Corsa IQ, een dienst van {COMPANY.name} ({COMPANY.legalForm}, KvK {COMPANY.kvk}, {COMPANY.address}). Met
+          Deze voorwaarden gelden voor het gebruik van CorsaIQ, een dienst van {COMPANY.name} ({COMPANY.legalForm}, KvK {COMPANY.kvk}, {COMPANY.address}). Met
           het maken van een account ga je ermee akkoord. Hoe we met persoonsgegevens omgaan, staat in de{" "}
           <Link href="/privacy" className="text-brand-300 underline">
             privacyverklaring
@@ -28,7 +28,7 @@ function Dutch() {
       <section>
         <h2>2. Bèta</h2>
         <p>
-          Corsa IQ is in een gesloten bèta en is in die periode gratis. Functies kunnen veranderen, erbij komen of verdwijnen, en de dienst kan soms niet
+          CorsaIQ is in een gesloten bèta en is in die periode gratis. Functies kunnen veranderen, erbij komen of verdwijnen, en de dienst kan soms niet
           beschikbaar zijn. We doen ons best om je gegevens veilig te bewaren, maar geven in de bèta geen garantie op beschikbaarheid. Als er later betaalde
           plannen komen, hoor je dat ruim van tevoren en kies je zelf of je doorgaat.
         </p>
@@ -47,7 +47,7 @@ function Dutch() {
       <section>
         <h2>4. Gebruik</h2>
         <ul>
-          <li>Je gebruikt Corsa IQ voor je eigen kartteam en volgens de wet.</li>
+          <li>Je gebruikt CorsaIQ voor je eigen kartteam en volgens de wet.</li>
           <li>Je probeert niet bij gegevens van andere teams te komen, de dienst te verstoren of te overbelasten.</li>
           <li>
             Je legt alleen gegevens over anderen vast als je daar een goede reden voor hebt. Voor coureurs onder de {MIN_ACCOUNT_AGE} zorg je voor toestemming van
@@ -66,7 +66,7 @@ function Dutch() {
       <section>
         <h2>6. Advies is advies</h2>
         <p>
-          Corsa IQ rekent, vergelijkt en geeft adviezen over afstelling, bandenspanning, onderhoud en rijstijl, deels met behulp van AI. Dat zijn hulpmiddelen,
+          CorsaIQ rekent, vergelijkt en geeft adviezen over afstelling, bandenspanning, onderhoud en rijstijl, deels met behulp van AI. Dat zijn hulpmiddelen,
           geen garanties. <strong>Controleer de kart altijd zelf</strong>: de monteur en de coureur blijven verantwoordelijk voor een veilige kart en voor de
           beslissingen op de baan.
         </p>
@@ -123,7 +123,7 @@ function English() {
       <section>
         <h2>1. About these terms</h2>
         <p>
-          These terms apply to the use of Corsa IQ, a service of {COMPANY.name} ({COMPANY.legalForm}, Chamber of Commerce {COMPANY.kvk}, {COMPANY.address}). By
+          These terms apply to the use of CorsaIQ, a service of {COMPANY.name} ({COMPANY.legalForm}, Chamber of Commerce {COMPANY.kvk}, {COMPANY.address}). By
           creating an account you agree to them. How we handle personal data is in the{" "}
           <Link href="/privacy?lang=en" className="text-brand-300 underline">
             privacy statement
@@ -134,7 +134,7 @@ function English() {
       <section>
         <h2>2. Beta</h2>
         <p>
-          Corsa IQ is in a closed beta and is free during that period. Features may change, be added or be removed, and the service may sometimes be unavailable.
+          CorsaIQ is in a closed beta and is free during that period. Features may change, be added or be removed, and the service may sometimes be unavailable.
           We do our best to keep your data safe, but during the beta we give no guarantee of availability. If paid plans come later, you will hear well in advance
           and decide yourself whether to continue.
         </p>
@@ -153,7 +153,7 @@ function English() {
       <section>
         <h2>4. Use</h2>
         <ul>
-          <li>You use Corsa IQ for your own karting team and within the law.</li>
+          <li>You use CorsaIQ for your own karting team and within the law.</li>
           <li>You do not try to reach other teams’ data, or to disrupt or overload the service.</li>
           <li>
             You only record data about others when you have good reason to. For drivers under {MIN_ACCOUNT_AGE} you make sure parents or guardians consent.
@@ -171,7 +171,7 @@ function English() {
       <section>
         <h2>6. Advice is advice</h2>
         <p>
-          Corsa IQ calculates, compares and gives advice on setup, tyre pressure, maintenance and driving, partly with the help of AI. These are aids, not
+          CorsaIQ calculates, compares and gives advice on setup, tyre pressure, maintenance and driving, partly with the help of AI. These are aids, not
           guarantees. <strong>Always check the kart yourself</strong>: the mechanic and the driver remain responsible for a safe kart and for the decisions on
           track.
         </p>

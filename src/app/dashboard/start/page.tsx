@@ -8,7 +8,7 @@ import { ownOrOfficial, sortByLabel, todayInAmsterdam, trackLabel } from "@/lib/
 import { DriverStep, EventStep, KartStep, TeamStep } from "./start-forms";
 
 export const metadata: Metadata = {
-  title: "Aan de slag — Corsa IQ",
+  title: "Aan de slag — CorsaIQ",
 };
 
 const STEPS = ["Team", "Coureur", "Kart", "Evenement"] as const;
@@ -91,7 +91,7 @@ export default async function StartPage({ searchParams }: PageProps<"/dashboard/
         )}
         {step === 3 && (
           <>
-            <p className="mb-5 text-sm text-zinc-400">Met de kart houdt Corsa IQ de uren van chassis en motor bij, en hangen setups en pre-start eraan.</p>
+            <p className="mb-5 text-sm text-zinc-400">Met de kart houdt CorsaIQ de uren van chassis en motor bij, en hangen setups en pre-start eraan.</p>
             <KartStep />
           </>
         )}

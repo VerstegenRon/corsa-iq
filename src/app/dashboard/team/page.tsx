@@ -12,7 +12,7 @@ import { removeMember, revokeInvite } from "../team-actions";
 import { GarageSwitch, InviteForm, RoleSelect } from "./team-controls";
 
 export const metadata: Metadata = {
-  title: "Team — Corsa IQ",
+  title: "Team — CorsaIQ",
 };
 
 /** Who works in this garage and with which role; the owner invites people by link. */
