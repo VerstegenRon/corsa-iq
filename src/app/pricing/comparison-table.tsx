@@ -8,7 +8,12 @@ import type { PlanKey, PlanValue } from "@/lib/pricing";
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
 type Plan = { key: PlanKey; name: string; price: string };
-type Group = { key: string; label: string; rows: { key: string; label: string; values: Record<PlanKey, PlanValue> }[] };
+type Group = {
+  key: string;
+  label: string;
+  /** `addon`: the price of the extra, shown where a plan can buy it. */
+  rows: { key: string; label: string; values: Record<PlanKey, PlanValue>; addon?: string }[];
+};
 
 /**
  * Every feature against every plan. From md all four plans stand side by side; on a phone the
@@ -30,7 +35,8 @@ export function ComparisonTable({
   // Hidden on a phone unless picked; always shown from md.
   const column = (key: PlanKey) => `${key === picked ? "" : "hidden md:table-cell"} ${key === featured ? "bg-brand-500/[0.06]" : ""}`;
 
-  const cell = (value: PlanValue) => {
+  const cell = (value: PlanValue, addon?: string) => {
+    if (value === "addon") return <span className="text-xs whitespace-nowrap text-zinc-300 tabular-nums">{addon}</span>;
     if (value === true)
       return (
         <>
@@ -103,7 +109,7 @@ export function ComparisonTable({
                   </th>
                   {plans.map((plan) => (
                     <td key={plan.key} className={`px-2 py-3 text-center ${column(plan.key)}`}>
-                      {cell(row.values[plan.key])}
+                      {cell(row.values[plan.key], row.addon)}
                     </td>
                   ))}
                 </tr>

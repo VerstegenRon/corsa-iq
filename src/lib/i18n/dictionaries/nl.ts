@@ -363,15 +363,20 @@ export const nl = {
       free: {
         name: "Gratis",
         text: "Om te beginnen met één kart.",
-        features: ["1 kart en 1 coureur", "Sessies, rondetijden en debrief", "Draaiuren en onderhoud bijhouden", "Kosten per seizoen"],
+        features: [
+          "1 kart en 1 coureur",
+          "Sessies, rondetijden en debrief",
+          "Progressie per circuit en ronde-analyse",
+          "Draaiuren en onderhoud bijhouden",
+        ],
       },
       hobby: {
         name: "Driver",
         text: "Voor de coureur die zijn seizoen serieus bijhoudt.",
         features: [
-          "Tot 3 karts",
-          "Progressie per circuit en setups vergelijken",
-          "Pre-start checklist op de racedag",
+          "Tot 2 karts",
+          "Telemetrie: zie in welke bocht de tijd zit",
+          "Pitwall en pre-start checklist op de racedag",
           "Grenzen per component en onderhoudsplanning",
         ],
       },
@@ -379,16 +384,16 @@ export const nl = {
         name: "Pro",
         text: "Voor de coureur die elk weekend op de baan staat.",
         features: [
-          "Onbeperkt karts, motoren en onderdelen",
-          "Telemetrie: zie in welke bocht de tijd zit",
+          "3 karts, 2 coureurs en 5 teamleden",
           "AI-advies en bonnetjes automatisch inlezen",
-          "Live timing en digitaal pitbord, met je monteur",
+          "Live timing en digitaal pitbord",
+          "Rollen voor monteur, coureur en kijker",
         ],
       },
       team: {
         name: "Team",
         text: "Voor teams en families met meerdere coureurs.",
-        features: ["Alles uit Pro", "Tot 6 coureurs en 10 teamleden", "Rollen voor monteur, coureur en kijker", "Support met voorrang"],
+        features: ["Alles uit Pro", "5 coureurs en 10 teamleden", "Onbeperkt karts", "Support met voorrang"],
       },
     },
     compare: {
@@ -399,6 +404,7 @@ export const nl = {
       unlimited: "Onbeperkt",
       included: "Inbegrepen",
       notIncluded: "Niet inbegrepen",
+      addon: "+ {price} p/m",
       groups: {
         sessions: "Sessies",
         analysis: "Analyse",
@@ -422,12 +428,14 @@ export const nl = {
         live: "Live timing met stopwatch",
         pitboard: "Digitaal pitbord",
         karts: "Karts",
+        extraKart: "Extra kart",
         maintenance: "Draaiuren en onderhoud",
         gear: "Uitrusting en homologatie",
         limits: "Grenzen per component en onderhoudsplanning",
         costs: "Kosten per seizoen",
         receipts: "Bonnetjes en facturen automatisch inlezen",
         drivers: "Coureurs",
+        extraDriver: "Extra coureur",
         members: "Teamleden",
         roles: "Rollen: monteur, coureur en kijker",
         agenda: "Agenda en agenda-abonnement",
@@ -435,6 +443,13 @@ export const nl = {
         email: "Support per e-mail",
         priority: "Support met voorrang",
       },
+    },
+    addons: {
+      title: "Uitbreiden",
+      text: "Net iets meer nodig? Breid je abonnement uit, per maand opzegbaar.",
+      perMonth: "{price} per maand",
+      driver: { name: "Extra coureur", text: "Bij Pro en Team" },
+      kart: { name: "Extra kart", text: "Bij Pro; Team heeft onbeperkt karts" },
     },
     faqTitle: "Vragen over prijzen",
     faq: {
@@ -453,7 +468,7 @@ export const nl = {
       team: {
         question: "Wanneer heb ik Team nodig?",
         answer:
-          "Als er meer dan twee coureurs in één garage horen, bijvoorbeeld een gezin met drie rijders of een team dat meerdere klanten begeleidt. Pro is genoeg voor één of twee coureurs met een monteur erbij.",
+          "Pro heeft 3 karts en 2 coureurs; je kunt een extra kart of coureur toevoegen voor {price} per maand. Vanaf vier coureurs, of met veel karts, is Team voordeliger: 5 coureurs en onbeperkt karts.",
       },
     },
   },

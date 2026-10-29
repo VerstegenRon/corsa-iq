@@ -5,7 +5,7 @@ import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
-import { COMPARISON, FEATURED_PLAN, formatEuro, MONTHLY_CENTS, MONTHS_PAID_PER_YEAR, PLAN_KEYS } from "@/lib/pricing";
+import { ADDONS, COMPARISON, FEATURED_PLAN, formatEuro, MONTHLY_CENTS, MONTHS_PAID_PER_YEAR, PLAN_KEYS, type AddonKey } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 
 import { ComparisonTable } from "./comparison-table";
@@ -27,6 +27,9 @@ export default async function PricingPage() {
   const p = t.pricing;
   const cta = signedIn ? { href: "/dashboard", label: t.home.toDashboard } : { href: "/login", label: p.cta };
   const price = (key: (typeof PLAN_KEYS)[number]) => formatEuro(MONTHLY_CENTS[key], locale);
+  const addonPrice = (key: AddonKey) => formatEuro(ADDONS[key].cents, locale);
+  // Comparison rows that are a paid extra, and which extra.
+  const rowAddon: Partial<Record<string, AddonKey>> = { extraDriver: "driver", extraKart: "kart" };
 
   return (
     <div className="relative isolate flex min-h-full flex-1 flex-col overflow-x-clip bg-zinc-950 text-zinc-50">
@@ -93,6 +96,29 @@ export default async function PricingPage() {
               );
             })}
           </ul>
+          <div aria-labelledby="addons-heading" role="region" className="mt-6 rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 id="addons-heading" className="text-lg font-semibold tracking-tight">
+                  {p.addons.title}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-400">{p.addons.text}</p>
+              </div>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:min-w-[28rem]">
+                {(Object.keys(ADDONS) as AddonKey[]).map((key) => (
+                  <li key={key} className="rounded-2xl border border-zinc-800 px-4 py-3">
+                    <p className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <span className="font-medium text-zinc-100">{p.addons[key].name}</span>
+                      <span className="text-sm whitespace-nowrap text-zinc-300 tabular-nums">
+                        {format(p.addons.perMonth, { price: addonPrice(key) })}
+                      </span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{p.addons[key].text}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
           <p className="mt-6 text-center text-xs text-zinc-500">{p.vatNote}</p>
         </section>
 
@@ -106,7 +132,15 @@ export default async function PricingPage() {
             groups={COMPARISON.map(({ group, rows }) => ({
               key: group,
               label: p.compare.groups[group],
-              rows: rows.map((row) => ({ key: row.key, label: p.compare.rows[row.key], values: row.values })),
+              rows: rows.map((row) => {
+                const addon = rowAddon[row.key];
+                return {
+                  key: row.key,
+                  label: p.compare.rows[row.key],
+                  values: row.values,
+                  addon: addon && format(p.compare.addon, { price: addonPrice(addon) }),
+                };
+              }),
             }))}
             featured={FEATURED_PLAN}
             labels={{
@@ -134,7 +168,7 @@ export default async function PricingPage() {
                     +
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{p.faq[key].answer}</p>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{format(p.faq[key].answer, { price: addonPrice("driver") })}</p>
               </details>
             ))}
           </div>

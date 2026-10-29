@@ -346,15 +346,20 @@ export const fr: Dictionary = {
       free: {
         name: "Gratuit",
         text: "Pour commencer avec un kart.",
-        features: ["1 kart et 1 pilote", "Sessions, temps au tour et débriefing", "Suivre le temps de roulage et l'entretien", "Dépenses par saison"],
+        features: [
+          "1 kart et 1 pilote",
+          "Sessions, temps au tour et débriefing",
+          "Progression par circuit et analyse des tours",
+          "Suivre le temps de roulage et l'entretien",
+        ],
       },
       hobby: {
         name: "Driver",
         text: "Pour le pilote qui suit sa saison sérieusement.",
         features: [
-          "Jusqu'à 3 karts",
-          "Progression par circuit et comparaison des réglages",
-          "Check-list pré-départ le jour de course",
+          "Jusqu'à 2 karts",
+          "Télémétrie : vois dans quel virage tu perds du temps",
+          "Pitwall et check-list pré-départ le jour de course",
           "Limites par composant et planning d'entretien",
         ],
       },
@@ -362,16 +367,16 @@ export const fr: Dictionary = {
         name: "Pro",
         text: "Pour le pilote qui est sur la piste chaque week-end.",
         features: [
-          "Karts, moteurs et pièces illimités",
-          "Télémétrie : vois dans quel virage tu perds du temps",
+          "3 karts, 2 pilotes et 5 membres",
           "Conseils IA et tickets lus automatiquement",
-          "Chrono live et panneau de stand numérique, avec ton mécanicien",
+          "Chrono live et panneau de stand numérique",
+          "Rôles pour mécanicien, pilote et observateur",
         ],
       },
       team: {
         name: "Team",
         text: "Pour les équipes et les familles avec plusieurs pilotes.",
-        features: ["Tout ce qu'offre Pro", "Jusqu'à 6 pilotes et 10 membres", "Rôles pour mécanicien, pilote et observateur", "Support prioritaire"],
+        features: ["Tout ce qu'offre Pro", "5 pilotes et 10 membres", "Karts illimités", "Support prioritaire"],
       },
     },
     compare: {
@@ -382,6 +387,7 @@ export const fr: Dictionary = {
       unlimited: "Illimité",
       included: "Inclus",
       notIncluded: "Non inclus",
+      addon: "+ {price}/mois",
       groups: {
         sessions: "Sessions",
         analysis: "Analyse",
@@ -405,12 +411,14 @@ export const fr: Dictionary = {
         live: "Chrono live avec chronomètre",
         pitboard: "Panneau de stand numérique",
         karts: "Karts",
+        extraKart: "Kart supplémentaire",
         maintenance: "Temps de roulage et entretien",
         gear: "Équipement et homologation",
         limits: "Limites par composant et planning d'entretien",
         costs: "Dépenses par saison",
         receipts: "Tickets et factures lus automatiquement",
         drivers: "Pilotes",
+        extraDriver: "Pilote supplémentaire",
         members: "Membres de l'équipe",
         roles: "Rôles : mécanicien, pilote et observateur",
         agenda: "Agenda et abonnement d'agenda",
@@ -418,6 +426,13 @@ export const fr: Dictionary = {
         email: "Support par e-mail",
         priority: "Support prioritaire",
       },
+    },
+    addons: {
+      title: "Ajouter",
+      text: "Besoin d'un peu plus ? Étends ton abonnement, résiliable chaque mois.",
+      perMonth: "{price} par mois",
+      driver: { name: "Pilote supplémentaire", text: "Avec Pro et Team" },
+      kart: { name: "Kart supplémentaire", text: "Avec Pro ; Team a des karts illimités" },
     },
     faqTitle: "Questions sur les tarifs",
     faq: {
@@ -437,7 +452,7 @@ export const fr: Dictionary = {
       team: {
         question: "Quand ai-je besoin de Team ?",
         answer:
-          "Quand plus de deux pilotes appartiennent au même garage, par exemple une famille avec trois pilotes ou une équipe qui suit plusieurs clients. Pro suffit pour un ou deux pilotes avec un mécanicien.",
+          "Pro comprend 3 karts et 2 pilotes ; tu peux ajouter un kart ou un pilote pour {price} par mois. À partir de quatre pilotes, ou avec beaucoup de karts, Team est plus avantageux : 5 pilotes et karts illimités.",
       },
     },
   },

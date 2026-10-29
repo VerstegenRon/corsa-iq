@@ -344,15 +344,20 @@ export const en: Dictionary = {
       free: {
         name: "Free",
         text: "To get started with one kart.",
-        features: ["1 kart and 1 driver", "Sessions, lap times and debrief", "Track run time and maintenance", "Costs per season"],
+        features: [
+          "1 kart and 1 driver",
+          "Sessions, lap times and debrief",
+          "Progress per circuit and lap analysis",
+          "Track run time and maintenance",
+        ],
       },
       hobby: {
         name: "Driver",
         text: "For the driver who keeps serious track of the season.",
         features: [
-          "Up to 3 karts",
-          "Progress per circuit and setup comparison",
-          "Pre-start checklist on race day",
+          "Up to 2 karts",
+          "Telemetry: see in which corner the time goes",
+          "Pitwall and pre-start checklist on race day",
           "Limits per component and maintenance planning",
         ],
       },
@@ -360,16 +365,16 @@ export const en: Dictionary = {
         name: "Pro",
         text: "For the driver who is at the track every weekend.",
         features: [
-          "Unlimited karts, engines and parts",
-          "Telemetry: see in which corner the time goes",
+          "3 karts, 2 drivers and 5 team members",
           "AI advice and receipts read automatically",
-          "Live timing and digital pit board, with your mechanic",
+          "Live timing and digital pit board",
+          "Roles for mechanic, driver and viewer",
         ],
       },
       team: {
         name: "Team",
         text: "For teams and families with several drivers.",
-        features: ["Everything in Pro", "Up to 6 drivers and 10 team members", "Roles for mechanic, driver and viewer", "Priority support"],
+        features: ["Everything in Pro", "5 drivers and 10 team members", "Unlimited karts", "Priority support"],
       },
     },
     compare: {
@@ -380,6 +385,7 @@ export const en: Dictionary = {
       unlimited: "Unlimited",
       included: "Included",
       notIncluded: "Not included",
+      addon: "+ {price}/mo",
       groups: {
         sessions: "Sessions",
         analysis: "Analysis",
@@ -403,12 +409,14 @@ export const en: Dictionary = {
         live: "Live timing with stopwatch",
         pitboard: "Digital pit board",
         karts: "Karts",
+        extraKart: "Extra kart",
         maintenance: "Run time and maintenance",
         gear: "Gear and homologation",
         limits: "Limits per component and maintenance planning",
         costs: "Costs per season",
         receipts: "Receipts and invoices read automatically",
         drivers: "Drivers",
+        extraDriver: "Extra driver",
         members: "Team members",
         roles: "Roles: mechanic, driver and viewer",
         agenda: "Calendar and calendar subscription",
@@ -416,6 +424,13 @@ export const en: Dictionary = {
         email: "Support by e-mail",
         priority: "Priority support",
       },
+    },
+    addons: {
+      title: "Add more",
+      text: "Need just a little more? Extend your plan, cancel monthly.",
+      perMonth: "{price} per month",
+      driver: { name: "Extra driver", text: "With Pro and Team" },
+      kart: { name: "Extra kart", text: "With Pro; Team has unlimited karts" },
     },
     faqTitle: "Questions about pricing",
     faq: {
@@ -434,7 +449,7 @@ export const en: Dictionary = {
       team: {
         question: "When do I need Team?",
         answer:
-          "When more than two drivers belong in one garage, for example a family with three drivers or a team that looks after several customers. Pro is enough for one or two drivers with a mechanic.",
+          "Pro has 3 karts and 2 drivers; you can add an extra kart or driver for {price} per month. From four drivers, or with many karts, Team is better value: 5 drivers and unlimited karts.",
       },
     },
   },

@@ -14,8 +14,15 @@ export const FEATURED_PLAN: PlanKey = "pro";
 export const MONTHLY_CENTS: Record<PlanKey, number> = { free: 0, hobby: 499, pro: 799, team: 1799 };
 export const MONTHS_PAID_PER_YEAR = 10;
 
-/** A cell of the comparison: included or not, a number, or no limit. */
-export type PlanValue = boolean | number | "unlimited";
+/** Extras on top of a plan, per month in cents, and the plans that can add them. */
+export const ADDONS = {
+  driver: { cents: 499, plans: ["pro", "team"] },
+  kart: { cents: 499, plans: ["pro"] },
+} as const satisfies Record<string, { cents: number; plans: readonly PlanKey[] }>;
+export type AddonKey = keyof typeof ADDONS;
+
+/** A cell of the comparison: included or not, a number, no limit, or available as a paid extra. */
+export type PlanValue = boolean | number | "unlimited" | "addon";
 
 type Row = { key: string; values: Record<PlanKey, PlanValue> };
 
@@ -30,16 +37,16 @@ export const COMPARISON = [
     rows: [
       { key: "sessions", values: all },
       { key: "lapImport", values: all },
-      { key: "pitwall", values: all },
+      { key: "pitwall", values: fromHobby },
       { key: "aiDebrief", values: fromPro },
     ],
   },
   {
     group: "analysis",
     rows: [
-      { key: "progress", values: fromHobby },
+      { key: "progress", values: all },
       { key: "setupCompare", values: fromHobby },
-      { key: "telemetry", values: fromPro },
+      { key: "telemetry", values: fromHobby },
       { key: "aiAdvice", values: fromPro },
     ],
   },
@@ -55,7 +62,8 @@ export const COMPARISON = [
   {
     group: "material",
     rows: [
-      { key: "karts", values: { free: 1, hobby: 3, pro: "unlimited", team: "unlimited" } },
+      { key: "karts", values: { free: 1, hobby: 2, pro: 3, team: "unlimited" } },
+      { key: "extraKart", values: { free: false, hobby: false, pro: "addon", team: false } },
       { key: "maintenance", values: all },
       { key: "gear", values: all },
       { key: "limits", values: fromHobby },
@@ -71,8 +79,9 @@ export const COMPARISON = [
   {
     group: "team",
     rows: [
-      { key: "drivers", values: { free: 1, hobby: 1, pro: 2, team: 6 } },
-      { key: "members", values: { free: 1, hobby: 1, pro: 3, team: 10 } },
+      { key: "drivers", values: { free: 1, hobby: 1, pro: 2, team: 5 } },
+      { key: "extraDriver", values: { free: false, hobby: false, pro: "addon", team: "addon" } },
+      { key: "members", values: { free: 1, hobby: 1, pro: 5, team: 10 } },
       { key: "roles", values: fromPro },
       { key: "agenda", values: all },
     ],

@@ -347,15 +347,20 @@ export const de: Dictionary = {
       free: {
         name: "Kostenlos",
         text: "Zum Einstieg mit einem Kart.",
-        features: ["1 Kart und 1 Fahrer", "Sessions, Rundenzeiten und Debriefing", "Laufzeit und Wartung im Blick", "Kosten pro Saison"],
+        features: [
+          "1 Kart und 1 Fahrer",
+          "Sessions, Rundenzeiten und Debriefing",
+          "Fortschritt pro Strecke und Rundenanalyse",
+          "Laufzeit und Wartung im Blick",
+        ],
       },
       hobby: {
         name: "Driver",
         text: "Für Fahrer, die ihre Saison ernsthaft festhalten.",
         features: [
-          "Bis zu 3 Karts",
-          "Fortschritt pro Strecke und Setups vergleichen",
-          "Pre-Start-Checkliste am Renntag",
+          "Bis zu 2 Karts",
+          "Telemetrie: sieh, in welcher Kurve die Zeit liegt",
+          "Pitwall und Pre-Start-Checkliste am Renntag",
           "Grenzen pro Bauteil und Wartungsplanung",
         ],
       },
@@ -363,16 +368,16 @@ export const de: Dictionary = {
         name: "Pro",
         text: "Für Fahrer, die jedes Wochenende an der Strecke sind.",
         features: [
-          "Unbegrenzt Karts, Motoren und Teile",
-          "Telemetrie: sieh, in welcher Kurve die Zeit liegt",
+          "3 Karts, 2 Fahrer und 5 Teammitglieder",
           "KI-Beratung und Belege automatisch einlesen",
-          "Live-Timing und digitale Boxentafel, mit deinem Mechaniker",
+          "Live-Timing und digitale Boxentafel",
+          "Rollen für Mechaniker, Fahrer und Zuschauer",
         ],
       },
       team: {
         name: "Team",
         text: "Für Teams und Familien mit mehreren Fahrern.",
-        features: ["Alles aus Pro", "Bis zu 6 Fahrer und 10 Teammitglieder", "Rollen für Mechaniker, Fahrer und Zuschauer", "Support mit Vorrang"],
+        features: ["Alles aus Pro", "5 Fahrer und 10 Teammitglieder", "Unbegrenzt Karts", "Support mit Vorrang"],
       },
     },
     compare: {
@@ -383,6 +388,7 @@ export const de: Dictionary = {
       unlimited: "Unbegrenzt",
       included: "Enthalten",
       notIncluded: "Nicht enthalten",
+      addon: "+ {price}/Monat",
       groups: {
         sessions: "Sessions",
         analysis: "Analyse",
@@ -406,12 +412,14 @@ export const de: Dictionary = {
         live: "Live-Timing mit Stoppuhr",
         pitboard: "Digitale Boxentafel",
         karts: "Karts",
+        extraKart: "Zusätzliches Kart",
         maintenance: "Laufzeit und Wartung",
         gear: "Ausrüstung und Homologation",
         limits: "Grenzen pro Bauteil und Wartungsplanung",
         costs: "Kosten pro Saison",
         receipts: "Belege und Rechnungen automatisch einlesen",
         drivers: "Fahrer",
+        extraDriver: "Zusätzlicher Fahrer",
         members: "Teammitglieder",
         roles: "Rollen: Mechaniker, Fahrer und Zuschauer",
         agenda: "Kalender und Kalender-Abo",
@@ -419,6 +427,13 @@ export const de: Dictionary = {
         email: "Support per E-Mail",
         priority: "Support mit Vorrang",
       },
+    },
+    addons: {
+      title: "Erweitern",
+      text: "Brauchst du etwas mehr? Erweitere dein Abo, monatlich kündbar.",
+      perMonth: "{price} pro Monat",
+      driver: { name: "Zusätzlicher Fahrer", text: "Bei Pro und Team" },
+      kart: { name: "Zusätzliches Kart", text: "Bei Pro; Team hat unbegrenzt Karts" },
     },
     faqTitle: "Fragen zu den Preisen",
     faq: {
@@ -437,7 +452,7 @@ export const de: Dictionary = {
       team: {
         question: "Wann brauche ich Team?",
         answer:
-          "Wenn mehr als zwei Fahrer in eine Garage gehören, zum Beispiel eine Familie mit drei Fahrern oder ein Team mit mehreren Kunden. Pro reicht für ein oder zwei Fahrer mit einem Mechaniker.",
+          "Pro hat 3 Karts und 2 Fahrer; ein zusätzliches Kart oder einen Fahrer kannst du für {price} pro Monat hinzufügen. Ab vier Fahrern oder mit vielen Karts ist Team günstiger: 5 Fahrer und unbegrenzt Karts.",
       },
     },
   },
