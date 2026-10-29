@@ -15,6 +15,7 @@ export const fr: Dictionary = {
     pitwall: "Muret des stands",
     advice: "Conseils de réglage",
     agenda: "Agenda",
+    checklist: "Liste de matériel",
     tracks: "Circuits",
     drivers: "Pilotes",
     karts: "Karts",

@@ -30,6 +30,7 @@ const groups: { key: keyof Dictionary["nav"]; items: NavItem[] }[] = [
       { href: "/dashboard/karts", key: "karts", icon: "kart" },
       { href: "/dashboard/parts", key: "parts", icon: "engine" },
       { href: "/dashboard/gear", key: "gear", icon: "helmet" },
+      { href: "/dashboard/checklist", key: "checklist", icon: "check" },
     ],
   },
   { key: "groupFinance", items: [{ href: "/dashboard/costs", key: "costs", icon: "euro" }] },

@@ -32,6 +32,7 @@ export const nl = {
     pitwall: "Pitwall",
     advice: "Advies voor setup",
     agenda: "Agenda",
+    checklist: "Paklijst",
     tracks: "Circuits",
     drivers: "Coureurs",
     karts: "Karts",
