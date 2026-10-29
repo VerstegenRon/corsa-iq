@@ -21,6 +21,7 @@ export const en: Dictionary = {
     more: "More",
     pitwall: "Pitwall",
     pitboard: "Pit board",
+    team: "Team",
     advice: "Setup advice",
     agenda: "Calendar",
     checklist: "Packing list",

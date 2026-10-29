@@ -654,6 +654,56 @@ export type Database = {
           },
         ]
       }
+      garage_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          garage_id: string
+          id: string
+          label: string | null
+          revoked_at: string | null
+          role: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          garage_id: string
+          id?: string
+          label?: string | null
+          revoked_at?: string | null
+          role: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          garage_id?: string
+          id?: string
+          label?: string | null
+          revoked_at?: string | null
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_invites_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garage_members: {
         Row: {
           created_at: string
@@ -1760,6 +1810,15 @@ export type Database = {
     }
     Functions: {
       calendar_feed: { Args: { feed_token: string }; Returns: Json }
+      accept_garage_invite: { Args: { p_token: string }; Returns: string }
+      garage_team: {
+        Args: { p_garage_id: string }
+        Returns: { user_id: string; role: string; joined_at: string; display_name: string | null; email: string }[]
+      }
+      garage_invite_info: {
+        Args: { p_token: string }
+        Returns: { garage_name: string; role: string; status: string }[]
+      }
       replace_session_laps: {
         Args: { p_data_import_id: string; p_laps: Json; p_session_id: string }
         Returns: number

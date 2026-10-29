@@ -11,12 +11,14 @@ const initialState: AuthState = {};
 const inputClass =
   "h-11 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 text-sm text-zinc-50 placeholder:text-zinc-600 focus-visible:border-brand-400/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
-export function LoginForm() {
+/** `next`: where to go after signing in, such as an invitation. */
+export function LoginForm({ next }: { next?: string }) {
   const t = useT();
   const [state, formAction, isPending] = useActionState(authenticate, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="flex flex-col gap-2 text-sm text-zinc-300">
         {t.login.email}
         <input

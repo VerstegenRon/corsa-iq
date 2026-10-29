@@ -21,6 +21,7 @@ export const de: Dictionary = {
     more: "Mehr",
     pitwall: "Boxenmauer",
     pitboard: "Boxentafel",
+    team: "Team",
     advice: "Setup-Beratung",
     agenda: "Kalender",
     checklist: "Packliste",

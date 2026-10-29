@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const [{ error, confirmed }, t] = await Promise.all([searchParams, getDictionary()]);
+  const [{ error, confirmed, next }, t] = await Promise.all([searchParams, getDictionary()]);
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-950 text-zinc-50">
@@ -43,7 +43,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               {t.login.confirmFailed}
             </p>
           )}
-          <LoginForm />
+          <LoginForm next={typeof next === "string" ? next : undefined} />
         </div>
       </main>
     </div>
