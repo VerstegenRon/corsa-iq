@@ -12,7 +12,7 @@ create table public.garage_billing (
 );
 alter table public.garage_billing enable row level security;
 create policy "owners read billing" on public.garage_billing
-  for select to authenticated using ((select public.is_garage_owner(garage_id)));
+  for select to authenticated using (private.is_garage_owner(garage_id));
 revoke insert, update, delete on public.garage_billing from anon, authenticated;
 
 -- The plan comes from Stripe only: owners may still rename the garage, not change its plan.
