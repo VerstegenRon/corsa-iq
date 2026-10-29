@@ -23,8 +23,8 @@ const DESTINATIONS: Destination[] = [
   { key: "today", href: "/dashboard", icon: "check", exact: true, phone: true },
   { key: "live", href: "/pitwall", icon: "stopwatch", plain: true, phone: true },
   { key: "analysis", href: "/dashboard/analyse", icon: "gauge", also: ["/dashboard/sessions"], phone: true },
-  { key: "setup", href: "/dashboard/advice", icon: "compare", phone: true },
-  { key: "seasonMaterial", href: "/dashboard/seasons", icon: "calendar", also: ["/dashboard/events"], phone: false },
+  { key: "setup", href: "/dashboard/setups", icon: "compare", phone: true },
+  { key: "seasonMaterial", href: "/dashboard/seizoen", icon: "calendar", phone: false },
 ];
 
 // Everything else, grouped by what you are doing; A–Z within a group.
