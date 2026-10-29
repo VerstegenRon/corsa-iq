@@ -8,13 +8,19 @@ import { CONFIDENCE, formatGap, insightSentence, type Insight } from "@/lib/setu
 /** Enough for the clearest findings; the rest is on the page. */
 const MAX_FINDINGS = 15;
 
-const instructions = `Je bent een ervaren kartmonteur. Hieronder staan verbanden die de app heeft gevonden in de eigen sessies van een team: welke afstelling ging samen met snellere beste rondes, op hetzelfde circuit, met dezelfde kart en bij hetzelfde weer.
-Schrijf in het Nederlands, in gewone taal, voor een coureur of ouder die geen statisticus is:
-- Begin met de twee of drie belangrijkste lessen.
-- Zeg bij elke les hoe zeker die is (op hoeveel sessies hij rust, en de betrouwbaarheid). Noem een 'voorzichtig' verband nooit een zekerheid.
-- Staat er dat ook een andere instelling tegelijk veranderde, zeg dan dat je niet weet welke van de twee het verschil maakte.
-- Sluit af met één concreet voorstel voor de volgende testsessie, bijvoorbeeld wat je bewust één keer los zou testen.
-Gebruik alleen de cijfers hieronder; verzin niets en geef geen algemene kart-tips die niet uit de cijfers volgen. Maximaal 180 woorden, korte alinea's, geen kopjes, geen opsommingstekens met sterretjes.`;
+export type AnalysisLength = "short" | "full";
+
+const role = `Je bent race-engineer van een kartteam. Hieronder staan verbanden die de app heeft gevonden in de eigen sessies van het team: welke afstelling ging samen met snellere beste rondes, op hetzelfde circuit, met dezelfde kart en bij hetzelfde weer.
+Schrijf in het Nederlands, zakelijk en professioneel zoals een engineer die aan het team rapporteert: zonder spreektaal of uitroepen, en begrijpelijk voor wie geen statisticus is.`;
+
+const rules = `Noem een 'voorzichtig' verband nooit een zekerheid. Staat er dat ook een andere instelling tegelijk veranderde, zeg dan dat niet vast te stellen is welke van de twee het verschil maakte.
+Gebruik alleen de cijfers hieronder; verzin niets en geef geen algemene kart-tips die niet uit de cijfers volgen.`;
+
+const FORMAT: Record<AnalysisLength, string> = {
+  // For a quick look between two sessions.
+  short: `Vorm: alleen een lijst van drie tot vijf kernpunten, elke regel beginnend met "- ", elk hooguit vijftien woorden, met het aantal sessies en de betrouwbaarheid tussen haakjes. De laatste regel begint met "- Volgende test:" en geeft één concreet voorstel. Geen inleiding, geen slotzin, geen kopjes.`,
+  full: `Vorm: korte alinea's, geen kopjes en geen opsommingstekens. Begin met de twee of drie belangrijkste lessen en zeg bij elke les op hoeveel sessies hij rust en hoe betrouwbaar hij is. Sluit af met één concreet voorstel voor de volgende testsessie, bijvoorbeeld wat je bewust los zou testen. Maximaal 250 woorden.`,
+};
 
 function describe(insight: Insight): string {
   const lines = [
@@ -27,7 +33,7 @@ function describe(insight: Insight): string {
 
 let client: Anthropic | null = null;
 
-export async function explainInsights(insights: Insight[]): Promise<{ text: string } | { error: string }> {
+export async function explainInsights(insights: Insight[], length: AnalysisLength): Promise<{ text: string } | { error: string }> {
   if (insights.length === 0) return { error: "Er zijn nog geen verbanden om uit te leggen." };
   if (!process.env.ANTHROPIC_API_KEY) return { error: "Uitleg met Claude is nu niet beschikbaar." };
   client ??= new Anthropic();
@@ -42,7 +48,7 @@ export async function explainInsights(insights: Insight[]): Promise<{ text: stri
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: `${instructions}\n\nGevonden verbanden:\n${insights.slice(0, MAX_FINDINGS).map(describe).join("\n")}` }],
+          content: [{ type: "text", text: `${role}\n${rules}\n${FORMAT[length]}\n\nGevonden verbanden:\n${insights.slice(0, MAX_FINDINGS).map(describe).join("\n")}` }],
         },
       ],
     });

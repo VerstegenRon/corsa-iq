@@ -125,7 +125,7 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/da
         <section aria-labelledby="advice-heading" className={cardClass}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="advice-heading" className="text-lg font-semibold">
-              Wat werkte hier
+              Advies voor setup
             </h2>
             {insights.length > ADVICE_SHOWN && (
               <Link href={`/dashboard/advice?track=${track.id}`} className={`${linkClass} text-sm`}>

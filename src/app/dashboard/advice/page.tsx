@@ -12,10 +12,19 @@ import { InsightList, NoInsights } from "./insight-list";
 import { loadAdvisorSessions } from "./load";
 
 export const metadata: Metadata = {
-  title: "Afstelling-advies — CorsaIQ",
+  title: "Advies voor setup — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 px-4 py-3">
+      <p className="text-2xl font-semibold text-zinc-50 tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-zinc-400">{label}</p>
+    </div>
+  );
+}
 
 export default async function AdvicePage({ searchParams }: PageProps<"/dashboard/advice">) {
   const query = await searchParams;
@@ -32,6 +41,7 @@ export default async function AdvicePage({ searchParams }: PageProps<"/dashboard
     })),
   );
   const shown = trackId ? insights.filter((i) => i.trackId === trackId) : insights;
+  const shownSessions = trackId ? sessions.filter((s) => s.trackId === trackId) : sessions;
   const showKart = new Set(sessions.map((s) => s.kart?.id)).size > 1;
 
   // Per circuit, the circuit with the most findings first.
@@ -41,13 +51,18 @@ export default async function AdvicePage({ searchParams }: PageProps<"/dashboard
 
   return (
     <>
-      <PageHeader icon="target" title="Afstelling-advies" subtitle="Wat werkte er in je eigen sessies" />
+      <PageHeader icon="target" title="Advies voor setup" subtitle="Verbanden tussen afstelling en rondetijd" />
 
-      <section className={cardClass}>
-        <p className="text-sm text-zinc-300">
-          De app vergelijkt je sessies op hetzelfde circuit, met dezelfde kart en bij hetzelfde weer, en zoekt welke afstelling samenging
-          met snellere beste rondes. Bij elk verband staat op hoeveel sessies het rust en hoe zeker het is. Het zijn aanwijzingen om te
-          testen, geen garanties.
+      <section aria-label="Samenvatting" className="flex flex-col gap-3">
+        <div className="grid grid-cols-3 gap-3">
+          <Stat label="Sessies geanalyseerd" value={shownSessions.length} />
+          <Stat label="Verbanden gevonden" value={shown.length} />
+          <Stat label="Sterk of redelijk" value={shown.filter((i) => i.confidence !== "weak").length} />
+        </div>
+        <p className="text-xs text-zinc-500">
+          Methode: sessies worden alleen vergeleken op hetzelfde circuit, met dezelfde kart en bij hetzelfde weer. Elke instelling moet in
+          minstens twee sessies gereden zijn. De betrouwbaarheid hangt af van het aantal sessies en de spreiding in rondetijden. Gebruik
+          de verbanden als testrichting, niet als garantie.
         </p>
       </section>
 
@@ -78,10 +93,13 @@ export default async function AdvicePage({ searchParams }: PageProps<"/dashboard
         </section>
       ) : (
         <>
-          <section aria-labelledby="explain-heading" className={cardClass}>
-            <h2 id="explain-heading" className="mb-3 text-lg font-semibold">
-              In gewone taal
+          <section aria-labelledby="analysis-heading" className={`${cardClass} border-brand-400/30`}>
+            <h2 id="analysis-heading" className="text-lg font-semibold">
+              Analyse en aanbeveling
             </h2>
+            <p className="mt-1 mb-4 text-sm text-zinc-400">
+              Een samenvatting van de belangrijkste verbanden, met een voorstel voor je volgende testsessie.
+            </p>
             <ExplainButton key={trackId ?? "all"} trackId={trackId} />
           </section>
           {perTrack.map(([id, list]) => (
