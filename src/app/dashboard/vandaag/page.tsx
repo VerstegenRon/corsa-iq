@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { cardClass, linkClass } from "@/components/ui";
+import { cardClass, linkClass, primaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import { formatHoursMinutes, labelFor, todayInAmsterdam, type SetupValues } from "@/lib/karting";
@@ -36,7 +36,7 @@ const clock = new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-dig
 
 export default async function TodayPage({ searchParams }: PageProps<"/dashboard/vandaag">) {
   const query = await searchParams;
-  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canManageTeam }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const today = todayInAmsterdam();
 
   // Today's event, else the next one.
@@ -77,9 +77,15 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
           <p className="text-zinc-300">
             {!kart ? "Nog geen actieve kart. Voeg je kart toe om de checklist te gebruiken." : "Geen evenement vandaag of gepland. Plan je volgende evenement."}
           </p>
-          <Link href={!kart ? "/dashboard/karts#add" : "/dashboard/seasons#add-event"} className={`${linkClass} mt-3 inline-block text-sm`}>
-            {!kart ? "Kart toevoegen" : "Evenement plannen"}
-          </Link>
+          {canManageTeam && !kart ? (
+            <Link href="/dashboard/start" className={`${primaryButtonClass} mt-4`}>
+              Aan de slag: team, kart en eerste evenement
+            </Link>
+          ) : (
+            <Link href={!kart ? "/dashboard/karts#add" : "/dashboard/seasons#add-event"} className={`${linkClass} mt-3 inline-block text-sm`}>
+              {!kart ? "Kart toevoegen" : "Evenement plannen"}
+            </Link>
+          )}
         </section>
       </>
     );
