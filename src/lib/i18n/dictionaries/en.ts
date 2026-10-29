@@ -15,6 +15,7 @@ export const en: Dictionary = {
     pitwall: "Pitwall",
     advice: "Setup advice",
     agenda: "Calendar",
+    checklist: "Packing list",
     tracks: "Circuits",
     drivers: "Drivers",
     karts: "Karts",

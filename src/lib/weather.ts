@@ -137,3 +137,38 @@ export function weatherText(conditions: Pick<SessionConditions, "weather" | "wea
   const label = (key: string) => labels[key] ?? key;
   return conditions.weather_to ? `${label(conditions.weather)} → ${label(conditions.weather_to)}` : label(conditions.weather);
 }
+
+export type DayForecast = { date: string; precipitation_mm: number; precipitation_chance: number | null };
+
+/** Rain per day at the circuit, for the coming two weeks; null when the dates are out of range. */
+export async function fetchDailyForecast(latitude: number, longitude: number, from: string, to: string): Promise<DayForecast[] | null> {
+  const ahead = (Date.parse(from) - Date.now()) / 86_400_000;
+  if (ahead > FORECAST_FUTURE_DAYS || Date.parse(to) < Date.now() - 86_400_000) return null;
+  // The forecast reaches about two weeks ahead; a longer event is cut off there.
+  const last = new Date(Date.now() + FORECAST_FUTURE_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const params = new URLSearchParams({
+    latitude: latitude.toFixed(4),
+    longitude: longitude.toFixed(4),
+    daily: "precipitation_sum,precipitation_probability_max",
+    start_date: from < today ? today : from,
+    end_date: to > last ? last : to,
+    timezone: "Europe/Amsterdam",
+  });
+  try {
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { signal: AbortSignal.timeout(4000), next: { revalidate: 3600 } });
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      daily?: { time: string[]; precipitation_sum: (number | null)[]; precipitation_probability_max: (number | null)[] };
+    };
+    if (!data.daily) return null;
+    return data.daily.time.map((date, i) => ({
+      date,
+      precipitation_mm: data.daily!.precipitation_sum[i] ?? 0,
+      precipitation_chance: data.daily!.precipitation_probability_max[i] ?? null,
+    }));
+  } catch (error) {
+    console.error("Weerbericht ophalen mislukt", error);
+    return null;
+  }
+}

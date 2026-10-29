@@ -22,6 +22,7 @@ import {
   trackLabel,
   type SetupValues,
 } from "@/lib/karting";
+import { checklistSuggestions } from "@/lib/checklist-suggestions";
 import { loadMaintenancePlan } from "@/lib/maintenance-plan-data";
 import { weatherText, type SessionConditions } from "@/lib/weather";
 
@@ -30,6 +31,7 @@ import { ExpenseForm } from "../../costs/expense-form";
 import { deleteEvent } from "../../season-actions";
 import { EventForm } from "../../seasons/event-form";
 import { ExpenseList } from "../../costs/expense-list";
+import { EventChecklist } from "./event-checklist";
 import { SessionForm } from "./session-form";
 
 export const metadata: Metadata = {
@@ -43,7 +45,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const { supabase, garage } = await getCurrentGarage();
   const t = await getDictionary();
 
-  const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult, seasonsResult, tracksResult] =
+  const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult, seasonsResult, tracksResult, checklistResult, gearResult] =
     await Promise.all([
     supabase
       .from("events")
@@ -72,6 +74,17 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       .order("created_at", { ascending: false }),
     supabase.from("seasons").select("id, name").eq("garage_id", garage.id).order("year", { ascending: false }),
     supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
+    supabase
+      .from("event_checklist_items")
+      .select("id, title, category, checked, suggestion_key")
+      .eq("event_id", id)
+      .order("created_at"),
+    supabase
+      .from("gear_items")
+      .select("id, category, brand, model, valid_until, drivers(name)")
+      .eq("garage_id", garage.id)
+      .neq("status", "retired")
+      .not("valid_until", "is", null),
   ]);
   if (eventResult.error) throw new Error(eventResult.error.message);
   const event = eventResult.data;
@@ -79,8 +92,24 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
 
   // For an event still to come: the maintenance to have done before it.
   const upcoming = (event.ends_on ?? event.starts_on) >= todayInAmsterdam();
-  const beforeThis = upcoming
-    ? (await loadMaintenancePlan(supabase, garage.id, todayInAmsterdam())).filter((job) => job.event?.id === event.id)
+  const plan = upcoming ? await loadMaintenancePlan(supabase, garage.id, todayInAmsterdam()) : [];
+  const beforeThis = plan.filter((job) => job.event?.id === event.id);
+
+  // The packing list, and for an event still to come what the app suggests adding to it.
+  const checklist = checklistResult.data ?? [];
+  const added = new Set(checklist.map((item) => item.suggestion_key).filter(Boolean));
+  const suggestions = upcoming
+    ? (
+        await checklistSuggestions({
+          event: { id: event.id, starts_on: event.starts_on, ends_on: event.ends_on, latitude: event.tracks?.latitude ?? null, longitude: event.tracks?.longitude ?? null },
+          gear: (gearResult.data ?? []).map((g) => ({
+            id: g.id,
+            label: [labelFor(t.options.gearCategories, g.category), g.brand, g.model].filter(Boolean).join(" ") + (g.drivers ? ` (${g.drivers.name})` : ""),
+            valid_until: g.valid_until!,
+          })),
+          jobs: plan,
+        })
+      ).filter((s) => !added.has(s.key))
     : [];
 
   const karts = (kartsResult.data ?? []).map((kart) => ({ id: kart.id, label: kart.name }));
@@ -140,6 +169,12 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
           </div>
         </section>
       )}
+
+      <EventChecklist
+        eventId={event.id}
+        items={checklist.map(({ id, title, category, checked }) => ({ id, title, category, checked }))}
+        suggestions={suggestions}
+      />
 
       {event.sessions.length > 0 && (
         <section aria-labelledby="sessions-heading" className={cardClass}>

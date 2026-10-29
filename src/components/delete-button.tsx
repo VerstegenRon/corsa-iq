@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import type { FormState } from "@/components/form-message";
+import { Icon } from "@/components/icons";
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
@@ -18,11 +19,14 @@ export function DeleteButton({
   confirmText,
   label = "Verwijderen",
   compact = false,
+  iconOnly = false,
 }: {
   action: () => Promise<FormState | void>;
   confirmText: string;
   label?: string;
   compact?: boolean;
+  /** A small round × instead of the word, for long lists; `label` names it for screen readers. */
+  iconOnly?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
@@ -88,15 +92,17 @@ export function DeleteButton({
     <div className={`flex flex-col gap-2 ${compact ? "items-end" : "items-start"}`}>
       <button
         type="button"
-        aria-label={compact ? label : undefined}
+        aria-label={compact || iconOnly ? label : undefined}
         onClick={() => setConfirming(true)}
         className={
-          compact
+          iconOnly
+            ? `inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-300 ${focusRing}`
+            : compact
             ? `rounded-full px-2 text-xs text-zinc-500 transition-colors hover:text-red-300 ${focusRing}`
             : `inline-flex h-9 items-center justify-center rounded-full border border-red-500/40 px-4 text-sm text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/10 ${focusRing}`
         }
       >
-        {compact ? "Verwijder" : label}
+        {iconOnly ? <Icon name="plus" className="size-4 rotate-45" /> : compact ? "Verwijder" : label}
       </button>
       {errorMessage}
     </div>

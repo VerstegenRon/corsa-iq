@@ -70,6 +70,81 @@ export type Database = {
           },
         ]
       }
+      checklist_items: {
+        Row: { category: string; created_at: string; garage_id: string; id: string; title: string }
+        Insert: { category: string; created_at?: string; garage_id: string; id?: string; title: string }
+        Update: { category?: string; created_at?: string; garage_id?: string; id?: string; title?: string }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_checklist_items: {
+        Row: {
+          category: string
+          checked: boolean
+          checked_at: string | null
+          created_at: string
+          event_id: string
+          garage_id: string
+          id: string
+          suggestion_key: string | null
+          template_item_id: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          checked?: boolean
+          checked_at?: string | null
+          created_at?: string
+          event_id: string
+          garage_id: string
+          id?: string
+          suggestion_key?: string | null
+          template_item_id?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          checked?: boolean
+          checked_at?: string | null
+          created_at?: string
+          event_id?: string
+          garage_id?: string
+          id?: string
+          suggestion_key?: string | null
+          template_item_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_checklist_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_checklist_items_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_checklist_items_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_imports: {
         Row: {
           channel_summary: Json | null
