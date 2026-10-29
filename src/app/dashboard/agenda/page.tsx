@@ -40,7 +40,7 @@ type Entry = {
 
 const KIND: Record<Kind, { label: string; dot: string; chip: string }> = {
   event: { label: "Evenement", dot: "bg-brand-500", chip: "border-brand-400/40 bg-brand-500/15 text-brand-100" },
-  item: { label: "Afspraak", dot: "bg-zinc-400", chip: "border-zinc-700 bg-zinc-800 text-zinc-100" },
+  item: { label: "Afspraak", dot: "bg-[var(--chart-7)]", chip: "border-[var(--chart-7)]/50 bg-[var(--chart-7)]/15 text-zinc-100" },
   maintenance: { label: "Onderhoud", dot: "bg-amber-400", chip: "border-amber-400/40 bg-amber-400/10 text-amber-200" },
 };
 

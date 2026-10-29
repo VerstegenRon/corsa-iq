@@ -14,6 +14,15 @@
   --foreground: #fafafa;
   /* Card surface (zinc-900/50 on zinc-950), used where a mark needs a ring in the surface colour. */
   --chart-surface: #111113;
+  /* Chart series, in this fixed order (checked for colour-blind separation and 3:1 on the card). */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
 }
 
 [data-theme="light"] {
@@ -21,6 +30,15 @@
   --background: oklch(98.5% 0 none);
   --foreground: oklch(14.1% 0.005 285.823);
   --chart-surface: #f6f6f7;
+  /* The same eight hues stepped for the light card; some are below 3:1, so charts label their values. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #6250d6;
+  --chart-8: #e34948;
 
   /* Neutrals: the zinc scale reversed. */
   --color-zinc-50: oklch(14.1% 0.005 285.823);
