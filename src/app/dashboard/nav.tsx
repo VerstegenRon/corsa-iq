@@ -15,13 +15,13 @@ type NavKey = keyof Dictionary["nav"];
 
 /**
  * The four places you go to most, plus the season: on a phone as a bar at the bottom, on a tablet
- * and desktop in the header. Live is the pitwall, a plain link so its service worker sees the load.
+ * and desktop in the header. The pitwall (quick logging, also offline) and the pitbord are under "Meer".
  */
 type Destination = { key: NavKey; href: string; icon: IconName; also?: string[]; exact?: boolean; plain?: boolean; phone: boolean };
 
 const DESTINATIONS: Destination[] = [
   { key: "today", href: "/dashboard/vandaag", icon: "check", phone: true },
-  { key: "live", href: "/pitwall", icon: "stopwatch", plain: true, phone: true },
+  { key: "live", href: "/dashboard/live", icon: "stopwatch", phone: true },
   { key: "analysis", href: "/dashboard/analyse", icon: "gauge", also: ["/dashboard/sessions"], phone: true },
   { key: "setup", href: "/dashboard/setups", icon: "compare", phone: true },
   { key: "seasonMaterial", href: "/dashboard/seizoen", icon: "calendar", phone: false },
@@ -33,6 +33,8 @@ const MORE: { key: NavKey; items: { href: string; key: NavKey; icon: IconName }[
     key: "groupRacing",
     items: [
       { href: "/dashboard", key: "overview", icon: "home" },
+      { href: "/pitwall", key: "pitwall", icon: "stopwatch" },
+      { href: "/pitbord", key: "pitboard", icon: "flag" },
       { href: "/dashboard/seasons", key: "seasons", icon: "calendar" },
       { href: "/dashboard/agenda", key: "agenda", icon: "agenda" },
       { href: "/dashboard/tracks", key: "tracks", icon: "flag" },

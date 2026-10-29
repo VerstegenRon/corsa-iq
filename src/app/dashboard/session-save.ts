@@ -1,8 +1,11 @@
 // Reading and saving a session, shared by the session form (Server Actions) and the pitwall, which
 // sends its queued sessions to a route handler once there is signal again.
 
+import { revalidatePath } from "next/cache";
+
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
+import { EMPTY_TAGS, parseFeedbackTags, type QuickTag } from "@/lib/feedback";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import type { getCurrentGarage } from "@/lib/garage";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
@@ -214,4 +217,29 @@ export async function insertSession(
   }
 
   return { success: "Sessie opgeslagen.", id: inserted.id };
+}
+
+/** Saves the debrief (text and tapped tags) on a session. The text is labelled again only when it changed. */
+export async function saveDebrief(supabase: Supabase, garageId: string, sessionId: string, feedback: string | null, quick: QuickTag[]): Promise<FormState> {
+  const { data: current } = await supabase
+    .from("sessions")
+    .select("driver_feedback, feedback_tags, events!inner(garage_id)")
+    .eq("id", sessionId)
+    .eq("events.garage_id", garageId)
+    .maybeSingle();
+  if (!current) return { error: "Deze sessie bestaat niet meer." };
+  const stored = parseFeedbackTags(current.feedback_tags);
+  const sameQuick = (stored?.quick ?? []).join() === quick.join();
+  if (feedback === current.driver_feedback && sameQuick) return { success: "Niets veranderd." };
+
+  const auto = feedback === current.driver_feedback ? stored : await tagFeedback(feedback);
+  const tags = auto || quick.length > 0 ? { ...(auto ?? EMPTY_TAGS), quick } : null;
+  const { error } = await supabase
+    .from("sessions")
+    .update({ driver_feedback: feedback, feedback_tags: tags as Json })
+    .eq("id", sessionId);
+  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+
+  revalidatePath("/dashboard", "layout");
+  return { success: feedback || quick.length > 0 ? (auto ? "Debrief opgeslagen en gelabeld." : "Debrief opgeslagen.") : "Debrief verwijderd." };
 }

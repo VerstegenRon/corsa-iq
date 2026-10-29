@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
+import { readQuickTags } from "@/lib/feedback";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
 import { EVENT_TYPES, parseLapTime } from "@/lib/karting";
@@ -12,7 +13,7 @@ import { LOGGER_BUCKET } from "@/lib/storage";
 import type { SessionConditions } from "@/lib/weather";
 
 import { optionalNumber, text } from "./form-data";
-import { insertSession, insertSetup, readSession, withWeather, type Supabase } from "./session-save";
+import { insertSession, insertSetup, readSession, saveDebrief, withWeather, type Supabase } from "./session-save";
 
 // ---------------------------------------------------------------------------
 // Seasons
@@ -273,29 +274,15 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
   return { success: "Wijzigingen opgeslagen." };
 }
 
-/** Only the driver's feedback, from the card on the session page: typed or spoken right after the session. */
+/**
+ * The debrief: the driver's feedback and the tapped tags, from the card on the session page or at the
+ * end of a live session. The text is labelled again only when it changed.
+ */
 export async function saveFeedback(sessionId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const feedback = text(formData, "driver_feedback");
   const { supabase, garage } = await getCurrentGarage();
-  const { data: current } = await supabase
-    .from("sessions")
-    .select("driver_feedback, events!inner(garage_id)")
-    .eq("id", sessionId)
-    .eq("events.garage_id", garage.id)
-    .maybeSingle();
-  if (!current) return { error: "Deze sessie bestaat niet meer." };
-  if (feedback === current.driver_feedback) return { success: "Niets veranderd." };
-
-  const tags = await tagFeedback(feedback);
-  const { error } = await supabase
-    .from("sessions")
-    .update({ driver_feedback: feedback, feedback_tags: tags as Json })
-    .eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
-
-  revalidatePath("/dashboard", "layout");
-  return { success: feedback ? (tags ? "Feedback opgeslagen en gelabeld." : "Feedback opgeslagen.") : "Feedback verwijderd." };
+  return saveDebrief(supabase, garage.id, sessionId, text(formData, "driver_feedback"), readQuickTags(formData.getAll("quick")));
 }
+
 
 export async function deleteSession(sessionId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
