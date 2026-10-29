@@ -7,9 +7,9 @@ Supabase has one template per kind, not one per language: paste either the Engli
 
 | Template             | Subject (English)                            | English                  | Subject (Dutch)                              | Dutch                 |
 | -------------------- | -------------------------------------------- | ------------------------ | -------------------------------------------- | --------------------- |
-| Confirm signup       | Confirm your e-mail address for Corsa IQ     | `confirm-signup-en.html` | Bevestig je e-mailadres voor Corsa IQ        | `confirm-signup.html` |
-| Reset password       | Your new password for Corsa IQ               | `reset-password-en.html` | Je nieuwe wachtwoord voor Corsa IQ           | `reset-password.html` |
-| Change email address | Confirm your new e-mail address for Corsa IQ | `change-email-en.html`   | Bevestig je nieuwe e-mailadres voor Corsa IQ | `change-email.html`   |
+| Confirm signup       | Confirm your e-mail address for CorsaIQ     | `confirm-signup-en.html` | Bevestig je e-mailadres voor CorsaIQ        | `confirm-signup.html` |
+| Reset password       | Your new password for CorsaIQ               | `reset-password-en.html` | Je nieuwe wachtwoord voor CorsaIQ           | `reset-password.html` |
+| Change email address | Confirm your new e-mail address for CorsaIQ | `change-email-en.html`   | Bevestig je nieuwe e-mailadres voor CorsaIQ | `change-email.html`   |
 
 `{{ .RedirectTo }}` is the address the app asks for (`…/auth/confirm?next=…`); it must be on the
 Redirect URLs list (Authentication → URL Configuration). Sign-up keeps `next`, so someone who signs

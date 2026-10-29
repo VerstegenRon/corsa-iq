@@ -62,7 +62,7 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
 
 /**
  * Sends the link to choose a new password. The answer is the same whether or not the address has an
- * account, so the form does not tell strangers who uses Corsa IQ.
+ * account, so the form does not tell strangers who uses CorsaIQ.
  */
 export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const t = (await getDictionary()).login;

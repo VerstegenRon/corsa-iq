@@ -12,7 +12,7 @@ import { LiveBoard, type BoardLap } from "./live-board";
 import { StartLiveForm, type ReferenceOption } from "./start-live-form";
 
 export const metadata: Metadata = {
-  title: "Live — Corsa IQ",
+  title: "Live — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";

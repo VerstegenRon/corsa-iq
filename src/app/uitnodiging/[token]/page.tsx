@@ -8,7 +8,7 @@ import { ROLE_LABELS } from "@/lib/team";
 import { AcceptButton } from "./accept-button";
 
 export const metadata: Metadata = {
-  title: "Uitnodiging — Corsa IQ",
+  title: "Uitnodiging — CorsaIQ",
   robots: { index: false },
 };
 
@@ -31,7 +31,7 @@ export default async function InvitePage({ params }: PageProps<"/uitnodiging/[to
   if (!user) {
     body = (
       <>
-        <p className="text-zinc-300">Je bent uitgenodigd voor een team in Corsa IQ. Log in of maak een account aan; daarna kom je hier terug om lid te worden.</p>
+        <p className="text-zinc-300">Je bent uitgenodigd voor een team in CorsaIQ. Log in of maak een account aan; daarna kom je hier terug om lid te worden.</p>
         <div className="mt-6 flex flex-wrap gap-2">
           <Link href={`/login?next=${encodeURIComponent(here)}`} className={primaryButtonClass}>
             Inloggen of account maken
@@ -49,7 +49,7 @@ export default async function InvitePage({ params }: PageProps<"/uitnodiging/[to
         <>
           <p className="text-zinc-300">{STATUS_TEXT[invite.status]}</p>
           <Link href="/dashboard" className={`${secondaryButtonClass} mt-6`}>
-            Naar Corsa IQ
+            Naar CorsaIQ
           </Link>
         </>
       );

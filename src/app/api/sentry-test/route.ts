@@ -4,5 +4,5 @@ import { getCurrentGarage } from "@/lib/garage";
 export async function GET() {
   const { canManageTeam } = await getCurrentGarage();
   if (!canManageTeam) return new Response("Niet toegestaan.", { status: 403 });
-  throw new Error("Corsa IQ: testfout voor Sentry");
+  throw new Error("CorsaIQ: testfout voor Sentry");
 }

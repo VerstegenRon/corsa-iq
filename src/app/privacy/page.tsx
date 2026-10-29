@@ -6,7 +6,7 @@ import { getLocale } from "@/lib/i18n/server";
 import { COMPANY, LEGAL_REVIEWED, LEGAL_VERSION, LEGAL_VERSION_EN, MIN_ACCOUNT_AGE, PROCESSORS } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Privacy — Corsa IQ",
+  title: "Privacy — CorsaIQ",
 };
 
 const draft = !LEGAL_REVIEWED;
@@ -17,11 +17,11 @@ function Dutch() {
       <section>
         <h2>1. Wie wij zijn</h2>
         <p>
-          Corsa IQ is een dienst van {COMPANY.name} ({COMPANY.legalForm}), ingeschreven bij de Kamer van Koophandel onder nummer {COMPANY.kvk}, gevestigd op{" "}
+          CorsaIQ is een dienst van {COMPANY.name} ({COMPANY.legalForm}), ingeschreven bij de Kamer van Koophandel onder nummer {COMPANY.kvk}, gevestigd op{" "}
           {COMPANY.address}. Vragen over privacy stel je via {COMPANY.email}.
         </p>
         <p>
-          Voor je account zijn wij verantwoordelijk voor je gegevens. Wat een team in Corsa IQ vastlegt over zijn coureurs, karts en sessies, beheert dat team
+          Voor je account zijn wij verantwoordelijk voor je gegevens. Wat een team in CorsaIQ vastlegt over zijn coureurs, karts en sessies, beheert dat team
           zelf: de eigenaar van de garage is daarvoor verantwoordelijk en wij verwerken die gegevens in opdracht (zie de verwerkersafspraken in de{" "}
           <Link href="/voorwaarden" className="text-brand-300 underline">
             voorwaarden
@@ -144,11 +144,11 @@ function English() {
       <section>
         <h2>1. Who we are</h2>
         <p>
-          Corsa IQ is a service of {COMPANY.name} ({COMPANY.legalForm}), registered with the Dutch Chamber of Commerce under number {COMPANY.kvk}, at{" "}
+          CorsaIQ is a service of {COMPANY.name} ({COMPANY.legalForm}), registered with the Dutch Chamber of Commerce under number {COMPANY.kvk}, at{" "}
           {COMPANY.address}. Ask privacy questions at {COMPANY.email}.
         </p>
         <p>
-          For your account we are responsible for your data. What a team records in Corsa IQ about its drivers, karts and sessions is managed by that team: the
+          For your account we are responsible for your data. What a team records in CorsaIQ about its drivers, karts and sessions is managed by that team: the
           owner of the garage is responsible for it and we process that data on its behalf (see the processing terms in the{" "}
           <Link href="/voorwaarden?lang=en" className="text-brand-300 underline">
             terms

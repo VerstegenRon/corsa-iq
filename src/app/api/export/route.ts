@@ -95,7 +95,7 @@ export async function GET() {
 
   const exportedAt = new Date().toISOString();
   const body = {
-    about: "Export from Corsa IQ: your account and the garage you were working in. Uploaded files are listed by name; download them in the app.",
+    about: "Export from CorsaIQ: your account and the garage you were working in. Uploaded files are listed by name; download them in the app.",
     exported_at: exportedAt,
     account: { id: user.id, email: user.email, created_at: user.created_at, profile: profile.data, memberships: memberships.data ?? [] },
     garage: { ...garage, your_role: role, members: team.data ?? [] },

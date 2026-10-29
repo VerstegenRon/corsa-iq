@@ -14,7 +14,7 @@ const sans = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], w
 const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400", "500", "700"] });
 
 export const metadata: Metadata = {
-  title: "Corsa IQ",
+  title: "CorsaIQ",
   description:
     "Je hele kartseizoen in één pitbox: rondetijden, onderhoud, kosten en bonnetjes.",
 };

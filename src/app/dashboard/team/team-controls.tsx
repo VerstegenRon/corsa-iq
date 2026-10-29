@@ -28,7 +28,7 @@ export function InviteForm({ origin }: { origin: string }) {
     });
   }
 
-  const message = link ? `Je bent uitgenodigd voor ons team in Corsa IQ als ${ROLE_LABELS[role].name.toLowerCase()}: ${link}` : "";
+  const message = link ? `Je bent uitgenodigd voor ons team in CorsaIQ als ${ROLE_LABELS[role].name.toLowerCase()}: ${link}` : "";
 
   return (
     <div className="flex flex-col gap-5">
@@ -82,7 +82,7 @@ export function InviteForm({ origin }: { origin: string }) {
             <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
               Via WhatsApp
             </a>
-            <a href={`mailto:?subject=${encodeURIComponent("Uitnodiging voor Corsa IQ")}&body=${encodeURIComponent(message)}`} className={secondaryButtonClass}>
+            <a href={`mailto:?subject=${encodeURIComponent("Uitnodiging voor CorsaIQ")}&body=${encodeURIComponent(message)}`} className={secondaryButtonClass}>
               Via e-mail
             </a>
           </div>

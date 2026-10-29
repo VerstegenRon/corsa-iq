@@ -1,4 +1,4 @@
-// Who offers Corsa IQ, for the privacy statement and the terms.
+// Who offers CorsaIQ, for the privacy statement and the terms.
 
 export const COMPANY = {
   name: "Corsa Events",
@@ -20,7 +20,7 @@ export const LEGAL_VERSION_EN = "29 October 2026";
 /** Accounts are for this age and older (the Dutch age of consent under the GDPR). */
 export const MIN_ACCOUNT_AGE = 16;
 
-/** Services that process personal data for Corsa IQ, listed in both texts. */
+/** Services that process personal data for CorsaIQ, listed in both texts. */
 export const PROCESSORS = [
   { name: "Supabase", role: { nl: "database, inloggen en bestandsopslag", en: "database, sign-in and file storage" }, where: { nl: "EU (Frankfurt)", en: "EU (Frankfurt)" } },
   { name: "Vercel", role: { nl: "hosting van de app", en: "hosting of the app" }, where: { nl: "EU en VS", en: "EU and US" } },

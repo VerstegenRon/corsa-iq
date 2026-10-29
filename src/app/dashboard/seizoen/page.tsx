@@ -17,7 +17,7 @@ import {
 import { computeUsage } from "@/lib/part-usage";
 
 export const metadata: Metadata = {
-  title: "Seizoen & materiaal — Corsa IQ",
+  title: "Seizoen & materiaal — CorsaIQ",
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
