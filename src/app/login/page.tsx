@@ -10,13 +10,18 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const [{ error, confirmed, next }, t] = await Promise.all([searchParams, getDictionary()]);
+  const [{ error, confirmed, next, deleted }, t] = await Promise.all([searchParams, getDictionary()]);
 
   return (
     <AuthShell heading={t.login.heading} intro={t.login.intro}>
       {confirmed === "1" && (
         <p role="status" className="mb-5 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100">
           {t.login.confirmed}
+        </p>
+      )}
+      {deleted === "1" && (
+        <p role="status" className="mb-5 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100">
+          {t.login.accountDeleted}
         </p>
       )}
       {error === "confirm" && (
