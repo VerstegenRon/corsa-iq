@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { useT } from "@/lib/i18n/client";
@@ -41,6 +42,9 @@ export function LoginForm({ next }: { next?: string }) {
           className={inputClass}
         />
       </label>
+      <Link href="/wachtwoord-vergeten" className="-mt-3 self-end text-sm text-brand-300 underline-offset-4 hover:underline">
+        {t.login.forgotPassword}
+      </Link>
 
       {state.error && (
         <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">

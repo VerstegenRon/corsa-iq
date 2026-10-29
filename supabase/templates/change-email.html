@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="nl">
+  <body style="margin:0;padding:0;background:#0a0a0a;font-family:Arial,Helvetica,sans-serif;color:#fafafa">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#111111;border:1px solid #262626">
+            <tr>
+              <td style="padding:28px 28px 0;font-weight:900;font-size:18px;letter-spacing:1px">CORSA<span style="color:#d4ff00">/</span>IQ</td>
+            </tr>
+            <tr>
+              <td style="padding:24px 28px 8px">
+                <h1 style="margin:0 0 12px;font-size:24px;line-height:1.2;text-transform:uppercase">Bevestig je nieuwe e-mailadres<span style="color:#d4ff00">.</span></h1>
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#d4d4d4">Je wilt het e-mailadres van je Corsa IQ-account wijzigen van {{ .Email }} naar {{ .NewEmail }}. Klik op de knop om dat te bevestigen.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 28px">
+                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/dashboard/settings" style="display:inline-block;background:#d4ff00;color:#0a0a0a;font-weight:bold;font-size:15px;text-decoration:none;padding:16px 24px">Nieuw adres bevestigen</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 28px 28px;font-size:13px;line-height:1.6;color:#a3a3a3">Heb je dit niet gevraagd? Wijzig dan je wachtwoord en neem contact met ons op.</td>
+            </tr>
+          </table>
+          <p style="margin:16px 0 0;font-size:12px;color:#737373">Corsa IQ · niets aan het lot</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

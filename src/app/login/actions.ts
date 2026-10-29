@@ -57,6 +57,34 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
   redirect(next);
 }
 
+/**
+ * Sends the link to choose a new password. The answer is the same whether or not the address has an
+ * account, so the form does not tell strangers who uses Corsa IQ.
+ */
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = (await getDictionary()).login;
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: t.missingFields, email };
+  const origin = (await headers()).get("origin") ?? "";
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/confirm?next=/wachtwoord-nieuw` });
+  // Too many requests is worth saying; anything about the address itself is not.
+  if (error?.status === 429) return { error: error.message, email };
+  return { message: t.resetSent, email };
+}
+
+/** After the link from the e-mail: the user is signed in for this, and sets the new password. */
+export async function setNewPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = (await getDictionary()).login;
+  const password = String(formData.get("password") ?? "");
+  if (password.length < MIN_PASSWORD_LENGTH) return { error: format(t.passwordTooShort, { min: MIN_PASSWORD_LENGTH }) };
+  if (password !== String(formData.get("password_repeat") ?? "")) return { error: t.passwordMismatch };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.code === "same_password" ? t.samePassword : error.message };
+  redirect("/dashboard/vandaag");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

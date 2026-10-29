@@ -23,10 +23,13 @@ export async function GET(request: NextRequest) {
 
   const target = request.nextUrl.clone();
   target.search = "";
-  target.pathname = error ? "/login" : safeNext;
+  // A reset link that expired or was used goes back to asking for a new one.
+  const recovery = type === "recovery" || safeNext === "/wachtwoord-nieuw";
+  target.pathname = error ? (recovery ? "/wachtwoord-vergeten" : "/login") : safeNext;
   // A `code` only reaches us after Supabase has verified the email. Exchanging it fails when the
   // link is opened in another browser (no PKCE verifier cookie), but the address is confirmed.
-  if (error) target.searchParams.set(code ? "confirmed" : "error", code ? "1" : "confirm");
+  if (error && recovery) target.searchParams.set("error", "expired");
+  else if (error) target.searchParams.set(code ? "confirmed" : "error", code ? "1" : "confirm");
 
   return NextResponse.redirect(target);
 }
