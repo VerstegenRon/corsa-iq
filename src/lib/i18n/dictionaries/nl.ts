@@ -31,6 +31,7 @@ export const nl = {
   nav: {
     pitwall: "Pitwall",
     advice: "Advies voor setup",
+    agenda: "Agenda",
     tracks: "Circuits",
     drivers: "Coureurs",
     karts: "Karts",

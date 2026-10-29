@@ -17,6 +17,7 @@ const groups: { key: keyof Dictionary["nav"]; items: NavItem[] }[] = [
   {
     key: "groupRacing",
     items: [
+      { href: "/dashboard/agenda", key: "agenda", icon: "agenda" },
       { href: "/dashboard/seasons", key: "seasons", icon: "calendar", also: ["/dashboard/events", "/dashboard/sessions"] },
       { href: "/dashboard/tracks", key: "tracks", icon: "flag" },
       { href: "/dashboard/advice", key: "advice", icon: "target" },

@@ -18,8 +18,10 @@ import {
   todayInAmsterdam,
   trackLabel,
 } from "@/lib/karting";
+import { loadMaintenancePlan } from "@/lib/maintenance-plan-data";
 import { computeUsage, dueChecks, readLimits } from "@/lib/part-usage";
 
+import { MaintenancePlanList } from "./agenda/maintenance-plan-list";
 import { TrackProgress } from "./track-progress";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,12 +35,15 @@ function daysBetween(from: string, to: string) {
   return Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
 }
 
+/** Planned maintenance on the overview; the agenda has the rest. */
+const PLANNED_SHOWN = 3;
+
 export default async function DashboardPage() {
   const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const today = todayInAmsterdam();
   const o = t.overview;
 
-  const [karts, parts, installed, gearCount, season, progress, activeParts, activeKarts, activeGear, nextEvent, lastEvent, me] =
+  const [karts, parts, installed, gearCount, season, progress, activeParts, activeKarts, activeGear, nextEvent, lastEvent, me, plan] =
     await Promise.all([
       supabase.from("karts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
       supabase.from("parts").select("id", { count: "exact", head: true }).eq("garage_id", garage.id),
@@ -84,7 +89,10 @@ export default async function DashboardPage() {
         .maybeSingle(),
       supabase.from("events").select("id").eq("garage_id", garage.id).lt("starts_on", today).order("starts_on", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("drivers").select("first_name").eq("garage_id", garage.id).eq("user_id", user.id).maybeSingle(),
+      loadMaintenancePlan(supabase, garage.id, today),
     ]);
+  // What is due now is in "attention" already; this looks ahead.
+  const planned = plan.filter((job) => !job.dueNow);
 
   // Gear whose homologation runs out within two months, or has run out; soonest first.
   const gearAlerts = (activeGear.data ?? [])
@@ -340,6 +348,23 @@ export default async function DashboardPage() {
             </span>
           </section>
         )
+      )}
+
+      {planned.length > 0 && (
+        <section aria-labelledby="plan-heading" className={cardClass}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="plan-heading" className="flex items-center gap-2 text-lg font-semibold">
+              <Icon name="agenda" className="size-5 text-amber-300" />
+              Onderhoud plannen
+            </h2>
+            <Link href="/dashboard/agenda" className={`${linkClass} text-sm`}>
+              Naar de agenda
+            </Link>
+          </div>
+          <div className="mt-2">
+            <MaintenancePlanList jobs={planned.slice(0, PLANNED_SHOWN)} />
+          </div>
+        </section>
       )}
 
       <TrackProgress sessions={progress.data ?? []} t={t} />

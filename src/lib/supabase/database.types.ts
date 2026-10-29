@@ -15,6 +15,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_feeds: {
+        Row: { created_at: string; garage_id: string; id: string; token: string; user_id: string }
+        Insert: { created_at?: string; garage_id: string; id?: string; token: string; user_id?: string }
+        Update: { created_at?: string; garage_id?: string; id?: string; token?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_feeds_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_items: {
+        Row: {
+          created_at: string
+          ends_on: string | null
+          garage_id: string
+          id: string
+          notes: string | null
+          starts_at: string | null
+          starts_on: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          ends_on?: string | null
+          garage_id: string
+          id?: string
+          notes?: string | null
+          starts_at?: string | null
+          starts_on: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          ends_on?: string | null
+          garage_id?: string
+          id?: string
+          notes?: string | null
+          starts_at?: string | null
+          starts_on?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_items_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_imports: {
         Row: {
           channel_summary: Json | null
@@ -1123,6 +1178,7 @@ export type Database = {
       }
     }
     Functions: {
+      calendar_feed: { Args: { feed_token: string }; Returns: Json }
       replace_session_laps: {
         Args: { p_data_import_id: string; p_laps: Json; p_session_id: string }
         Returns: number
