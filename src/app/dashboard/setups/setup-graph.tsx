@@ -77,7 +77,7 @@ export function SetupGraph({ versions }: { versions: Version[] }) {
                 </text>
                 <text x={x + 14} y={y + 12} fontFamily="var(--font-mono)" fontSize="9.5" fill="var(--color-zinc-500)">
                   {time}
-                  {v.wet ? " · nat" : v.isLeaf && !v.isCurrent ? " · doodlopend" : ""}
+                  {v.wet ? " · nat" : v.isLeaf && !v.isCurrent ? " · niet doorgezet" : ""}
                 </text>
               </>
             )}
