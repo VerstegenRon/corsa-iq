@@ -769,6 +769,51 @@ export type Database = {
           },
         ]
       }
+      lap_channels: {
+        Row: {
+          channels: string[]
+          created_at: string
+          garage_id: string
+          lap_id: number
+          length_m: number
+          sample_m: number
+          storage_path: string
+        }
+        Insert: {
+          channels?: string[]
+          created_at?: string
+          garage_id: string
+          lap_id: number
+          length_m: number
+          sample_m: number
+          storage_path: string
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string
+          garage_id?: string
+          lap_id?: number
+          length_m?: number
+          sample_m?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lap_channels_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lap_channels_lap_id_fkey"
+            columns: ["lap_id"]
+            isOneToOne: true
+            referencedRelation: "laps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lap_sectors: {
         Row: {
           lap_id: number
@@ -1150,6 +1195,7 @@ export type Database = {
           id: string
           kart_id: string
           position: number | null
+          reference_lap_id: number | null
           setup_id: string | null
           started_at: string
           track_layout_id: string | null
@@ -1168,6 +1214,7 @@ export type Database = {
           id?: string
           kart_id: string
           position?: number | null
+          reference_lap_id?: number | null
           setup_id?: string | null
           started_at: string
           track_layout_id?: string | null
@@ -1186,12 +1233,20 @@ export type Database = {
           id?: string
           kart_id?: string
           position?: number | null
+          reference_lap_id?: number | null
           setup_id?: string | null
           started_at?: string
           track_layout_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_reference_lap_id_fkey"
+            columns: ["reference_lap_id"]
+            isOneToOne: false
+            referencedRelation: "laps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sessions_data_import_id_fkey"
             columns: ["data_import_id"]
@@ -1339,6 +1394,57 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "setup_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      track_layout_corners: {
+        Row: {
+          apex_m: number
+          created_at: string
+          end_m: number
+          garage_id: string
+          id: string
+          name: string | null
+          number: number
+          start_m: number
+          track_layout_id: string
+        }
+        Insert: {
+          apex_m: number
+          created_at?: string
+          end_m: number
+          garage_id: string
+          id?: string
+          name?: string | null
+          number: number
+          start_m: number
+          track_layout_id: string
+        }
+        Update: {
+          apex_m?: number
+          created_at?: string
+          end_m?: number
+          garage_id?: string
+          id?: string
+          name?: string | null
+          number?: number
+          start_m?: number
+          track_layout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_layout_corners_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "track_layout_corners_track_layout_id_fkey"
+            columns: ["track_layout_id"]
+            isOneToOne: false
+            referencedRelation: "track_layouts"
             referencedColumns: ["id"]
           },
         ]

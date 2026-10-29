@@ -75,7 +75,7 @@ function parseNumberCell(raw: string | undefined): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-function splitLine(line: string, delimiter: string | null): string[] {
+export function splitLine(line: string, delimiter: string | null): string[] {
   if (delimiter === null) return [line.trim()];
   const cells: string[] = [];
   let cell = "";
@@ -96,7 +96,7 @@ function splitLine(line: string, delimiter: string | null): string[] {
   return cells;
 }
 
-function detectDelimiter(lines: string[]): string | null {
+export function detectDelimiter(lines: string[]): string | null {
   const sample = lines.slice(0, 60);
   // Pasted lap times with a decimal comma ("52,345") are one column, not two.
   if (sample.every((line) => /^\s*(\d+:)?\d+,\d{1,3}\s*$/.test(line))) return null;

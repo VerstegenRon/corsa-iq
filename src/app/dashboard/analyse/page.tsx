@@ -18,7 +18,7 @@ export default async function AnalysePage() {
   const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const { data, error } = await supabase
     .from("sessions")
-    .select("id, type, started_at, best_lap_ms, karts(name), drivers(name), laps(id), events!inner(name, garage_id, tracks(name))")
+    .select("id, type, started_at, best_lap_ms, karts(name), drivers(name), laps!laps_session_id_fkey(id, lap_channels(lap_id)), events!inner(name, garage_id, tracks(name))")
     .eq("events.garage_id", garage.id)
     .order("started_at", { ascending: false })
     .limit(60);
@@ -48,12 +48,19 @@ export default async function AnalysePage() {
             {sessions.map((s) => (
               <li key={s.id} className="border-b border-zinc-800/60 last:border-b-0">
                 <Link
-                  href={`/dashboard/sessions/${s.id}`}
+                  href={`/dashboard/sessions/${s.id}${s.laps.some((l) => l.lap_channels) ? "/analyse" : ""}`}
                   className={`grid min-h-14 grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-900 sm:grid-cols-[1fr_6rem_6rem] ${focusRing}`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold text-zinc-50">
-                      {labelFor(t.options.sessionTypes, s.type)} · {s.events.name}
+                    <span className="flex items-center gap-2">
+                      <span className="truncate font-semibold text-zinc-50">
+                        {labelFor(t.options.sessionTypes, s.type)} · {s.events.name}
+                      </span>
+                      {s.laps.some((l) => l.lap_channels) && (
+                        <span title="Met telemetrie" className="shrink-0 border border-brand-400 px-1 font-mono text-[10px] font-bold text-brand-300">
+                          CH
+                        </span>
+                      )}
                     </span>
                     <span className="block truncate text-xs text-zinc-500">
                       {formatDate(s.started_at)} {formatTime(s.started_at)}
