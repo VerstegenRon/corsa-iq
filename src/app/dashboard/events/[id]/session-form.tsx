@@ -10,6 +10,7 @@ import { ChoiceChips, MoreDetails, Stepper } from "@/components/form-controls";
 import { WEATHER_ICONS } from "@/components/icons";
 import { sortByLabel, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, SETUP_GROUPS, getSetupValue, inputSetupValue, type SetupGroup } from "@/lib/setup";
+import type { SessionConditions } from "@/lib/weather";
 
 import { createSession, updateSession } from "../../season-actions";
 
@@ -28,7 +29,7 @@ export type SessionValues = {
   bestLap: string | null;
   hasLaps: boolean;
   position: number | null;
-  conditions: { weather?: string; air_temp_c?: number; track_temp_c?: number };
+  conditions: SessionConditions;
   driverFeedback: string | null;
   setup: SetupValues;
 };
@@ -44,6 +45,7 @@ export function SessionForm({
   drivers,
   lastSetup,
   session,
+  autoWeather,
 }: {
   eventId: string;
   eventDate: string;
@@ -51,6 +53,8 @@ export function SessionForm({
   drivers: Option[];
   lastSetup: SetupValues | null;
   session?: SessionValues;
+  /** The circuit has coordinates, so the weather can be looked up. */
+  autoWeather: boolean;
 }) {
   const t = useT();
   const [state, formAction, isPending] = useActionState(
@@ -68,6 +72,12 @@ export function SessionForm({
 
   const s = session?.setup ?? lastSetup ?? {};
   const c = session?.conditions ?? {};
+  // Fetched values are not typed into the fields: left as they are, they are looked up again on saving.
+  const isAuto = (field: string) => autoWeather && (session ? (c.auto ?? []).includes(field) : true);
+  const weatherOptions = [
+    ...(autoWeather ? [{ value: "auto", label: "Automatisch" }] : []),
+    ...Object.entries(t.options.weather).map(([value, label]) => ({ value, label, icon: WEATHER_ICONS[value] })),
+  ];
 
   return (
     <form action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-8">
@@ -157,17 +167,29 @@ export function SessionForm({
         <ChoiceChips
           name="weather"
           legend="Weer"
-          defaultValue={c.weather ?? "dry"}
-          options={Object.entries(t.options.weather).map(([value, label]) => ({ value, label, icon: WEATHER_ICONS[value] }))}
+          defaultValue={isAuto("weather") ? "auto" : (c.weather ?? "dry")}
+          options={weatherOptions}
         />
         <label className={labelClass}>
           Luchttemperatuur (°C)
-          <input name="air_temp_c" inputMode="decimal" defaultValue={decimal(c.air_temp_c)} placeholder="18" className={inputClass} />
+          <input
+            name="air_temp_c"
+            inputMode="decimal"
+            defaultValue={isAuto("air_temp_c") ? undefined : decimal(c.air_temp_c)}
+            placeholder={isAuto("air_temp_c") ? (c.air_temp_c !== undefined ? `${decimal(c.air_temp_c)} (automatisch)` : "automatisch") : "18"}
+            className={inputClass}
+          />
         </label>
         <label className={labelClass}>
           Baantemperatuur (°C)
           <input name="track_temp_c" inputMode="decimal" defaultValue={decimal(c.track_temp_c)} placeholder="24" className={inputClass} />
         </label>
+        {autoWeather && (
+          <p className="col-span-2 text-xs text-zinc-500 sm:col-span-3">
+            Weer, luchttemperatuur, luchtvochtigheid en regen haalt de app bij het opslaan op bij Open-Meteo, voor dit circuit en de
+            starttijd. Kies of vul zelf iets in om dat te overschrijven. De baantemperatuur meet je zelf.
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

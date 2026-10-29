@@ -21,6 +21,7 @@ import {
 } from "@/lib/karting";
 import { parseFeedbackTags } from "@/lib/feedback";
 import { formatDelta, summarizeLaps, type EngineLap } from "@/lib/lap-analysis";
+import { AUTO_FIELD_LABELS, type SessionConditions } from "@/lib/weather";
 
 import { SessionForm } from "../../events/[id]/session-form";
 import { deleteSession } from "../../season-actions";
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
   title: "Sessie — CorsaIQ",
 };
 
-type Conditions = { weather?: string; air_temp_c?: number; track_temp_c?: number };
+type Conditions = SessionConditions;
 
 const SOURCE_LABELS: Record<string, string> = {
   aim: "AiM / MyChron",
@@ -100,7 +101,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
     supabase
       .from("sessions")
       .select(
-        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, feedback_tags, events!inner(id, name, starts_on, track_id, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
+        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, feedback_tags, events!inner(id, name, starts_on, track_id, garage_id, tracks(latitude, longitude)), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
       )
       .eq("id", id)
       .eq("events.garage_id", garage.id)
@@ -166,6 +167,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const hasSpeed = laps.some((lap) => lap.max_speed_kmh !== null);
   const hasRpm = laps.some((lap) => lap.max_rpm !== null);
   const conditions = session.conditions as Conditions;
+  const weatherLine = [
+    conditions.air_temp_c !== undefined && `lucht ${String(conditions.air_temp_c).replace(".", ",")} °C`,
+    conditions.track_temp_c !== undefined && `baan ${String(conditions.track_temp_c).replace(".", ",")} °C`,
+    conditions.humidity_pct !== undefined && `${conditions.humidity_pct}% luchtvochtigheid`,
+    conditions.precipitation_mm !== undefined && `${String(conditions.precipitation_mm).replace(".", ",")} mm regen`,
+  ].filter((part): part is string => Boolean(part));
   const setup = summarizeSetup((session.setups?.values ?? {}) as SetupValues);
 
   const stats = [
@@ -195,6 +202,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
           {conditions.weather && ` · ${labelFor(t.options.weather, conditions.weather)}`}
           {session.position !== null && ` · P${session.position}`}
         </p>
+        {weatherLine.length > 0 && (
+          <p className="mt-1 text-xs text-zinc-500">
+            {weatherLine.join(" · ")}
+            {conditions.auto && conditions.auto.length > 0 && ` · automatisch via Open-Meteo: ${conditions.auto.map((f) => AUTO_FIELD_LABELS[f] ?? f).join(", ")}`}
+          </p>
+        )}
         {setup.length > 0 && <p className="mt-1 text-xs text-zinc-500">{setup.join(" · ")}</p>}
       </section>
 
@@ -339,6 +352,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
           karts={[]}
           drivers={(driversResult.data ?? []).map((d) => ({ id: d.id, label: d.name }))}
           lastSetup={null}
+          autoWeather={session.events.tracks?.latitude != null && session.events.tracks.longitude != null}
           session={{
             id: session.id,
             type: session.type,

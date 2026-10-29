@@ -7,6 +7,7 @@ import { tagFeedback } from "@/lib/feedback-tagger";
 import type { getCurrentGarage } from "@/lib/garage";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, getSetupValue, inputSetupValue, setSetupValue } from "@/lib/setup";
+import { fetchWeather, mergeConditions, type SessionConditions } from "@/lib/weather";
 
 import { optionalNumber, optionalSignedNumber, text } from "./form-data";
 
@@ -61,7 +62,8 @@ export function readSession(formData: FormData) {
   if ("error" in setup) return setup;
 
   const weather = text(formData, "weather");
-  const conditions: Record<string, string | number> = {};
+  // Left empty (or "automatic"), weather and air temperature are filled in from Open-Meteo on saving.
+  const conditions: SessionConditions = {};
   if (weather && weather in WEATHER) conditions.weather = weather;
   if (airTemp !== null) conditions.air_temp_c = airTemp;
   if (trackTemp !== null) conditions.track_temp_c = trackTemp;
@@ -79,6 +81,28 @@ export function readSession(formData: FormData) {
       driver_feedback: text(formData, "driver_feedback"),
     },
   };
+}
+
+type SessionValues = Extract<ReturnType<typeof readSession>, { values: unknown }>["values"];
+
+/**
+ * Fills in the weather the team left empty, from the circuit's location at the session's start. On an
+ * edit, earlier fetched values stay when the lookup fails and the session did not move in time.
+ */
+export async function withWeather(
+  supabase: Supabase,
+  eventId: string,
+  values: SessionValues,
+  previous?: { conditions: SessionConditions; started_at: string } | null,
+): Promise<SessionValues> {
+  const { data: event } = await supabase.from("events").select("tracks(latitude, longitude)").eq("id", eventId).maybeSingle();
+  const track = event?.tracks;
+  const fetched =
+    track?.latitude != null && track.longitude != null
+      ? await fetchWeather(track.latitude, track.longitude, values.started_at, values.duration_s)
+      : null;
+  const sameStart = previous ? Date.parse(previous.started_at) === Date.parse(values.started_at) : false;
+  return { ...values, conditions: mergeConditions(values.conditions, fetched, previous?.conditions ?? null, sameStart) };
 }
 
 export async function insertSetup(supabase: Supabase, garageId: string, setup: SetupValues, parentId: string | null) {
@@ -136,6 +160,10 @@ export async function insertSession(
   const setup = await insertSetup(supabase, garageId, session.setup, previous?.setup_id ?? null);
   if ("error" in setup) return { error: setup.error };
 
+  const [values, feedbackTags] = await Promise.all([
+    withWeather(supabase, eventId, session.values),
+    tagFeedback(session.values.driver_feedback),
+  ]);
   const { data: inserted, error } = await supabase
     .from("sessions")
     .insert({
@@ -143,8 +171,9 @@ export async function insertSession(
       event_id: eventId,
       kart_id: kartId,
       setup_id: setup.id,
-      ...session.values,
-      feedback_tags: (await tagFeedback(session.values.driver_feedback)) as Json,
+      ...values,
+      conditions: values.conditions as Json,
+      feedback_tags: feedbackTags as Json,
     })
     .select("id")
     .single();
