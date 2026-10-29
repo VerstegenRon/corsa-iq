@@ -2,6 +2,7 @@
 // the kart page (chassis).
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { cardClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { formatCents, formatDate, formatMinutes, labelFor, sortedEntries } from "@/lib/karting";
@@ -99,17 +100,24 @@ export function ComponentsSection({
         Componenten
       </h2>
       <p className="mt-1 text-sm text-zinc-400">
-        Draaitijd sinds elk {subject} voor het laatst is vervangen of gereviseerd (of sinds nieuw), met een eigen grens als je
-        die instelt.
+        Draaitijd sinds elk {subject} voor het laatst is vervangen of gereviseerd (of sinds nieuw), met een eigen grens als je die instelt.
       </p>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[34rem] text-left text-sm">
           <thead className="text-xs text-zinc-500">
             <tr className="border-b border-zinc-800">
-              <th scope="col" className="py-2 pr-4 font-medium">Component</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Laatst gedaan</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">Draaitijd sindsdien</th>
-              <th scope="col" className="w-40 py-2 font-medium">Grens</th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Component
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Laatst gedaan
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                Draaitijd sindsdien
+              </th>
+              <th scope="col" className="w-40 py-2 font-medium">
+                Grens
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/80">
@@ -146,21 +154,23 @@ export function ComponentsSection({
           </tbody>
         </table>
       </div>
-      <details className="group mt-6 border-t border-zinc-800/80 pt-6">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
-          <span className="inline-flex items-center gap-2">
-            Grenzen per component instellen
-            <span aria-hidden="true" className="text-zinc-500 transition-transform group-open:rotate-90">
-              ›
+      <EditOnly>
+        <details className="group mt-6 border-t border-zinc-800/80 pt-6">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex items-center gap-2">
+              Grenzen per component instellen
+              <span aria-hidden="true" className="text-zinc-500 transition-transform group-open:rotate-90">
+                ›
+              </span>
             </span>
-          </span>
-        </summary>
-        <p className="mt-2 mb-4 text-xs text-zinc-500">
-          Na hoeveel draaiuren een {subject} weer aan de beurt is. Vanaf 90% verschijnt het onder “Onderhoud nodig” op je overzicht.
-          Laat een veld leeg voor geen grens.
-        </p>
-        <LimitsForm target={target} componentSet={componentSet} limits={limits} />
-      </details>
+          </summary>
+          <p className="mt-2 mb-4 text-xs text-zinc-500">
+            Na hoeveel draaiuren een {subject} weer aan de beurt is. Vanaf 90% verschijnt het onder “Onderhoud nodig” op je overzicht. Laat een veld
+            leeg voor geen grens.
+          </p>
+          <LimitsForm target={target} componentSet={componentSet} limits={limits} />
+        </details>
+      </EditOnly>
     </section>
   );
 }
@@ -217,9 +227,7 @@ export function MaintenanceSection({
                     </span>
                   </p>
                   {record.components.length > 0 && (
-                    <p className="mt-1 text-xs text-zinc-400">
-                      {record.components.map((c) => labelFor(allComponents, c)).join(" · ")}
-                    </p>
+                    <p className="mt-1 text-xs text-zinc-400">{record.components.map((c) => labelFor(allComponents, c)).join(" · ")}</p>
                   )}
                   {record.description && <p className="mt-1 text-xs text-zinc-500">{record.description}</p>}
                 </div>
@@ -237,22 +245,27 @@ export function MaintenanceSection({
           })}
         </ul>
       )}
-      <details open={records.length === 0 || undefined} className="group mt-6 border-t border-zinc-800/80 pt-6">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
-          <span className="inline-flex items-center gap-2">
-            <span aria-hidden="true" className="inline-flex size-5 items-center justify-center rounded-full bg-brand-400/15 text-brand-300 transition-transform group-open:rotate-45">
-              +
+      <EditOnly>
+        <details open={records.length === 0 || undefined} className="group mt-6 border-t border-zinc-800/80 pt-6">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="inline-flex size-5 items-center justify-center rounded-full bg-brand-400/15 text-brand-300 transition-transform group-open:rotate-45"
+              >
+                +
+              </span>
+              Onderhoud vastleggen
             </span>
-            Onderhoud vastleggen
-          </span>
-        </summary>
-        <div className="mt-4">
-          <MaintenanceForm target={target} componentSet={componentSet} today={today} />
-          <p className="mt-3 text-xs text-zinc-500">
-            Sessies op de dag van het onderhoud tellen nog mee voor de oude stand; vanaf de volgende dag begint de teller opnieuw.
-          </p>
-        </div>
-      </details>
+          </summary>
+          <div className="mt-4">
+            <MaintenanceForm target={target} componentSet={componentSet} today={today} />
+            <p className="mt-3 text-xs text-zinc-500">
+              Sessies op de dag van het onderhoud tellen nog mee voor de oude stand; vanaf de volgende dag begint de teller opnieuw.
+            </p>
+          </div>
+        </details>
+      </EditOnly>
     </section>
   );
 }

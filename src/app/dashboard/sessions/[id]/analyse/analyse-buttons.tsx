@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { useCanEdit } from "@/components/edit-access";
 import type { FormState } from "@/components/form-message";
 import { secondaryButtonClass } from "@/components/ui";
 import type { Corner } from "@/lib/telemetry";
@@ -22,6 +23,7 @@ function Status({ state }: { state: FormState }) {
 export function ReferenceButton({ sessionId, lapId, pinned }: { sessionId: string; lapId: number; pinned: boolean }) {
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
+  if (!useCanEdit()) return null;
   return (
     <span className="flex flex-wrap items-center gap-3">
       <button
@@ -41,6 +43,7 @@ export function ReferenceButton({ sessionId, lapId, pinned }: { sessionId: strin
 export function PitboardButton({ liveId, text }: { liveId: string | null; text: string }) {
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
+  if (!useCanEdit()) return null;
   return (
     <span className="mt-4 flex flex-wrap items-center gap-3">
       <button
@@ -61,9 +64,20 @@ export function PitboardButton({ liveId, text }: { liveId: string | null; text: 
 }
 
 /** Keeps the corners found in the reference lap for this layout. */
-export function SaveCornersButton({ sessionId, layoutId, layoutName, corners }: { sessionId: string; layoutId: string; layoutName: string; corners: Corner[] }) {
+export function SaveCornersButton({
+  sessionId,
+  layoutId,
+  layoutName,
+  corners,
+}: {
+  sessionId: string;
+  layoutId: string;
+  layoutName: string;
+  corners: Corner[];
+}) {
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
+  if (!useCanEdit()) return null;
   return (
     <span className="flex flex-wrap items-center gap-3">
       <button

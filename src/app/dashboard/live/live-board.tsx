@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import { DeleteButton } from "@/components/delete-button";
+import { useCanEdit } from "@/components/edit-access";
 import { FeedbackField } from "@/components/feedback-field";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { QuickTagToggles } from "@/components/quick-tags";
@@ -80,6 +81,8 @@ export function LiveBoard({ live, initialLaps, reference, initialMessage }: Prop
   const [pending, setPending] = useState<Pending[]>([]);
   const [now, setNow] = useState(0);
   const [notice, setNotice] = useState<FormState>({});
+  // Viewers follow along: the board, laps and pitbord, without the stopwatch or any changes.
+  const canEdit = useCanEdit();
   const watchKey = `corsaiq.live.${live.id}.watch`;
   const pendingKey = `corsaiq.live.${live.id}.pending`;
   const timingKey = `corsaiq.live.${live.id}.timing`;
@@ -367,7 +370,9 @@ export function LiveBoard({ live, initialLaps, reference, initialMessage }: Prop
                 </table>
               </div>
             )}
-            {last && laps.some((l) => l.lap_number === last.lap_number) && <LastLapEditor key={last.lap_number} liveId={live.id} lap={last} />}
+            {canEdit && last && laps.some((l) => l.lap_number === last.lap_number) && (
+              <LastLapEditor key={last.lap_number} liveId={live.id} lap={last} />
+            )}
           </section>
         </div>
         <div className="order-4 lg:order-none">
@@ -375,7 +380,7 @@ export function LiveBoard({ live, initialLaps, reference, initialMessage }: Prop
         </div>
       </div>
       <div className="contents lg:flex lg:flex-col lg:gap-6">
-        <div className="order-2 lg:order-none">
+        <div className={`order-2 lg:order-none ${canEdit ? "" : "hidden"}`}>
           {/* ---- The stopwatch: only on the device that times. */}
           <section aria-label="Stopwatch" className={cardClass}>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -443,11 +448,19 @@ export function LiveBoard({ live, initialLaps, reference, initialMessage }: Prop
           </section>
         </div>
         <div className="order-5 lg:order-none">
-          <PitboardPanel liveId={live.id} message={message} onCleared={() => setMessage(null)} suggestions={boardSuggestions(summary)} />
+          <PitboardPanel
+            liveId={live.id}
+            message={message}
+            onCleared={() => setMessage(null)}
+            suggestions={boardSuggestions(summary)}
+            canEdit={canEdit}
+          />
         </div>
-        <div className="order-6 lg:order-none">
-          <ClosePanel liveId={live.id} lapCount={laps.length} onClosed={closed} />
-        </div>
+        {canEdit && (
+          <div className="order-6 lg:order-none">
+            <ClosePanel liveId={live.id} lapCount={laps.length} onClosed={closed} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -613,11 +626,13 @@ function PitboardPanel({
   message,
   onCleared,
   suggestions,
+  canEdit,
 }: {
   liveId: string;
   message: PitMessage;
   onCleared: () => void;
   suggestions: string[];
+  canEdit: boolean;
 }) {
   const [text, setText] = useState("");
   const [state, setState] = useState<FormState>({});
@@ -636,13 +651,15 @@ function PitboardPanel({
           Pitbord openen
         </Link>
       </div>
-      <p className="mt-1 text-sm text-zinc-400">
-        Open het pitbord op een telefoon of tablet aan de pitmuur: wat je hier zet, staat er meteen groot op.
-      </p>
+      {canEdit && (
+        <p className="mt-1 text-sm text-zinc-400">
+          Open het pitbord op een telefoon of tablet aan de pitmuur: wat je hier zet, staat er meteen groot op.
+        </p>
+      )}
       <div className="mt-4 border border-zinc-800 px-4 py-3">
         <p className="channel-label">Nu op het bord</p>
         <p className="mt-1 font-display text-xl font-black uppercase">{message?.text ?? "—"}</p>
-        {message && (
+        {canEdit && message && (
           <button
             type="button"
             onClick={() =>
@@ -658,28 +675,32 @@ function PitboardPanel({
           </button>
         )}
       </div>
-      <div className="mt-4 flex flex-wrap gap-1">
-        {suggestions.map((s) => (
-          <button
-            key={s}
-            type="button"
-            disabled={isPending}
-            onClick={() => send(s)}
-            className={`min-h-11 border border-zinc-700 px-3 font-mono text-sm font-bold text-zinc-100 hover:border-zinc-500 ${focusRing}`}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-      <form action={() => send(text)} className="mt-3 flex flex-wrap items-end gap-2">
-        <label className={`${labelClass} min-w-0 flex-[1_1_14rem]`}>
-          Eigen bericht
-          <input value={text} onChange={(e) => setText(e.target.value)} maxLength={80} placeholder="T4: later remmen" className={inputClass} />
-        </label>
-        <button type="submit" disabled={isPending || text.trim() === ""} className={secondaryButtonClass}>
-          Op het bord
-        </button>
-      </form>
+      {canEdit && (
+        <>
+          <div className="mt-4 flex flex-wrap gap-1">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                disabled={isPending}
+                onClick={() => send(s)}
+                className={`min-h-11 border border-zinc-700 px-3 font-mono text-sm font-bold text-zinc-100 hover:border-zinc-500 ${focusRing}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <form action={() => send(text)} className="mt-3 flex flex-wrap items-end gap-2">
+            <label className={`${labelClass} min-w-0 flex-[1_1_14rem]`}>
+              Eigen bericht
+              <input value={text} onChange={(e) => setText(e.target.value)} maxLength={80} placeholder="T4: later remmen" className={inputClass} />
+            </label>
+            <button type="submit" disabled={isPending || text.trim() === ""} className={secondaryButtonClass}>
+              Op het bord
+            </button>
+          </form>
+        </>
+      )}
       <div className="mt-3">
         <FormMessage state={state} />
       </div>

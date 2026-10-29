@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -48,9 +49,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
     ["Sessies", String(sessions.length)],
     [
       "Aankoop",
-      part.purchased_on || part.purchase_price_cents !== null
-        ? `${formatDate(part.purchased_on)} · ${formatCents(part.purchase_price_cents)}`
-        : "—",
+      part.purchased_on || part.purchase_price_cents !== null ? `${formatDate(part.purchased_on)} · ${formatCents(part.purchase_price_cents)}` : "—",
     ],
     ["Laatste revisie", usage.lastResetOn ? formatDate(usage.lastResetOn) : "nog niet"],
   ];
@@ -93,27 +92,25 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
 
       <MaintenanceSection target={target} componentSet={isEngine ? "engine" : null} records={records} today={todayInAmsterdam()} t={t} />
 
-      <section aria-labelledby="edit-heading" className={cardClass}>
-        <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
-          Bewerken
-        </h2>
-        <PartForm part={part} />
-        <p className="mt-4 text-xs text-zinc-500">
-          De aankoopprijs staat ook bij je kosten; die past mee als je de prijs of datum wijzigt.
-        </p>
-        <div className="mt-8 border-t border-zinc-800/80 pt-6">
-          <DeleteButton
-            action={deletePart.bind(null, part.id)}
-            label="Onderdeel verwijderen"
-            confirmText={`${name} verwijderen? De aankoop verdwijnt ook uit je kosten.`}
-          />
-          {sessions.length > 0 && (
-            <p className="mt-2 text-xs text-zinc-500">
-              Gebruikt in sessies: verwijderen kan niet, zet de status op “Afgeschreven” of “Verkocht”.
-            </p>
-          )}
-        </div>
-      </section>
+      <EditOnly>
+        <section aria-labelledby="edit-heading" className={cardClass}>
+          <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
+            Bewerken
+          </h2>
+          <PartForm part={part} />
+          <p className="mt-4 text-xs text-zinc-500">De aankoopprijs staat ook bij je kosten; die past mee als je de prijs of datum wijzigt.</p>
+          <div className="mt-8 border-t border-zinc-800/80 pt-6">
+            <DeleteButton
+              action={deletePart.bind(null, part.id)}
+              label="Onderdeel verwijderen"
+              confirmText={`${name} verwijderen? De aankoop verdwijnt ook uit je kosten.`}
+            />
+            {sessions.length > 0 && (
+              <p className="mt-2 text-xs text-zinc-500">Gebruikt in sessies: verwijderen kan niet, zet de status op “Afgeschreven” of “Verkocht”.</p>
+            )}
+          </div>
+        </section>
+      </EditOnly>
     </>
   );
 }

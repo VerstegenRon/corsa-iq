@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { CORNERS, chainStatus, type CheckStatus } from "@/lib/prestart";
 
@@ -27,10 +28,17 @@ async function ensureCheck(ctx: PrestartContext) {
   if (existing) return { supabase, user, garage, id: existing.id };
   const { data, error } = await supabase
     .from("prestart_checks")
-    .insert({ garage_id: garage.id, event_id: ctx.eventId, kart_id: ctx.kartId, session_label: ctx.label, session_type: ctx.type, setup_id: ctx.setupId })
+    .insert({
+      garage_id: garage.id,
+      event_id: ctx.eventId,
+      kart_id: ctx.kartId,
+      session_label: ctx.label,
+      session_type: ctx.type,
+      setup_id: ctx.setupId,
+    })
     .select("id")
     .single();
-  if (error) return { error: `Checklist starten mislukt: ${error.message}` };
+  if (error) return { error: `Checklist starten mislukt: ${dbError(error)}` };
   return { supabase, user, garage, id: data.id };
 }
 
@@ -42,7 +50,7 @@ export async function saveTyreReading(ctx: PrestartContext, corner: string, valu
   const { error } = await check.supabase
     .from("tyre_pressure_readings")
     .insert({ garage_id: check.garage.id, prestart_check_id: check.id, corner, temp_state: "cold", bar: Math.round(value * 1000) / 1000 });
-  if (error) return { error: `Meting opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Meting opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/vandaag");
   return {};
 }
@@ -65,10 +73,18 @@ export async function setCheck(ctx: PrestartContext, key: string, input: { value
   const { error } = await check.supabase
     .from("session_checks")
     .upsert(
-      { garage_id: check.garage.id, prestart_check_id: check.id, key, value, status, checked_by: check.user.id, checked_at: new Date().toISOString() },
+      {
+        garage_id: check.garage.id,
+        prestart_check_id: check.id,
+        key,
+        value,
+        status,
+        checked_by: check.user.id,
+        checked_at: new Date().toISOString(),
+      },
       { onConflict: "prestart_check_id,key" },
     );
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/vandaag");
   return {};
 }
@@ -84,7 +100,7 @@ export async function lockSetup(ctx: PrestartContext): Promise<FormState> {
     check.supabase.from("setups").update({ locked_at: now, locked_by: check.user.id }).eq("id", ctx.setupId).eq("garage_id", check.garage.id),
   ]);
   const error = round.error ?? setup.error;
-  if (error) return { error: `Vergrendelen mislukt: ${error.message}` };
+  if (error) return { error: `Vergrendelen mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard", "layout");
   return {};
 }
@@ -93,7 +109,7 @@ export async function unlockSetup(ctx: PrestartContext): Promise<FormState> {
   const check = await ensureCheck(ctx);
   if ("error" in check) return { error: check.error };
   const { error } = await check.supabase.from("prestart_checks").update({ locked_at: null, locked_by: null }).eq("id", check.id);
-  if (error) return { error: `Ontgrendelen mislukt: ${error.message}` };
+  if (error) return { error: `Ontgrendelen mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/vandaag");
   return {};
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import { DEFAULT_CHECKLIST, isChecklistCategory } from "@/lib/checklist";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 
 import { text } from "./form-data";
@@ -26,7 +27,7 @@ export async function addChecklistItem(_prev: FormState, formData: FormData): Pr
   if ("error" in item) return item;
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("checklist_items").insert({ ...item.values, garage_id: garage.id });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/checklist");
   return { success: `${item.values.title} staat op de lijst.` };
 }
@@ -34,7 +35,7 @@ export async function addChecklistItem(_prev: FormState, formData: FormData): Pr
 export async function deleteChecklistItem(id: string): Promise<FormState | void> {
   const { supabase } = await getCurrentGarage();
   const { error } = await supabase.from("checklist_items").delete().eq("id", id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/checklist");
 }
 
@@ -44,7 +45,7 @@ export async function fillDefaultChecklist(): Promise<FormState> {
   const { count } = await supabase.from("checklist_items").select("id", { count: "exact", head: true }).eq("garage_id", garage.id);
   if ((count ?? 0) > 0) return { error: "Je vaste lijst heeft al items." };
   const { error } = await supabase.from("checklist_items").insert(DEFAULT_CHECKLIST.map((item) => ({ ...item, garage_id: garage.id })));
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard", "layout");
   return {};
 }
@@ -61,14 +62,14 @@ export async function copyChecklistToEvent(eventId: string): Promise<FormState> 
       .from("checklist_items")
       .insert(DEFAULT_CHECKLIST.map((item) => ({ ...item, garage_id: garage.id })))
       .select("id, title, category");
-    if (error) return { error: `Paklijst maken mislukt: ${error.message}` };
+    if (error) return { error: `Paklijst maken mislukt: ${dbError(error)}` };
     template = data;
   }
   const { error } = await supabase.from("event_checklist_items").upsert(
     template.map((item) => ({ garage_id: garage.id, event_id: eventId, template_item_id: item.id, title: item.title, category: item.category })),
     { onConflict: "event_id,template_item_id", ignoreDuplicates: true },
   );
-  if (error) return { error: `Paklijst maken mislukt: ${error.message}` };
+  if (error) return { error: `Paklijst maken mislukt: ${dbError(error)}` };
   revalidatePath(`/dashboard/events/${eventId}`);
   return {};
 }
@@ -79,7 +80,7 @@ export async function toggleEventChecklistItem(id: string, checked: boolean): Pr
     .from("event_checklist_items")
     .update({ checked, checked_at: checked ? new Date().toISOString() : null })
     .eq("id", id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   return {};
 }
 
@@ -88,7 +89,7 @@ export async function addEventChecklistItem(eventId: string, _prev: FormState, f
   if ("error" in item) return item;
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("event_checklist_items").insert({ ...item.values, garage_id: garage.id, event_id: eventId });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath(`/dashboard/events/${eventId}`);
   return { success: `${item.values.title} toegevoegd.` };
 }
@@ -99,8 +100,11 @@ export async function addSuggestedItem(eventId: string, key: string, title: stri
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase
     .from("event_checklist_items")
-    .upsert({ garage_id: garage.id, event_id: eventId, suggestion_key: key, title, category }, { onConflict: "event_id,suggestion_key", ignoreDuplicates: true });
-  if (error) return { error: `Toevoegen mislukt: ${error.message}` };
+    .upsert(
+      { garage_id: garage.id, event_id: eventId, suggestion_key: key, title, category },
+      { onConflict: "event_id,suggestion_key", ignoreDuplicates: true },
+    );
+  if (error) return { error: `Toevoegen mislukt: ${dbError(error)}` };
   revalidatePath(`/dashboard/events/${eventId}`);
   return {};
 }
@@ -108,6 +112,6 @@ export async function addSuggestedItem(eventId: string, key: string, title: stri
 export async function deleteEventChecklistItem(id: string, eventId: string): Promise<FormState | void> {
   const { supabase } = await getCurrentGarage();
   const { error } = await supabase.from("event_checklist_items").delete().eq("id", id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
   revalidatePath(`/dashboard/events/${eventId}`);
 }

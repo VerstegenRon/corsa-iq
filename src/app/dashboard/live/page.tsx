@@ -20,7 +20,7 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 /** Live: the session being driven, from the pit stopwatch to every team device; or a new one to start. */
 export default async function LivePage({ searchParams }: PageProps<"/dashboard/live">) {
   const query = await searchParams;
-  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
 
   const { data: runningData } = await supabase
     .from("live_sessions")
@@ -37,18 +37,22 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <p className="channel-label mb-2 truncate">
-          {live ? `Live · ${live.events?.name ?? ""} · ${live.karts?.name ?? ""} · ${live.drivers?.name ?? ""}` : "Volg een sessie terwijl hij gereden wordt"}
+          {live
+            ? `Live · ${live.events?.name ?? ""} · ${live.karts?.name ?? ""} · ${live.drivers?.name ?? ""}`
+            : "Volg een sessie terwijl hij gereden wordt"}
         </p>
         <h1 className="text-3xl sm:text-4xl">
           {live ? labelFor(t.options.sessionTypes, live.session_type) : "Live"}
           <span className="text-brand-400">.</span>
         </h1>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Link href="/pitwall" className={`${linkClass} text-sm`}>
-          Pitwall: sessie snel loggen
-        </Link>
-      </div>
+      {canEdit && (
+        <div className="flex flex-wrap gap-2">
+          <Link href="/pitwall" className={`${linkClass} text-sm`}>
+            Pitwall: sessie snel loggen
+          </Link>
+        </div>
+      )}
     </div>
   );
 
@@ -57,12 +61,16 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
     running.length > 0 ? (
       <nav aria-label="Live-sessies" className="flex flex-wrap gap-1">
         {others.map((r) => (
-          <Link key={r.id} href={`/dashboard/live?id=${r.id}`} className={`inline-flex min-h-11 items-center gap-2 border border-zinc-800 px-3 text-sm text-zinc-300 hover:border-zinc-600 ${focusRing}`}>
+          <Link
+            key={r.id}
+            href={`/dashboard/live?id=${r.id}`}
+            className={`inline-flex min-h-11 items-center gap-2 border border-zinc-800 px-3 text-sm text-zinc-300 hover:border-zinc-600 ${focusRing}`}
+          >
             <span aria-hidden className="size-2 bg-red-400" />
             {r.label} · {r.karts?.name}
           </Link>
         ))}
-        {live && (
+        {live && canEdit && (
           <Link href="/dashboard/live?new=1" className={`${secondaryButtonClass}`}>
             Nog een kart live volgen
           </Link>
@@ -114,7 +122,12 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
   // ---- Nothing live (or another kart): start one.
   const today = todayInAmsterdam();
   const [eventsResult, kartsResult, driversResult, sessionsResult] = await Promise.all([
-    supabase.from("events").select("id, name, starts_on, ends_on, track_id, tracks(name)").eq("garage_id", garage.id).order("starts_on", { ascending: false }).limit(30),
+    supabase
+      .from("events")
+      .select("id, name, starts_on, ends_on, track_id, tracks(name)")
+      .eq("garage_id", garage.id)
+      .order("starts_on", { ascending: false })
+      .limit(30),
     supabase.from("karts").select("id, name").eq("garage_id", garage.id).in("status", ["active", "spare"]).order("created_at"),
     supabase.from("drivers").select("id, name").eq("garage_id", garage.id).order("created_at"),
     supabase
@@ -142,7 +155,9 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
   const { data: refLaps } = trackIds.length
     ? await supabase
         .from("laps")
-        .select("id, lap_number, lap_time_ms, sessions!laps_session_id_fkey!inner(type, started_at, drivers(name), events!inner(garage_id, track_id))")
+        .select(
+          "id, lap_number, lap_time_ms, sessions!laps_session_id_fkey!inner(type, started_at, drivers(name), events!inner(garage_id, track_id))",
+        )
         .eq("sessions.events.garage_id", garage.id)
         .in("sessions.events.track_id", trackIds)
         .eq("is_valid", true)
@@ -167,7 +182,11 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
     <>
       {title}
       {switcher}
-      {ordered.length === 0 || karts.length === 0 || drivers.length === 0 ? (
+      {!canEdit ? (
+        <section className={cardClass}>
+          <p className="text-zinc-300">Er loopt nu geen live-sessie. Zodra iemand in het team er een start, zie je hem hier.</p>
+        </section>
+      ) : ordered.length === 0 || karts.length === 0 || drivers.length === 0 ? (
         <section className={cardClass}>
           <p className="text-zinc-300">Voor Live heb je een evenement, een kart en een coureur nodig.</p>
           <Link href="/dashboard/seasons#add-event" className={`${linkClass} mt-3 inline-block text-sm`}>
@@ -181,7 +200,11 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
             Eén iemand in de pit klokt met de stopwatch; iedereen in het team ziet elke ronde, het verschil met de referentie en het pitbord direct.
           </p>
           <StartLiveForm
-            events={ordered.map((e) => ({ id: e.id, trackId: e.track_id, label: `${e.name} · ${formatDate(e.starts_on)}${e.tracks ? ` · ${e.tracks.name}` : ""}` }))}
+            events={ordered.map((e) => ({
+              id: e.id,
+              trackId: e.track_id,
+              label: `${e.name} · ${formatDate(e.starts_on)}${e.tracks ? ` · ${e.tracks.name}` : ""}`,
+            }))}
             karts={karts}
             drivers={drivers}
             kartDrivers={kartDrivers}

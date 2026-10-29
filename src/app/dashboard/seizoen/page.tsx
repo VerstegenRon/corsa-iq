@@ -22,7 +22,11 @@ export const metadata: Metadata = {
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 const dayMonth = new Intl.DateTimeFormat("nl-NL", { day: "2-digit", month: "short", timeZone: "UTC" });
-const shortDate = (date: string) => dayMonth.format(new Date(`${date}T12:00:00Z`)).replace(".", "").toUpperCase();
+const shortDate = (date: string) =>
+  dayMonth
+    .format(new Date(`${date}T12:00:00Z`))
+    .replace(".", "")
+    .toUpperCase();
 
 /** The track atlas: longitude −10…24 and latitude 36…64 on a 680×560 plane. */
 const project = (lat: number, lng: number) => ({ x: (lng + 10) * 20, y: (64 - lat) * 20 });
@@ -30,7 +34,7 @@ const inAtlas = ({ x, y }: { x: number; y: number }) => x >= 0 && x <= 680 && y 
 
 export default async function SeasonPage({ searchParams }: PageProps<"/dashboard/seizoen">) {
   const query = await searchParams;
-  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const today = todayInAmsterdam();
 
   const { data: seasons } = await supabase.from("seasons").select("id, name, year").eq("garage_id", garage.id).order("year", { ascending: false });
@@ -181,10 +185,12 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
 
       {!season ? (
         <section className={cardClass}>
-          <p className="text-zinc-300">Nog geen seizoen. Maak er een aan om je kalender en uitslagen hier te zien.</p>
-          <Link href="/dashboard/seasons#add-season" className={`${linkClass} mt-3 inline-block text-sm`}>
-            Seizoen toevoegen
-          </Link>
+          <p className="text-zinc-300">Nog geen seizoen.{canEdit && " Maak er een aan om je kalender en uitslagen hier te zien."}</p>
+          {canEdit && (
+            <Link href="/dashboard/seasons#add-season" className={`${linkClass} mt-3 inline-block text-sm`}>
+              Seizoen toevoegen
+            </Link>
+          )}
         </section>
       ) : (
         <div className="flex flex-wrap items-stretch gap-5">
@@ -210,11 +216,21 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
                 ))}
               </g>
               <g fontFamily="var(--font-mono)" fontSize="9" fill="var(--color-zinc-600)">
-                <text x="4" y="76">60°N</text>
-                <text x="4" y="276">50°N</text>
-                <text x="4" y="476">40°N</text>
-                <text x="304" y="554">5°O</text>
-                <text x="504" y="554">15°O</text>
+                <text x="4" y="76">
+                  60°N
+                </text>
+                <text x="4" y="276">
+                  50°N
+                </text>
+                <text x="4" y="476">
+                  40°N
+                </text>
+                <text x="304" y="554">
+                  5°O
+                </text>
+                <text x="504" y="554">
+                  15°O
+                </text>
               </g>
               {route.length > 1 && (
                 <polyline

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import {
@@ -55,7 +56,7 @@ export async function createKart(_prev: FormState, formData: FormData): Promise<
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("karts").insert({ garage_id: garage.id, ...kart.values });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: `${kart.values.name} is toegevoegd.` };
@@ -73,7 +74,7 @@ export async function updateKart(kartId: string, _prev: FormState, formData: For
     .update({ ...kart.values, status })
     .eq("id", kartId)
     .eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: "Wijzigingen opgeslagen." };
@@ -91,14 +92,10 @@ export async function deleteKart(kartId: string): Promise<FormState> {
   }
 
   // Mounted parts go back to stock; the installation history is removed with the kart.
-  const { data: mounted } = await supabase
-    .from("part_installations")
-    .select("part_id")
-    .eq("kart_id", kartId)
-    .is("removed_at", null);
+  const { data: mounted } = await supabase.from("part_installations").select("part_id").eq("kart_id", kartId).is("removed_at", null);
 
   const { error } = await supabase.from("karts").delete().eq("id", kartId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
 
   if (mounted && mounted.length > 0) {
     await supabase
@@ -147,14 +144,7 @@ type PartValues = Extract<ReturnType<typeof readPart>, { values: unknown }>["val
 
 /** The expense booked for buying the part (maintenance costs link to their job instead). */
 function purchaseExpense(supabase: Supabase, partId: string) {
-  return supabase
-    .from("expenses")
-    .select("id")
-    .eq("part_id", partId)
-    .is("maintenance_record_id", null)
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
+  return supabase.from("expenses").select("id").eq("part_id", partId).is("maintenance_record_id", null).order("created_at").limit(1).maybeSingle();
 }
 
 async function syncPurchaseExpense(supabase: Supabase, garageId: string, partId: string, part: PartValues) {
@@ -189,7 +179,7 @@ export async function createPart(_prev: FormState, formData: FormData): Promise<
     .insert({ garage_id: garage.id, ...part.values })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, inserted.id, part.values);
   if (expenseError) return { error: `Onderdeel opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
@@ -218,7 +208,7 @@ export async function updatePart(partId: string, _prev: FormState, formData: For
     .update({ ...part.values, status: nextStatus })
     .eq("id", partId)
     .eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, partId, part.values);
   if (expenseError) return { error: `Onderdeel opgeslagen, maar kosten bijwerken mislukt: ${expenseError.message}` };
@@ -242,7 +232,7 @@ export async function deletePart(partId: string): Promise<FormState> {
   const { data: purchase } = await purchaseExpense(supabase, partId);
 
   const { error } = await supabase.from("parts").delete().eq("id", partId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
   if (purchase) await supabase.from("expenses").delete().eq("id", purchase.id);
 
   revalidatePath("/dashboard", "layout");
@@ -298,7 +288,7 @@ export async function createMaintenance(target: MaintenanceTarget, _prev: FormSt
     })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   if (cost) {
     const { error: expenseError } = await supabase.from("expenses").insert({
@@ -325,7 +315,7 @@ export async function deleteMaintenance(recordId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
   await supabase.from("expenses").delete().eq("maintenance_record_id", recordId).eq("garage_id", garage.id);
   const { error } = await supabase.from("maintenance_records").delete().eq("id", recordId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return {};
@@ -350,7 +340,7 @@ export async function updateComponentLimits(target: MaintenanceTarget, _prev: Fo
     target.kind === "kart"
       ? await supabase.from("karts").update({ component_limits: limits }).eq("id", target.id).eq("garage_id", garage.id)
       : await supabase.from("parts").update({ component_limits: limits }).eq("id", target.id).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: "Grenzen opgeslagen." };
@@ -364,10 +354,7 @@ export async function installPart(kartId: string, _prev: FormState, formData: Fo
   const { error } = await supabase.from("part_installations").insert({ part_id: partId, kart_id: kartId });
   if (error) {
     return {
-      error:
-        error.code === "23505"
-          ? "Dit onderdeel zit al op een kart. Demonteer het daar eerst."
-          : `Monteren mislukt: ${error.message}`,
+      error: error.code === "23505" ? "Dit onderdeel zit al op een kart. Demonteer het daar eerst." : `Monteren mislukt: ${dbError(error)}`,
     };
   }
 
@@ -385,7 +372,7 @@ export async function removePart(installationId: string, partId: string) {
     .update({ removed_at: new Date().toISOString() })
     .eq("id", installationId)
     .is("removed_at", null);
-  if (error) throw new Error(`Demonteren mislukt: ${error.message}`);
+  if (error) throw new Error(`Demonteren mislukt: ${dbError(error)}`);
 
   await supabase.from("parts").update({ status: "in_stock" }).eq("id", partId);
 

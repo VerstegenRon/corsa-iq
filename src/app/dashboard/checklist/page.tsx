@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { IconTile } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
@@ -32,13 +33,15 @@ export default async function ChecklistPage() {
 
       {items.length === 0 ? (
         <section className={cardClass}>
-          <h2 className="text-lg font-semibold">Begin met de standaardlijst</h2>
-          <p className="mt-1 mb-4 text-sm text-zinc-400">
-            {DEFAULT_CHECKLIST.length} dingen die bij de meeste kartweekenden mee moeten: gereedschap, banden, brandstof, reserveonderdelen,
-            kleding en papieren. Daarna pas je hem aan naar je eigen bus.
-          </p>
-          <ActionButton action={fillDefaultChecklist} label="Standaardlijst gebruiken" />
-          <p className="mt-4 text-xs text-zinc-500">Of zet hieronder zelf je eerste item op de lijst.</p>
+          <EditOnly fallback={<p className="text-sm text-zinc-400">Het team heeft nog geen vaste paklijst gemaakt.</p>}>
+            <h2 className="text-lg font-semibold">Begin met de standaardlijst</h2>
+            <p className="mt-1 mb-4 text-sm text-zinc-400">
+              {DEFAULT_CHECKLIST.length} dingen die bij de meeste kartweekenden mee moeten: gereedschap, banden, brandstof, reserveonderdelen, kleding
+              en papieren. Daarna pas je hem aan naar je eigen bus.
+            </p>
+            <ActionButton action={fillDefaultChecklist} label="Standaardlijst gebruiken" />
+            <p className="mt-4 text-xs text-zinc-500">Of zet hieronder zelf je eerste item op de lijst.</p>
+          </EditOnly>
         </section>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -72,15 +75,17 @@ export default async function ChecklistPage() {
         </div>
       )}
 
-      <section aria-labelledby="add-heading" className={cardClass}>
-        <h2 id="add-heading" className="mb-3 text-lg font-semibold">
-          Item toevoegen
-        </h2>
-        <ChecklistItemForm action={addChecklistItem} />
-        <p className="mt-3 text-xs text-zinc-500">
-          Nieuwe items komen ook op de paklijst van evenementen die al begonnen zijn, met de knop ‘Ontbrekende items toevoegen’ daar.
-        </p>
-      </section>
+      <EditOnly>
+        <section aria-labelledby="add-heading" className={cardClass}>
+          <h2 id="add-heading" className="mb-3 text-lg font-semibold">
+            Item toevoegen
+          </h2>
+          <ChecklistItemForm action={addChecklistItem} />
+          <p className="mt-3 text-xs text-zinc-500">
+            Nieuwe items komen ook op de paklijst van evenementen die al begonnen zijn, met de knop ‘Ontbrekende items toevoegen’ daar.
+          </p>
+        </section>
+      </EditOnly>
     </>
   );
 }

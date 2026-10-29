@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
@@ -20,10 +21,7 @@ export const metadata: Metadata = {
   title: "Kart — CorsaIQ",
 };
 
-function partLabel(
-  part: { category: string; brand: string | null; model: string | null; serial_number: string | null },
-  t: Dictionary,
-) {
+function partLabel(part: { category: string; brand: string | null; model: string | null; serial_number: string | null }, t: Dictionary) {
   const name = [part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category);
   return part.serial_number ? `${name} (#${part.serial_number})` : name;
 }
@@ -44,12 +42,7 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
       .order("installed_at", { referencedTable: "part_installations", ascending: false })
       .order("performed_on", { referencedTable: "maintenance_records", ascending: false })
       .maybeSingle(),
-    supabase
-      .from("parts")
-      .select("id, category, brand, model, serial_number")
-      .eq("garage_id", garage.id)
-      .eq("status", "in_stock")
-      .order("category"),
+    supabase.from("parts").select("id, category, brand, model, serial_number").eq("garage_id", garage.id).eq("status", "in_stock").order("category"),
   ]);
   if (kartResult.error) throw new Error(kartResult.error.message);
   const kart = kartResult.data;
@@ -118,29 +111,33 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
                       {labelFor(t.options.partCategories, part.category)} · sinds {formatDate(installation.installed_at)}
                     </p>
                   </div>
-                  <form action={removePart.bind(null, installation.id, part.id)}>
-                    <button type="submit" className={secondaryButtonClass}>
-                      Demonteren
-                    </button>
-                  </form>
+                  <EditOnly>
+                    <form action={removePart.bind(null, installation.id, part.id)}>
+                      <button type="submit" className={secondaryButtonClass}>
+                        Demonteren
+                      </button>
+                    </form>
+                  </EditOnly>
                 </li>
               );
             })}
           </ul>
         )}
 
-        <div className="mt-6 border-t border-zinc-800/80 pt-6">
-          {stockOptions.length > 0 ? (
-            <InstallForm kartId={kart.id} options={stockOptions} />
-          ) : (
-            <p className="text-sm text-zinc-400">
-              Geen onderdelen op voorraad.{" "}
-              <Link href="/dashboard/parts" className={linkClass}>
-                Onderdeel toevoegen
-              </Link>
-            </p>
-          )}
-        </div>
+        <EditOnly>
+          <div className="mt-6 border-t border-zinc-800/80 pt-6">
+            {stockOptions.length > 0 ? (
+              <InstallForm kartId={kart.id} options={stockOptions} />
+            ) : (
+              <p className="text-sm text-zinc-400">
+                Geen onderdelen op voorraad.{" "}
+                <Link href="/dashboard/parts" className={linkClass}>
+                  Onderdeel toevoegen
+                </Link>
+              </p>
+            )}
+          </div>
+        </EditOnly>
       </section>
 
       {history.length > 0 && (

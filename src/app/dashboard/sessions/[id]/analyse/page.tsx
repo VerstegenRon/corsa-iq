@@ -65,15 +65,12 @@ function CornerBar({ corner, scale }: { corner: CornerResult; scale: number }) {
         <span className="relative h-3 bg-zinc-800/60" aria-hidden>
           <span className="absolute inset-y-0 left-1/2 w-px bg-zinc-600" />
           {(loss || gain) && (
-            <span
-              className={`absolute inset-y-0 ${loss ? "left-1/2 bg-red-400" : "right-1/2 bg-brand-400"}`}
-              style={{ width: `${share * 50}%` }}
-            />
+            <span className={`absolute inset-y-0 ${loss ? "left-1/2 bg-red-400" : "right-1/2 bg-brand-400"}`} style={{ width: `${share * 50}%` }} />
           )}
         </span>
         <span className="truncate font-mono text-[11px] text-zinc-500">
-          rem {corner.brakeDiffM === 0 ? "=" : `${corner.brakeDiffM < 0 ? "−" : "+"}${Math.abs(corner.brakeDiffM)} m`} · {String(corner.apexYouKmh).replace(".", ",")}/
-          {String(corner.apexRefKmh).replace(".", ",")} km/u
+          rem {corner.brakeDiffM === 0 ? "=" : `${corner.brakeDiffM < 0 ? "−" : "+"}${Math.abs(corner.brakeDiffM)} m`} ·{" "}
+          {String(corner.apexYouKmh).replace(".", ",")}/{String(corner.apexRefKmh).replace(".", ",")} km/u
         </span>
       </span>
       <span className={`text-right font-mono text-sm font-bold tabular-nums ${loss ? "text-red-300" : gain ? "text-brand-300" : "text-zinc-400"}`}>
@@ -95,8 +92,7 @@ function Stat({ label, value, note, tone }: { label: string; value: string; note
 }
 
 function Chip({ href, active, disabled, children }: { href: string; active: boolean; disabled?: boolean; children: React.ReactNode }) {
-  if (disabled)
-    return <span className="inline-flex min-h-11 items-center border border-zinc-800 px-3 text-sm text-zinc-600">{children}</span>;
+  if (disabled) return <span className="inline-flex min-h-11 items-center border border-zinc-800 px-3 text-sm text-zinc-600">{children}</span>;
   return (
     <Link
       href={href}
@@ -124,7 +120,7 @@ async function readFile(supabase: Awaited<ReturnType<typeof getCurrentGarage>>["
 
 export default async function SessionAnalysePage({ params, searchParams }: PageProps<"/dashboard/sessions/[id]/analyse">) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
 
   const { data: session } = await supabase
     .from("sessions")
@@ -138,9 +134,7 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
 
   const event = session.events;
   const title = `${labelFor(t.options.sessionTypes, session.type)} · ${event.name}`;
-  const withChannels = session.laps
-    .filter((l) => l.lap_channels && l.is_valid && !l.is_pit_lap)
-    .sort((a, b) => a.lap_number - b.lap_number);
+  const withChannels = session.laps.filter((l) => l.lap_channels && l.is_valid && !l.is_pit_lap).sort((a, b) => a.lap_number - b.lap_number);
 
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-3">
@@ -159,27 +153,31 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
     </div>
   );
 
-  const importCard = (open: boolean) => (
-    <details open={open} className={cardClass}>
-      <summary className={`cursor-pointer font-semibold text-zinc-50 ${focusRing}`}>
-        {open ? "Telemetrie importeren" : "Nieuwe telemetrie importeren"}
-      </summary>
-      <div className="mt-4 flex flex-col gap-4">
-        <p className="text-sm text-zinc-400">
-          Exporteer de sessie als CSV uit je loggersoftware (AiM Race Studio, Alfano, Unipro of MyChron) met de kanalen tijd, afstand en snelheid,
-          en waar mogelijk toeren en G-krachten. Elke ronde wordt op vaste afstand (2,5 m) bewaard.
-        </p>
-        <TelemetryImportForm sessionId={session.id} garageId={garage.id} hasLaps={session.laps.length > 0} />
-      </div>
-    </details>
-  );
+  // Importing is for members who may edit; viewers only read what is there.
+  const importCard = (open: boolean) =>
+    canEdit && (
+      <details open={open} className={cardClass}>
+        <summary className={`cursor-pointer font-semibold text-zinc-50 ${focusRing}`}>
+          {open ? "Telemetrie importeren" : "Nieuwe telemetrie importeren"}
+        </summary>
+        <div className="mt-4 flex flex-col gap-4">
+          <p className="text-sm text-zinc-400">
+            Exporteer de sessie als CSV uit je loggersoftware (AiM Race Studio, Alfano, Unipro of MyChron) met de kanalen tijd, afstand en snelheid,
+            en waar mogelijk toeren en G-krachten. Elke ronde wordt op vaste afstand (2,5 m) bewaard.
+          </p>
+          <TelemetryImportForm sessionId={session.id} garageId={garage.id} hasLaps={session.laps.length > 0} />
+        </div>
+      </details>
+    );
 
   if (withChannels.length === 0) {
     return (
       <>
         {header}
         <section className={cardClass}>
-          <p className="text-zinc-300">Deze sessie heeft nog geen telemetrie. Importeer het logger-bestand om elke ronde naast een referentie te leggen.</p>
+          <p className="text-zinc-300">
+            Deze sessie heeft nog geen telemetrie.{canEdit && " Importeer het logger-bestand om elke ronde naast een referentie te leggen."}
+          </p>
         </section>
         {importCard(true)}
       </>
@@ -188,8 +186,7 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
 
   // ---- Your lap: the chosen one, else the fastest with channels.
   const lapParam = Number(query.lap);
-  const you =
-    withChannels.find((l) => l.lap_number === lapParam) ?? [...withChannels].sort((a, b) => a.lap_time_ms - b.lap_time_ms)[0];
+  const you = withChannels.find((l) => l.lap_number === lapParam) ?? [...withChannels].sort((a, b) => a.lap_time_ms - b.lap_time_ms)[0];
 
   // ---- Reference candidates: laps with telemetry at the same circuit.
   const { data: candidateRows } = await supabase
@@ -245,7 +242,9 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
 
   // ---- Next session of the day, for "Eén ding voor Q2".
   const nextType = DAY_ORDER[DAY_ORDER.indexOf(session.type as (typeof DAY_ORDER)[number]) + 1];
-  const nextLabel = nextType ? sessionLabel(nextType, event.sessions.filter((s) => s.type === nextType && s.kart_id === session.kart_id).length) : null;
+  const nextLabel = nextType
+    ? sessionLabel(nextType, event.sessions.filter((s) => s.type === nextType && s.kart_id === session.kart_id).length)
+    : null;
 
   let analysis: {
     comparison: ReturnType<typeof compareLaps>;
@@ -266,7 +265,13 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
       : { data: null };
     const corners: Corner[] =
       storedCorners && storedCorners.length > 0
-        ? storedCorners.map((c) => ({ number: c.number, name: c.name ?? `T${c.number}`, apex_m: Number(c.apex_m), start_m: Number(c.start_m), end_m: Math.min(Number(c.end_m), comparison.lengthM) }))
+        ? storedCorners.map((c) => ({
+            number: c.number,
+            name: c.name ?? `T${c.number}`,
+            apex_m: Number(c.apex_m),
+            start_m: Number(c.start_m),
+            end_m: Math.min(Number(c.end_m), comparison.lengthM),
+          }))
         : detectCorners(comparison.ref.speed!, comparison.sampleM);
     analysis = {
       comparison,
@@ -288,7 +293,8 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
     .limit(1)
     .maybeSingle();
   const liveId = running?.id ?? null;
-  const channel: Channel = analysis && typeof query.ch === "string" && analysis.channels.includes(query.ch as Channel) ? (query.ch as Channel) : "speed";
+  const channel: Channel =
+    analysis && typeof query.ch === "string" && analysis.channels.includes(query.ch as Channel) ? (query.ch as Channel) : "speed";
   const focus = analysis ? oneThing(analysis.results) : null;
   const scale = analysis ? Math.max(0.02, ...analysis.results.map((r) => Math.abs(r.lossS))) : 1;
   const refNote = ref
@@ -366,7 +372,12 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
               reference={analysis.comparison.ref[channel]!}
               delta={analysis.comparison.delta}
               corners={analysis.corners.map((c) => ({ name: c.name, apex_m: c.apex_m }))}
-              channel={{ code: CHANNEL_CODES[channel], label: CHANNELS[channel].label.toUpperCase(), unit: CHANNELS[channel].unit, digits: CHANNELS[channel].digits }}
+              channel={{
+                code: CHANNEL_CODES[channel],
+                label: CHANNELS[channel].label.toUpperCase(),
+                unit: CHANNELS[channel].unit,
+                digits: CHANNELS[channel].digits,
+              }}
             />
             <div className="flex flex-wrap items-center gap-3 border-t border-zinc-800 pt-4">
               <ReferenceButton sessionId={session.id} lapId={ref.lapId} pinned={session.reference_lap_id === ref.lapId} />
@@ -406,7 +417,8 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
                 ))}
               </ul>
               <p className="mt-3 text-xs text-zinc-500">
-                Links (volt) win je, rechts (rood) verlies je. Rem: rempunt t.o.v. de referentie (− is eerder geremd). Daarna de minimumsnelheid jij/ref.
+                Links (volt) win je, rechts (rood) verlies je. Rem: rempunt t.o.v. de referentie (− is eerder geremd). Daarna de minimumsnelheid
+                jij/ref.
               </p>
             </section>
           </div>

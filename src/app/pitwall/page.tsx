@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { getCurrentGarage } from "@/lib/garage";
 import { formatDate, ownOrOfficial, sortByLabel, todayInAmsterdam, trackLabel, type SetupValues } from "@/lib/karting";
@@ -14,7 +15,9 @@ export const metadata: Metadata = {
  * service worker keeps this page, and sessions wait on the phone until there is signal.
  */
 export default async function PitwallPage() {
-  const { supabase, garage } = await getCurrentGarage();
+  const { supabase, garage, canEdit } = await getCurrentGarage();
+  // Logging only: a viewer has nothing to do here, Live shows the same sessions.
+  if (!canEdit) redirect("/dashboard/live");
   const today = todayInAmsterdam();
 
   const [eventsResult, kartsResult, driversResult, sessionsResult, tracksResult] = await Promise.all([
@@ -76,7 +79,15 @@ export default async function PitwallPage() {
       drivers={sortByLabel((driversResult.data ?? []).map((driver) => ({ id: driver.id, label: driver.name })))}
       defaults={defaults}
       lastType={lastType}
-      tracks={sortByLabel((tracksResult.data ?? []).map((track) => ({ id: track.id, label: trackLabel(track), name: track.name, latitude: track.latitude, longitude: track.longitude })))}
+      tracks={sortByLabel(
+        (tracksResult.data ?? []).map((track) => ({
+          id: track.id,
+          label: trackLabel(track),
+          name: track.name,
+          latitude: track.latitude,
+          longitude: track.longitude,
+        })),
+      )}
       lastTrackId={eventsResult.data[0]?.track_id ?? null}
       today={today}
     />

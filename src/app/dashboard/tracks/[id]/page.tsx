@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -150,27 +151,23 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/da
         </section>
       )}
 
-      {setupSessions.length > 0 && (
-        <SetupComparison trackId={track.id} sessions={setupSessions} weather={weather} kartId={kartId} t={t} />
-      )}
+      {setupSessions.length > 0 && <SetupComparison trackId={track.id} sessions={setupSessions} weather={weather} kartId={kartId} t={t} />}
 
       {own ? (
-        <section aria-labelledby="edit-heading" className={cardClass}>
-          <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
-            Bewerken
-          </h2>
-          <TrackForm track={track} />
-          <div className="mt-8 border-t border-zinc-800/80 pt-6">
-            <DeleteButton
-              action={deleteTrack.bind(null, track.id)}
-              label="Circuit verwijderen"
-              confirmText={`${track.name} verwijderen?`}
-            />
-            {events.length > 0 && (
-              <p className="mt-2 text-xs text-zinc-500">Verwijderen kan pas als er geen evenementen meer op dit circuit staan.</p>
-            )}
-          </div>
-        </section>
+        <EditOnly>
+          <section aria-labelledby="edit-heading" className={cardClass}>
+            <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
+              Bewerken
+            </h2>
+            <TrackForm track={track} />
+            <div className="mt-8 border-t border-zinc-800/80 pt-6">
+              <DeleteButton action={deleteTrack.bind(null, track.id)} label="Circuit verwijderen" confirmText={`${track.name} verwijderen?`} />
+              {events.length > 0 && (
+                <p className="mt-2 text-xs text-zinc-500">Verwijderen kan pas als er geen evenementen meer op dit circuit staan.</p>
+              )}
+            </div>
+          </section>
+        </EditOnly>
       ) : (
         <p className="text-xs text-zinc-500">
           Circuits uit de catalogus zijn voor iedereen hetzelfde en kun je niet bewerken. Klopt er iets niet, laat het ons weten.

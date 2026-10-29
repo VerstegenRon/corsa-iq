@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { validateLaps, type LapSource } from "@/lib/lap-import";
 
@@ -59,7 +60,7 @@ export async function importLaps(sessionId: string, _prev: FormState, formData: 
   });
   if (error) {
     await supabase.from("data_imports").update({ status: "failed", error: error.message }).eq("id", dataImport.id);
-    return { error: `Ronden opslaan mislukt: ${error.message}` };
+    return { error: `Ronden opslaan mislukt: ${dbError(error)}` };
   }
 
   revalidatePath("/dashboard", "layout");

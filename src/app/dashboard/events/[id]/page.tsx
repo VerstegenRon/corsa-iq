@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { AddSection, EditSection } from "@/components/edit-section";
 import { FeedbackTags } from "@/components/feedback-tags";
 import { cardClass, linkClass } from "@/components/ui";
@@ -47,45 +48,35 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
 
   const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult, seasonsResult, tracksResult, checklistResult, gearResult] =
     await Promise.all([
-    supabase
-      .from("events")
-      .select(
-        "id, name, type, starts_on, ends_on, notes, season_id, track_id, result_position, pole_lap_ms, tracks(name, city, country, latitude, longitude), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
-      )
-      .eq("id", id)
-      .eq("garage_id", garage.id)
-      .order("started_at", { referencedTable: "sessions" })
-      .maybeSingle(),
-    supabase.from("karts").select("id, name").eq("garage_id", garage.id).in("status", ["active", "spare"]).order("created_at"),
-    supabase.from("drivers").select("id, name").eq("garage_id", garage.id).order("created_at"),
-    supabase
-      .from("setups")
-      .select("values")
-      .eq("garage_id", garage.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("expenses")
-      .select("id, category, spent_on, amount_cents, description, receipt_path, events(id, name)")
-      .eq("event_id", id)
-      .eq("garage_id", garage.id)
-      .order("spent_on", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase.from("seasons").select("id, name").eq("garage_id", garage.id).order("year", { ascending: false }),
-    supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
-    supabase
-      .from("event_checklist_items")
-      .select("id, title, category, checked, suggestion_key")
-      .eq("event_id", id)
-      .order("created_at"),
-    supabase
-      .from("gear_items")
-      .select("id, category, brand, model, valid_until, drivers(name)")
-      .eq("garage_id", garage.id)
-      .neq("status", "retired")
-      .not("valid_until", "is", null),
-  ]);
+      supabase
+        .from("events")
+        .select(
+          "id, name, type, starts_on, ends_on, notes, season_id, track_id, result_position, pole_lap_ms, tracks(name, city, country, latitude, longitude), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
+        )
+        .eq("id", id)
+        .eq("garage_id", garage.id)
+        .order("started_at", { referencedTable: "sessions" })
+        .maybeSingle(),
+      supabase.from("karts").select("id, name").eq("garage_id", garage.id).in("status", ["active", "spare"]).order("created_at"),
+      supabase.from("drivers").select("id, name").eq("garage_id", garage.id).order("created_at"),
+      supabase.from("setups").select("values").eq("garage_id", garage.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase
+        .from("expenses")
+        .select("id, category, spent_on, amount_cents, description, receipt_path, events(id, name)")
+        .eq("event_id", id)
+        .eq("garage_id", garage.id)
+        .order("spent_on", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase.from("seasons").select("id, name").eq("garage_id", garage.id).order("year", { ascending: false }),
+      supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
+      supabase.from("event_checklist_items").select("id, title, category, checked, suggestion_key").eq("event_id", id).order("created_at"),
+      supabase
+        .from("gear_items")
+        .select("id, category, brand, model, valid_until, drivers(name)")
+        .eq("garage_id", garage.id)
+        .neq("status", "retired")
+        .not("valid_until", "is", null),
+    ]);
   if (eventResult.error) throw new Error(eventResult.error.message);
   const event = eventResult.data;
   if (!event) notFound();
@@ -101,10 +92,18 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const suggestions = upcoming
     ? (
         await checklistSuggestions({
-          event: { id: event.id, starts_on: event.starts_on, ends_on: event.ends_on, latitude: event.tracks?.latitude ?? null, longitude: event.tracks?.longitude ?? null },
+          event: {
+            id: event.id,
+            starts_on: event.starts_on,
+            ends_on: event.ends_on,
+            latitude: event.tracks?.latitude ?? null,
+            longitude: event.tracks?.longitude ?? null,
+          },
           gear: (gearResult.data ?? []).map((g) => ({
             id: g.id,
-            label: [labelFor(t.options.gearCategories, g.category), g.brand, g.model].filter(Boolean).join(" ") + (g.drivers ? ` (${g.drivers.name})` : ""),
+            label:
+              [labelFor(t.options.gearCategories, g.category), g.brand, g.model].filter(Boolean).join(" ") +
+              (g.drivers ? ` (${g.drivers.name})` : ""),
             valid_until: g.valid_until!,
           })),
           jobs: plan,
@@ -208,9 +207,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                       {` · ${session.session_parts.length} ${session.session_parts.length === 1 ? "onderdeel" : "onderdelen"}`}
                     </p>
                     {setup.length > 0 && <p className="mt-1 text-xs text-zinc-400">{setup.join(" · ")}</p>}
-                    {session.driver_feedback && (
-                      <p className="mt-2 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>
-                    )}
+                    {session.driver_feedback && <p className="mt-2 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>}
                     <FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} className="mt-2" />
                   </div>
                   <div className="text-left sm:text-right">
@@ -251,9 +248,11 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
           Kosten
         </h2>
         <ExpenseList expenses={expenses} showEvent={false} />
-        <div className="mt-6 border-t border-zinc-800/80 pt-6">
-          <ExpenseForm garageId={garage.id} eventId={event.id} defaultDate={event.starts_on} />
-        </div>
+        <EditOnly>
+          <div className="mt-6 border-t border-zinc-800/80 pt-6">
+            <ExpenseForm garageId={garage.id} eventId={event.id} defaultDate={event.starts_on} />
+          </div>
+        </EditOnly>
       </section>
 
       <EditSection

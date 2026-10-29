@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { isExpenseCategory } from "@/lib/karting";
 import { isReadableReceiptType, readReceipt, type ReceiptFields } from "@/lib/receipt-reader";
@@ -29,12 +30,7 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
   const eventId = text(formData, "event_id");
   let seasonId = text(formData, "season_id");
   if (eventId) {
-    const { data: event, error } = await supabase
-      .from("events")
-      .select("season_id")
-      .eq("id", eventId)
-      .eq("garage_id", garage.id)
-      .maybeSingle();
+    const { data: event, error } = await supabase.from("events").select("season_id").eq("id", eventId).eq("garage_id", garage.id).maybeSingle();
     if (error || !event) return { error: "Dit evenement bestaat niet meer." };
     seasonId = event.season_id;
   }
@@ -55,7 +51,7 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
     description: text(formData, "description"),
     receipt_path: receiptPath,
   });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: "Uitgave opgeslagen." };
@@ -70,7 +66,7 @@ export async function deleteExpense(expenseId: string) {
     .eq("garage_id", garage.id)
     .select("receipt_path")
     .maybeSingle();
-  if (error) throw new Error(`Verwijderen mislukt: ${error.message}`);
+  if (error) throw new Error(`Verwijderen mislukt: ${dbError(error)}`);
   if (expense?.receipt_path) await supabase.storage.from(RECEIPT_BUCKET).remove([expense.receipt_path]);
   revalidatePath("/dashboard", "layout");
 }

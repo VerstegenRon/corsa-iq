@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
+import { useCanEdit } from "@/components/edit-access";
 import { Icon } from "@/components/icons";
 import { cardClass } from "@/components/ui";
 
@@ -22,6 +23,7 @@ export function AddSection({
   defaultOpen?: boolean;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
+  const canEdit = useCanEdit();
 
   useEffect(() => {
     const openOnHash = () => {
@@ -35,6 +37,8 @@ export function AddSection({
     return () => window.removeEventListener("hashchange", openOnHash);
   }, [id]);
 
+  // Viewers may not add anything.
+  if (!canEdit) return null;
   return (
     <details ref={ref} id={id} open={defaultOpen || undefined} className={`${cardClass} group scroll-mt-24`}>
       <summary className="cursor-pointer list-none text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
@@ -55,6 +59,7 @@ export function AddSection({
 
 /** Opens the AddSection with this id on the same page, scrolls to it and focuses its first field. */
 export function AddButton({ targetId = "add", children, className }: { targetId?: string; children: ReactNode; className?: string }) {
+  if (!useCanEdit()) return null;
   return (
     <a
       href={`#${targetId}`}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { useCanEdit } from "@/components/edit-access";
 import type { FormState } from "@/components/form-message";
 import { Icon } from "@/components/icons";
 
@@ -31,6 +32,7 @@ export function DeleteButton({
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canEdit = useCanEdit();
 
   function run() {
     setError(null);
@@ -46,6 +48,9 @@ export function DeleteButton({
       {error}
     </p>
   );
+
+  // Viewers may not delete anything.
+  if (!canEdit) return null;
 
   if (confirming) {
     return (
@@ -98,8 +103,8 @@ export function DeleteButton({
           iconOnly
             ? `inline-flex size-9 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-300 ${focusRing}`
             : compact
-            ? `rounded-full px-2 text-xs text-zinc-500 transition-colors hover:text-red-300 ${focusRing}`
-            : `inline-flex h-9 items-center justify-center rounded-full border border-red-500/40 px-4 text-sm text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/10 ${focusRing}`
+              ? `rounded-full px-2 text-xs text-zinc-500 transition-colors hover:text-red-300 ${focusRing}`
+              : `inline-flex h-9 items-center justify-center rounded-full border border-red-500/40 px-4 text-sm text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/10 ${focusRing}`
         }
       >
         {iconOnly ? <Icon name="plus" className="size-4 rotate-45" /> : compact ? "Verwijder" : label}

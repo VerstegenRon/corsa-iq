@@ -6,15 +6,7 @@ import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import { formatHoursMinutes, labelFor, todayInAmsterdam, type SetupValues } from "@/lib/karting";
 import { computeUsage } from "@/lib/part-usage";
-import {
-  CORNER_FIELDS,
-  CORNERS,
-  DAY_ORDER,
-  hoursStatus,
-  sessionLabel,
-  tyreStatus,
-  type CheckStatus,
-} from "@/lib/prestart";
+import { CORNER_FIELDS, CORNERS, DAY_ORDER, hoursStatus, sessionLabel, tyreStatus, type CheckStatus } from "@/lib/prestart";
 import { diffSetups, getSetupValue } from "@/lib/setup";
 import { describeChanges } from "@/lib/setup-tree";
 import { loadSetupTree } from "@/lib/setup-tree-data";
@@ -36,14 +28,16 @@ const clock = new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-dig
 
 export default async function TodayPage({ searchParams }: PageProps<"/dashboard/vandaag">) {
   const query = await searchParams;
-  const [{ supabase, garage, canManageTeam }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit, canManageTeam }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const today = todayInAmsterdam();
 
   // Today's event, else the next one.
   const [{ data: current }, { data: upcoming }, { data: kartsData }] = await Promise.all([
     supabase
       .from("events")
-      .select("id, name, starts_on, ends_on, tracks(name, city, latitude, longitude), sessions(type, kart_id, driver_id, started_at, drivers(race_number))")
+      .select(
+        "id, name, starts_on, ends_on, tracks(name, city, latitude, longitude), sessions(type, kart_id, driver_id, started_at, drivers(race_number))",
+      )
       .eq("garage_id", garage.id)
       .lte("starts_on", today)
       .or(`ends_on.gte.${today},and(ends_on.is.null,starts_on.eq.${today})`)
@@ -52,7 +46,9 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
       .maybeSingle(),
     supabase
       .from("events")
-      .select("id, name, starts_on, ends_on, tracks(name, city, latitude, longitude), sessions(type, kart_id, driver_id, started_at, drivers(race_number))")
+      .select(
+        "id, name, starts_on, ends_on, tracks(name, city, latitude, longitude), sessions(type, kart_id, driver_id, started_at, drivers(race_number))",
+      )
       .eq("garage_id", garage.id)
       .gt("starts_on", today)
       .order("starts_on")
@@ -75,13 +71,14 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
         </section>
         <section className={cardClass}>
           <p className="text-zinc-300">
-            {!kart ? "Nog geen actieve kart. Voeg je kart toe om de checklist te gebruiken." : "Geen evenement vandaag of gepland. Plan je volgende evenement."}
+            {!kart ? "Nog geen actieve kart." : "Geen evenement vandaag of gepland."}
+            {canEdit && (!kart ? " Voeg je kart toe om de checklist te gebruiken." : " Plan je volgende evenement.")}
           </p>
           {canManageTeam && !kart ? (
             <Link href="/dashboard/start" className={`${primaryButtonClass} mt-4`}>
               Aan de slag: team, kart en eerste evenement
             </Link>
-          ) : (
+          ) : !canEdit ? null : (
             <Link href={!kart ? "/dashboard/karts#add" : "/dashboard/seasons#add-event"} className={`${linkClass} mt-3 inline-block text-sm`}>
               {!kart ? "Kart toevoegen" : "Evenement plannen"}
             </Link>
@@ -94,7 +91,9 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
   // The session about to be driven: the chosen type, else the one after the last driven type.
   const ownSessions = event.sessions.filter((s) => s.kart_id === kart.id);
   const lastType = [...ownSessions].sort((a, b) => b.started_at.localeCompare(a.started_at))[0]?.type;
-  const suggested = lastType ? (DAY_ORDER[Math.min(DAY_ORDER.indexOf(lastType as (typeof DAY_ORDER)[number]) + 1, DAY_ORDER.length - 1)] ?? "practice") : "practice";
+  const suggested = lastType
+    ? (DAY_ORDER[Math.min(DAY_ORDER.indexOf(lastType as (typeof DAY_ORDER)[number]) + 1, DAY_ORDER.length - 1)] ?? "practice")
+    : "practice";
   const type = typeof query.type === "string" && query.type in t.options.sessionTypes ? query.type : suggested;
   const label = sessionLabel(type, ownSessions.filter((s) => s.type === type).length);
   const raceNumber = ownSessions.map((s) => s.drivers?.race_number).find(Boolean);
@@ -110,11 +109,18 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
       .maybeSingle(),
     supabase
       .from("part_installations")
-      .select("parts!inner(id, brand, model, category, usage_limit_minutes, status, session_parts(sessions(started_at, duration_s)), maintenance_records(performed_on, resets_usage, components))")
+      .select(
+        "parts!inner(id, brand, model, category, usage_limit_minutes, status, session_parts(sessions(started_at, duration_s)), maintenance_records(performed_on, resets_usage, components))",
+      )
       .eq("kart_id", kart.id)
       .is("removed_at", null)
       .eq("parts.category", "engine"),
-    supabase.from("part_installations").select("parts!inner(brand, model, category)").eq("kart_id", kart.id).is("removed_at", null).eq("parts.category", "tyre_set"),
+    supabase
+      .from("part_installations")
+      .select("parts!inner(brand, model, category)")
+      .eq("kart_id", kart.id)
+      .is("removed_at", null)
+      .eq("parts.category", "tyre_set"),
   ]);
   const check = checkResult.data;
   const setup = tree.versions.find((v) => v.isCurrent) ?? null;
@@ -126,7 +132,9 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
       : null;
 
   // ---- Tyres: the latest cold reading per wheel against the setup.
-  const readings = (check?.tyre_pressure_readings ?? []).filter((r) => r.temp_state === "cold").sort((a, b) => b.measured_at.localeCompare(a.measured_at));
+  const readings = (check?.tyre_pressure_readings ?? [])
+    .filter((r) => r.temp_state === "cold")
+    .sort((a, b) => b.measured_at.localeCompare(a.measured_at));
   const tyres: BoardTyre[] = CORNERS.map((corner) => {
     const target = getSetupValue(values, CORNER_FIELDS[corner]);
     const reading = readings.find((r) => r.corner === corner);
@@ -141,7 +149,11 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
   const jet = values.carburettor?.main_jet ?? null;
   const engine = engineResult.data?.[0]?.parts ?? null;
   const engineMinutes = engine
-    ? computeUsage(engine.session_parts.flatMap((sp) => (sp.sessions ? [sp.sessions] : [])), engine.maintenance_records, []).sinceResetMinutes
+    ? computeUsage(
+        engine.session_parts.flatMap((sp) => (sp.sessions ? [sp.sessions] : [])),
+        engine.maintenance_records,
+        [],
+      ).sinceResetMinutes
     : null;
   const tyreSet = tyreSetResult.data?.[0]?.parts ?? null;
   const tyreSetName = tyreSet ? [tyreSet.brand === "TEST" ? null : tyreSet.brand, tyreSet.model].filter(Boolean).join(" ") : null;
