@@ -91,6 +91,12 @@ export function SiteFooter({ t, current }: { t: Dictionary; current: SitePage })
           <Link href="/login" className={`hover:text-white ${focusRing}`}>
             {t.home.signIn}
           </Link>
+          <Link href="/privacy" className={`hover:text-white ${focusRing}`}>
+            {t.login.privacy}
+          </Link>
+          <Link href="/voorwaarden" className={`hover:text-white ${focusRing}`}>
+            {t.login.terms}
+          </Link>
         </nav>
         <div className="lg:hidden">
           <LanguageSwitcher />

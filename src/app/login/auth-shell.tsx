@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { getDictionary } from "@/lib/i18n/server";
 
 /** The frame of the sign-in pages: logo, theme and language, and one card in the middle. */
-export function AuthShell({ heading, intro, children }: { heading: string; intro: string; children: React.ReactNode }) {
+export async function AuthShell({ heading, intro, children }: { heading: string; intro: string; children: React.ReactNode }) {
+  const t = await getDictionary();
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-950 text-zinc-50">
       <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 sm:px-6">
@@ -26,6 +28,14 @@ export function AuthShell({ heading, intro, children }: { heading: string; intro
           <p className="mt-2 mb-8 text-sm text-zinc-400">{intro}</p>
           {children}
         </div>
+        <nav aria-label={`${t.login.privacy} · ${t.login.terms}`} className="mt-6 flex justify-center gap-5 text-xs text-zinc-500">
+          <Link href="/privacy" className="hover:text-zinc-300">
+            {t.login.privacy}
+          </Link>
+          <Link href="/voorwaarden" className="hover:text-zinc-300">
+            {t.login.terms}
+          </Link>
+        </nav>
       </main>
     </div>
   );

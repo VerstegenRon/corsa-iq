@@ -31,6 +31,7 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
   const supabase = await createClient();
 
   if (intent === "signup") {
+    if (formData.get("accept") !== "on") return { error: t.acceptRequired, email };
     if (password.length < MIN_PASSWORD_LENGTH) {
       return { error: format(t.passwordTooShort, { min: MIN_PASSWORD_LENGTH }), email };
     }
