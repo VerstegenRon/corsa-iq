@@ -21,7 +21,7 @@ import {
 } from "@/lib/karting";
 import { parseFeedbackTags } from "@/lib/feedback";
 import { formatDelta, summarizeLaps, type EngineLap } from "@/lib/lap-analysis";
-import { AUTO_FIELD_LABELS, type SessionConditions } from "@/lib/weather";
+import { AUTO_FIELD_LABELS, weatherText, type SessionConditions } from "@/lib/weather";
 
 import { SessionForm } from "../../events/[id]/session-form";
 import { deleteSession } from "../../season-actions";
@@ -199,7 +199,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         <p className="mt-2 text-sm text-zinc-400">
           {formatDate(session.events.starts_on)} · {formatTime(session.started_at)} · {session.karts?.name} ·{" "}
           {session.drivers?.name} · {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
-          {conditions.weather && ` · ${labelFor(t.options.weather, conditions.weather)}`}
+          {conditions.weather && ` · ${weatherText(conditions, t.options.weather)}`}
           {session.position !== null && ` · P${session.position}`}
         </p>
         {weatherLine.length > 0 && (

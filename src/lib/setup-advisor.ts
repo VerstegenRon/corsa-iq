@@ -12,7 +12,7 @@ export type AdvisorSession = {
   trackName: string;
   kart: { id: string; name: string } | null;
   bestLapMs: number;
-  conditions: { weather?: string; track_temp_c?: number };
+  conditions: { weather?: string; weather_to?: string; track_temp_c?: number };
   setup: SetupValues;
 };
 
@@ -176,9 +176,11 @@ const CONFIDENCE_ORDER: Record<Confidence, number> = { strong: 0, fair: 1, weak:
 
 /** All findings, the most trustworthy and the biggest gaps first. */
 export function findInsights(sessions: AdvisorSession[]): Insight[] {
-  // Only like with like: one circuit, one kart, one kind of weather.
+  // Only like with like: one circuit, one kart, one kind of weather. A session in which the weather
+  // turned is like no other, so it is left out.
   const contexts = new Map<string, AdvisorSession[]>();
   for (const session of sessions) {
+    if (session.conditions.weather_to) continue;
     const key = [session.trackId, session.kart?.id ?? "", session.conditions.weather ?? ""].join("|");
     contexts.set(key, [...(contexts.get(key) ?? []), session]);
   }

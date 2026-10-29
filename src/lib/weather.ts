@@ -6,6 +6,8 @@ import type { WEATHER } from "@/lib/karting";
 
 export type SessionConditions = {
   weather?: string;
+  /** Set when the weather turned during the session: what it was at the end (`weather` is the start). */
+  weather_to?: string;
   air_temp_c?: number;
   track_temp_c?: number;
   humidity_pct?: number;
@@ -124,5 +126,14 @@ export function mergeConditions(
     auto.push(field);
   }
   if (auto.length > 0) result.auto = auto;
+  // "Turned to" the weather it already was is no change.
+  if (result.weather_to && result.weather_to === result.weather) delete result.weather_to;
   return result;
+}
+
+/** The weather as text, with the change when it turned: "Droog → Nat". */
+export function weatherText(conditions: Pick<SessionConditions, "weather" | "weather_to">, labels: Record<string, string>): string | null {
+  if (!conditions.weather) return null;
+  const label = (key: string) => labels[key] ?? key;
+  return conditions.weather_to ? `${label(conditions.weather)} → ${label(conditions.weather_to)}` : label(conditions.weather);
 }

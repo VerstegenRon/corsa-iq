@@ -23,7 +23,7 @@ import {
   type SetupValues,
 } from "@/lib/karting";
 import { loadMaintenancePlan } from "@/lib/maintenance-plan-data";
-import type { SessionConditions } from "@/lib/weather";
+import { weatherText, type SessionConditions } from "@/lib/weather";
 
 import { MaintenancePlanList } from "../../agenda/maintenance-plan-list";
 import { ExpenseForm } from "../../costs/expense-form";
@@ -165,7 +165,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
                       {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
-                      {conditions.weather && ` · ${labelFor(t.options.weather, conditions.weather)}`}
+                      {conditions.weather && ` · ${weatherText(conditions, t.options.weather)}`}
                       {conditions.air_temp_c !== undefined && ` · lucht ${String(conditions.air_temp_c).replace(".", ",")} °C`}
                       {conditions.track_temp_c !== undefined && ` · baan ${String(conditions.track_temp_c).replace(".", ",")} °C`}
                       {conditions.humidity_pct !== undefined && ` · ${conditions.humidity_pct}% vocht`}

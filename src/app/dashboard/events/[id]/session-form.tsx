@@ -74,6 +74,9 @@ export function SessionForm({
   const c = session?.conditions ?? {};
   // Fetched values are not typed into the fields: left as they are, they are looked up again on saving.
   const isAuto = (field: string) => autoWeather && (session ? (c.auto ?? []).includes(field) : true);
+  /** Placeholder of a field Open-Meteo fills in: the fetched value, or "automatisch" before the first save. */
+  const autoHint = (field: "air_temp_c" | "humidity_pct" | "precipitation_mm", fallback: string) =>
+    isAuto(field) ? (c[field] !== undefined ? `${decimal(c[field])} (automatisch)` : "automatisch") : fallback;
   const weatherOptions = [
     ...(autoWeather ? [{ value: "auto", label: "Automatisch" }] : []),
     ...Object.entries(t.options.weather).map(([value, label]) => ({ value, label, icon: WEATHER_ICONS[value] })),
@@ -166,9 +169,18 @@ export function SessionForm({
         <legend className="mb-4 text-sm font-semibold text-zinc-200">Omstandigheden</legend>
         <ChoiceChips
           name="weather"
-          legend="Weer"
+          legend="Weer (bij de start)"
           defaultValue={isAuto("weather") ? "auto" : (c.weather ?? "dry")}
           options={weatherOptions}
+        />
+        <ChoiceChips
+          name="weather_to"
+          legend="Sloeg het weer om tijdens de sessie?"
+          defaultValue={c.weather_to ?? ""}
+          options={[
+            { value: "", label: "Nee" },
+            ...Object.entries(t.options.weather).map(([value, label]) => ({ value, label: `Werd ${label.toLowerCase()}`, icon: WEATHER_ICONS[value] })),
+          ]}
         />
         <label className={labelClass}>
           Luchttemperatuur (°C)
@@ -176,7 +188,7 @@ export function SessionForm({
             name="air_temp_c"
             inputMode="decimal"
             defaultValue={isAuto("air_temp_c") ? undefined : decimal(c.air_temp_c)}
-            placeholder={isAuto("air_temp_c") ? (c.air_temp_c !== undefined ? `${decimal(c.air_temp_c)} (automatisch)` : "automatisch") : "18"}
+            placeholder={autoHint("air_temp_c", "18")}
             className={inputClass}
           />
         </label>
@@ -184,10 +196,31 @@ export function SessionForm({
           Baantemperatuur (°C)
           <input name="track_temp_c" inputMode="decimal" defaultValue={decimal(c.track_temp_c)} placeholder="24" className={inputClass} />
         </label>
+        <label className={labelClass}>
+          Luchtvochtigheid (%)
+          <input
+            name="humidity_pct"
+            inputMode="numeric"
+            defaultValue={isAuto("humidity_pct") ? undefined : decimal(c.humidity_pct)}
+            placeholder={autoHint("humidity_pct", "65")}
+            className={inputClass}
+          />
+        </label>
+        <label className={labelClass}>
+          Regen (mm)
+          <input
+            name="precipitation_mm"
+            inputMode="decimal"
+            defaultValue={isAuto("precipitation_mm") ? undefined : decimal(c.precipitation_mm)}
+            placeholder={autoHint("precipitation_mm", "0")}
+            className={inputClass}
+          />
+        </label>
         {autoWeather && (
           <p className="col-span-2 text-xs text-zinc-500 sm:col-span-3">
             Weer, luchttemperatuur, luchtvochtigheid en regen haalt de app bij het opslaan op bij Open-Meteo, voor dit circuit en de
-            starttijd. Kies of vul zelf iets in om dat te overschrijven. De baantemperatuur meet je zelf.
+            starttijd. Klopt het niet, bijvoorbeeld omdat een bui alleen boven de baan hing, kies of vul dan zelf iets in: dat gaat
+            voor. De baantemperatuur meet je zelf.
           </p>
         )}
       </fieldset>

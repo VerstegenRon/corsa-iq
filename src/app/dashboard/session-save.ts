@@ -54,9 +54,12 @@ export function readSession(formData: FormData) {
   const position = optionalNumber(formData, "position");
   const airTemp = optionalSignedNumber(formData, "air_temp_c");
   const trackTemp = optionalSignedNumber(formData, "track_temp_c");
-  if (position === undefined || airTemp === undefined || trackTemp === undefined) {
-    return { error: "Controleer positie en temperaturen: vul alleen getallen in." };
+  const humidity = optionalNumber(formData, "humidity_pct");
+  const rain = optionalNumber(formData, "precipitation_mm");
+  if (position === undefined || airTemp === undefined || trackTemp === undefined || humidity === undefined || rain === undefined) {
+    return { error: "Controleer positie, temperaturen, luchtvochtigheid en regen: vul alleen getallen in." };
   }
+  if (humidity !== null && humidity > 100) return { error: "De luchtvochtigheid is hooguit 100%." };
 
   const setup = readSetup(formData);
   if ("error" in setup) return setup;
@@ -67,6 +70,11 @@ export function readSession(formData: FormData) {
   if (weather && weather in WEATHER) conditions.weather = weather;
   if (airTemp !== null) conditions.air_temp_c = airTemp;
   if (trackTemp !== null) conditions.track_temp_c = trackTemp;
+  if (humidity !== null) conditions.humidity_pct = Math.round(humidity);
+  if (rain !== null) conditions.precipitation_mm = Math.round(rain * 10) / 10;
+  // The weather turned during the session: what it was at the end.
+  const weatherTo = text(formData, "weather_to");
+  if (weatherTo && weatherTo in WEATHER) conditions.weather_to = weatherTo;
 
   return {
     setup,
