@@ -30,6 +30,7 @@ export const nl = {
   },
   nav: {
     pitwall: "Pitwall",
+    advice: "Advies",
     tracks: "Circuits",
     drivers: "Coureurs",
     karts: "Karts",

@@ -13,6 +13,7 @@ export const de: Dictionary = {
   },
   nav: {
     pitwall: "Boxenmauer",
+    advice: "Setup-Tipps",
     tracks: "Strecken",
     drivers: "Fahrer",
     karts: "Karts",
