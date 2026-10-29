@@ -3,7 +3,7 @@
 
 import { cardClass, secondaryButtonClass, inputClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
-import { formatDate, formatLapTime, labelFor, type SetupValues } from "@/lib/karting";
+import { formatDate, formatLapTime, formatTime, labelFor, type SetupValues } from "@/lib/karting";
 import { formatDelta } from "@/lib/lap-analysis";
 import {
   SETUP_FIELDS,
@@ -21,6 +21,7 @@ export type SetupSessionInfo = {
   id: string;
   type: string;
   startsOn: string;
+  startedAt: string;
   kartName: string | null;
   bestLapMs: number | null;
   conditions: Conditions;
@@ -29,8 +30,8 @@ export type SetupSessionInfo = {
 
 const ratioFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function sessionLabel(s: SetupSessionInfo, t: Dictionary) {
-  return [formatDate(s.startsOn), labelFor(t.options.sessionTypes, s.type), s.kartName, s.bestLapMs !== null ? formatLapTime(s.bestLapMs) : null]
+export function sessionLabel(s: SetupSessionInfo, t: Dictionary) {
+  return [`${formatDate(s.startsOn)} ${formatTime(s.startedAt)}`, labelFor(t.options.sessionTypes, s.type), s.kartName, s.bestLapMs !== null ? formatLapTime(s.bestLapMs) : null]
     .filter(Boolean)
     .join(" · ");
 }
@@ -55,12 +56,15 @@ export function SetupSection({
   candidates,
   compareWith,
   t,
+  showPicker = true,
 }: {
   session: SetupSessionInfo;
   /** Other sessions to compare with: the same kart, or the same circuit. Newest first. */
   candidates: SetupSessionInfo[];
   compareWith: SetupSessionInfo | null;
   t: Dictionary;
+  /** False when the lap comparison above already offers the session picker. */
+  showPicker?: boolean;
 }) {
   const groups = (Object.keys(SETUP_GROUPS) as SetupGroup[])
     .map((group) => ({
@@ -110,6 +114,10 @@ export function SetupSection({
       {candidates.length > 0 && (
         <div className="mt-8 border-t border-zinc-800/80 pt-6">
           <h3 className="text-sm font-semibold text-zinc-200">Wat is er veranderd?</h3>
+          {!showPicker && compareWith && (
+            <p className="mt-1 text-xs text-zinc-500">Tegen {sessionLabel(compareWith, t)}</p>
+          )}
+          {showPicker && (
           <form method="get" className="mt-3 flex flex-col gap-2 sm:flex-row">
             <label className="flex-1">
               <span className="sr-only">Vergelijk met sessie</span>
@@ -125,6 +133,7 @@ export function SetupSection({
               Vergelijk
             </button>
           </form>
+          )}
 
           {compareWith && (
             <div className="mt-5 flex flex-col gap-5">

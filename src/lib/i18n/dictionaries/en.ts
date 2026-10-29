@@ -102,6 +102,8 @@ export const en: Dictionary = {
   },
   chart: {
     summary: "{label}. Fastest {time} ({title}). The table below lists every value.",
+    summaryMax: "{label}. Highest {time} ({title}). The table below lists every value.",
+    compared: "The dashed line is {label}.",
   },
   settings: {
     metaTitle: "Settings — CorsaIQ",

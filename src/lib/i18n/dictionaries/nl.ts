@@ -119,6 +119,8 @@ export const nl = {
   },
   chart: {
     summary: "{label}. Snelste {time} ({title}). De tabel eronder bevat alle waarden.",
+    summaryMax: "{label}. Hoogste {time} ({title}). De tabel eronder bevat alle waarden.",
+    compared: "De gestippelde lijn is {label}.",
   },
   settings: {
     metaTitle: "Instellingen — CorsaIQ",

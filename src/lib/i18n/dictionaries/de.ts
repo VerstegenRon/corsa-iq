@@ -102,6 +102,8 @@ export const de: Dictionary = {
   },
   chart: {
     summary: "{label}. Schnellste {time} ({title}). Die Tabelle darunter enthält alle Werte.",
+    summaryMax: "{label}. Höchster Wert {time} ({title}). Die Tabelle darunter enthält alle Werte.",
+    compared: "Die gestrichelte Linie ist {label}.",
   },
   settings: {
     metaTitle: "Einstellungen — CorsaIQ",
