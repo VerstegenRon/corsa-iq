@@ -175,6 +175,22 @@ export const en: Dictionary = {
     samePassword: "Choose a password different from your current one.",
     passwordChanged: "Your password has been changed.",
   },
+  billing: {
+    title: "Subscription",
+    current: "Current plan",
+    renews: "Renews on {date}.",
+    ends: "Ends on {date}; after that you are back on Free.",
+    pastDue: "The last payment failed. Update your payment details to keep your plan.",
+    manage: "Manage subscription",
+    manageHelp: "Switching plans, payment details, invoices or cancelling: you arrange that with our payment partner Stripe.",
+    choose: "View plans",
+    chooseHelp: "Compare the plans and pick the one that suits you.",
+    success: "Thank you! Your payment went through; your plan shows up here within a minute.",
+    ownerOnly: "Only the garage owner manages the subscription.",
+    choosePlan: "Choose {plan}",
+    payYearly: "Pay yearly instead",
+    yourPlan: "Your current plan",
+  },
   home: {
     metaTitle: "CorsaIQ — your karting season in one pit box",
     metaDescription:

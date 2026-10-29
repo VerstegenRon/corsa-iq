@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { billingEnabled, isPaidPlan, KEEPS_PLAN } from "@/lib/billing";
+import { getCurrentGarage } from "@/lib/garage";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
 import {
@@ -19,10 +21,11 @@ import {
 } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 
+import { openBillingPortal, startCheckout } from "../dashboard/billing-actions";
 import { ComparisonTable } from "./comparison-table";
 
-// Payment is not built yet: every plan's button creates an account, and the launch note says
-// that all features are free for now.
+// Without a Stripe key every plan's button creates an account (or opens the dashboard). With one,
+// a signed-in garage owner buys a plan here: Stripe Checkout, or the portal once subscribed.
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -37,10 +40,57 @@ export default async function PricingPage() {
   const signedIn = Boolean(data?.claims);
   const p = t.pricing;
   const cta = signedIn ? { href: "/dashboard", label: t.home.toDashboard } : { href: "/login", label: p.cta };
+  // The garage owner can buy; everyone else sees the plain buttons.
+  const owner = signedIn && billingEnabled() ? await getCurrentGarage() : null;
+  const buyer = owner?.canManageTeam ? owner : null;
+  const { data: billing } = buyer
+    ? await buyer.supabase.from("garage_billing").select("status").eq("garage_id", buyer.garage.id).maybeSingle()
+    : { data: null };
+  const subscribed = Boolean(billing?.status && KEEPS_PLAN.includes(billing.status));
   const price = (key: (typeof PLAN_KEYS)[number]) => formatEuro(MONTHLY_CENTS[key], locale);
   const addonPrice = (key: AddonKey, plan: PlanKey) => formatEuro(addonPrices(key).find((a) => a.plan === plan)?.cents ?? 0, locale);
   // Comparison rows that are a paid extra, and which extra.
   const rowAddon: Partial<Record<string, AddonKey>> = { extraDriver: "driver", extraKart: "kart" };
+
+  /** The card's button: sign up, or for the owner the current plan, checkout, or the portal. */
+  function PlanButton({ plan, featured }: { plan: PlanKey; featured: boolean }) {
+    const className = `mt-6 w-full ${featured ? primaryButtonClass : `${secondaryButtonClass} h-11`}`;
+    if (!buyer)
+      return (
+        <Link href={cta.href} className={className}>
+          {cta.label}
+        </Link>
+      );
+    if (buyer.garage.plan === plan)
+      return (
+        <p aria-current="true" className={`mt-6 flex min-h-11 w-full items-center justify-center border border-zinc-800 text-sm text-zinc-400`}>
+          {t.billing.yourPlan}
+        </p>
+      );
+    if (isPaidPlan(plan))
+      return (
+        <form action={startCheckout}>
+          <input type="hidden" name="plan" value={plan} />
+          <input type="hidden" name="interval" value="monthly" />
+          <button type="submit" className={className}>
+            {format(t.billing.choosePlan, { plan: p.plans[plan].name })}
+          </button>
+        </form>
+      );
+    if (subscribed)
+      return (
+        <form action={openBillingPortal}>
+          <button type="submit" className={className}>
+            {t.billing.manage}
+          </button>
+        </form>
+      );
+    return (
+      <Link href={cta.href} className={className}>
+        {cta.label}
+      </Link>
+    );
+  }
 
   return (
     <div className="relative isolate flex min-h-full flex-1 flex-col overflow-x-clip bg-zinc-950 text-zinc-50">
@@ -90,9 +140,16 @@ export default async function PricingPage() {
                   <p className="mt-1 min-h-10 text-sm text-zinc-500">
                     {monthly > 0 ? format(p.perYear, { price: formatEuro(monthly * MONTHS_PAID_PER_YEAR, locale) }) : p.forever}
                   </p>
-                  <Link href={cta.href} className={`mt-6 w-full ${featured ? primaryButtonClass : `${secondaryButtonClass} h-11`}`}>
-                    {cta.label}
-                  </Link>
+                  <PlanButton plan={key} featured={featured} />
+                  {buyer && !subscribed && isPaidPlan(key) && buyer.garage.plan !== key && (
+                    <form action={startCheckout} className="mt-2 text-center">
+                      <input type="hidden" name="plan" value={key} />
+                      <input type="hidden" name="interval" value="yearly" />
+                      <button type="submit" className={`min-h-11 px-2 text-sm text-brand-300 hover:underline ${focusRing}`}>
+                        {t.billing.payYearly}
+                      </button>
+                    </form>
+                  )}
                   <ul className="mt-8 flex flex-col gap-3 text-sm text-zinc-300">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex gap-3">

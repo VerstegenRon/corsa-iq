@@ -176,6 +176,22 @@ export const de: Dictionary = {
     samePassword: "Wähle ein anderes Passwort als dein aktuelles.",
     passwordChanged: "Dein Passwort wurde geändert.",
   },
+  billing: {
+    title: "Abo",
+    current: "Aktuelles Abo",
+    renews: "Wird am {date} verlängert.",
+    ends: "Läuft am {date} ab; danach bist du wieder bei Kostenlos.",
+    pastDue: "Die letzte Zahlung ist fehlgeschlagen. Aktualisiere deine Zahlungsdaten, um dein Abo zu behalten.",
+    manage: "Abo verwalten",
+    manageHelp: "Abo wechseln, Zahlungsdaten, Rechnungen oder kündigen regelst du bei unserem Zahlungspartner Stripe.",
+    choose: "Abos ansehen",
+    chooseHelp: "Vergleiche die Abos und wähle, was zu dir passt.",
+    success: "Danke! Deine Zahlung hat geklappt; dein Abo erscheint hier innerhalb einer Minute.",
+    ownerOnly: "Nur der Besitzer der Garage verwaltet das Abo.",
+    choosePlan: "{plan} wählen",
+    payYearly: "Lieber jährlich zahlen",
+    yourPlan: "Dein aktuelles Abo",
+  },
   home: {
     metaTitle: "CorsaIQ — deine Kartsaison in einer Box",
     metaDescription:

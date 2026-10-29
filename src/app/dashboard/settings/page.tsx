@@ -5,9 +5,11 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { billingEnabled } from "@/lib/billing";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 
 import { AccountData } from "./account-data";
+import { BillingCard } from "./billing-card";
 import { PasswordForm } from "./password-form";
 import { ProfileForm } from "./profile-form";
 
@@ -15,11 +17,23 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getDictionary()).settings.metaTitle };
 }
 
-export default async function SettingsPage() {
-  const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
-  const [{ data: profile }, { data: accountGarages }] = await Promise.all([
+export default async function SettingsPage({ searchParams }: PageProps<"/dashboard/settings">) {
+  const [{ supabase, user, garage, canManageTeam }, t, locale, query] = await Promise.all([
+    getCurrentGarage(),
+    getDictionary(),
+    getLocale(),
+    searchParams,
+  ]);
+  const [{ data: profile }, { data: accountGarages }, { data: billing }] = await Promise.all([
     supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
     supabase.rpc("my_account_garages"),
+    canManageTeam
+      ? supabase
+          .from("garage_billing")
+          .select("stripe_customer_id, status, current_period_end, cancel_at_period_end")
+          .eq("garage_id", garage.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -83,6 +97,10 @@ export default async function SettingsPage() {
           <PasswordForm />
         </div>
       </section>
+
+      {billingEnabled() && (
+        <BillingCard t={t} locale={locale} plan={garage.plan} billing={billing} isOwner={canManageTeam} justPaid={query.billing === "success"} />
+      )}
 
       <section aria-labelledby="data-heading" className={cardClass}>
         <h2 id="data-heading" className="text-lg font-semibold">
