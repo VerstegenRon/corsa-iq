@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 
 import { text } from "./form-data";
@@ -36,7 +37,7 @@ export async function createCalendarItem(_prev: FormState, formData: FormData): 
   if ("error" in item) return item;
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("calendar_items").insert({ ...item.values, garage_id: garage.id });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard", "layout");
   return { success: "Afspraak toegevoegd." };
 }
@@ -46,7 +47,7 @@ export async function updateCalendarItem(id: string, _prev: FormState, formData:
   if ("error" in item) return item;
   const { supabase } = await getCurrentGarage();
   const { error } = await supabase.from("calendar_items").update(item.values).eq("id", id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard", "layout");
   return { success: "Afspraak bijgewerkt." };
 }
@@ -54,7 +55,7 @@ export async function updateCalendarItem(id: string, _prev: FormState, formData:
 export async function deleteCalendarItem(id: string): Promise<FormState | void> {
   const { supabase } = await getCurrentGarage();
   const { error } = await supabase.from("calendar_items").delete().eq("id", id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard", "layout");
 }
 
@@ -65,7 +66,7 @@ export async function createCalendarFeed(): Promise<FormState> {
   const { error } = await supabase
     .from("calendar_feeds")
     .insert({ garage_id: garage.id, user_id: user.id, token: randomBytes(32).toString("base64url") });
-  if (error) return { error: `Link maken mislukt: ${error.message}` };
+  if (error) return { error: `Link maken mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/agenda");
   return {};
 }
@@ -73,7 +74,7 @@ export async function createCalendarFeed(): Promise<FormState> {
 export async function deleteCalendarFeed(): Promise<FormState> {
   const { supabase, user, garage } = await getCurrentGarage();
   const { error } = await supabase.from("calendar_feeds").delete().eq("garage_id", garage.id).eq("user_id", user.id);
-  if (error) return { error: `Intrekken mislukt: ${error.message}` };
+  if (error) return { error: `Intrekken mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/agenda");
   return {};
 }

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useCanEdit } from "@/components/edit-access";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { TYRE_TOLERANCE_BAR, tally, tyreAdvice, type CheckStatus, type Corner } from "@/lib/prestart";
 
@@ -71,6 +72,8 @@ export function PrestartBoard({
   const [chainOpen, setChainOpen] = useState(false);
   const [chainDraft, setChainDraft] = useState("");
   const [confirmLock, setConfirmLock] = useState(false);
+  // Viewers see the checklist and the measurements, but cannot measure, tick or lock.
+  const canEdit = useCanEdit();
 
   const statuses = [...tyres.map((t) => t.status), ...rows.map((r) => r.status)];
   const count = tally(statuses);
@@ -142,15 +145,18 @@ export function PrestartBoard({
                 key={tyre.corner}
                 type="button"
                 onClick={() => startEdit(tyre)}
+                disabled={!canEdit}
                 aria-pressed={editing === tyre.corner}
                 aria-label={`${tyre.corner}: ${tyre.value === null ? "nog niet gemeten" : `${bar(tyre.value)} bar, ${mark.label}`}. Meten.`}
-                className={`bg-zinc-950 p-3 text-left transition-colors hover:bg-zinc-900 ${focusRing} ${editing === tyre.corner ? "outline-2 -outline-offset-2 outline-brand-400" : ""}`}
+                className={`bg-zinc-950 p-3 text-left transition-colors enabled:hover:bg-zinc-900 ${focusRing} ${editing === tyre.corner ? "outline-2 -outline-offset-2 outline-brand-400" : ""}`}
               >
                 <span className="flex justify-between font-mono text-[11px] text-zinc-500">
                   <span>{tyre.corner}</span>
                   <span>{tyre.target !== null ? `${bar(tyre.target, 2)} ±${bar(TYRE_TOLERANCE_BAR, 2)}` : "—"}</span>
                 </span>
-                <span className={`mt-1 block font-mono text-[26px] font-bold ${tyre.status === "fail" ? "text-red-300" : tyre.value === null ? "text-zinc-600" : "text-zinc-50"}`}>
+                <span
+                  className={`mt-1 block font-mono text-[26px] font-bold ${tyre.status === "fail" ? "text-red-300" : tyre.value === null ? "text-zinc-600" : "text-zinc-50"}`}
+                >
                   {tyre.value === null ? "meet" : bar(tyre.value)}
                 </span>
                 <ToleranceMeter value={tyre.value} target={tyre.target} />
@@ -165,7 +171,10 @@ export function PrestartBoard({
             onSubmit={(e) => {
               e.preventDefault();
               const corner = editing;
-              run(() => saveTyreReading(ctx, corner, Number(draft.replace(",", "."))), () => setEditing(null));
+              run(
+                () => saveTyreReading(ctx, corner, Number(draft.replace(",", "."))),
+                () => setEditing(null),
+              );
             }}
           >
             <label className="channel-label" htmlFor="tyre-input">
@@ -229,7 +238,9 @@ export function PrestartBoard({
             const base = `flex min-h-14 w-full items-center gap-3 px-3.5`;
             return (
               <li key={row.key} className="border-b border-zinc-800/60 last:border-b-0">
-                {row.kind === "confirm" ? (
+                {!canEdit ? (
+                  <div className={base}>{content}</div>
+                ) : row.kind === "confirm" ? (
                   <button
                     type="button"
                     aria-pressed={row.status === "ok"}
@@ -241,7 +252,12 @@ export function PrestartBoard({
                   </button>
                 ) : row.kind === "measure" ? (
                   <>
-                    <button type="button" onClick={() => setChainOpen((v) => !v)} aria-expanded={chainOpen} className={`${base} transition-colors hover:bg-zinc-900 ${focusRing}`}>
+                    <button
+                      type="button"
+                      onClick={() => setChainOpen((v) => !v)}
+                      aria-expanded={chainOpen}
+                      className={`${base} transition-colors hover:bg-zinc-900 ${focusRing}`}
+                    >
                       {content}
                     </button>
                     {chainOpen && (
@@ -249,7 +265,10 @@ export function PrestartBoard({
                         className="flex gap-2 px-3.5 pb-3"
                         onSubmit={(e) => {
                           e.preventDefault();
-                          run(() => setCheck(ctx, "chain", { value: chainDraft }), () => setChainOpen(false));
+                          run(
+                            () => setCheck(ctx, "chain", { value: chainDraft }),
+                            () => setChainOpen(false),
+                          );
                         }}
                       >
                         <label className="sr-only" htmlFor="chain-input">
@@ -308,15 +327,29 @@ export function PrestartBoard({
           <span className="font-semibold">
             <span className="text-brand-300">✓</span> Setup {setupLabel} vergrendeld voor {label}
           </span>
-          <button type="button" disabled={pending} onClick={() => run(() => unlockSetup(ctx))} className={secondaryButtonClass}>
-            Ontgrendel
-          </button>
+          {canEdit && (
+            <button type="button" disabled={pending} onClick={() => run(() => unlockSetup(ctx))} className={secondaryButtonClass}>
+              Ontgrendel
+            </button>
+          )}
         </div>
-      ) : confirmLock ? (
+      ) : !canEdit ? null : confirmLock ? (
         <div className="flex flex-col gap-2 border border-amber-400 p-3">
-          <p className="text-sm">Nog {todo} te doen. Toch vergrendelen voor {label}?</p>
+          <p className="text-sm">
+            Nog {todo} te doen. Toch vergrendelen voor {label}?
+          </p>
           <div className="flex gap-2">
-            <button type="button" disabled={pending} onClick={() => run(() => lockSetup(ctx), () => setConfirmLock(false))} className={`${primaryButtonClass} flex-1`}>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                run(
+                  () => lockSetup(ctx),
+                  () => setConfirmLock(false),
+                )
+              }
+              className={`${primaryButtonClass} flex-1`}
+            >
               Ja, vergrendelen
             </button>
             <button type="button" onClick={() => setConfirmLock(false)} className={`${secondaryButtonClass} min-h-14`}>

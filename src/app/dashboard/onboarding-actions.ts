@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { EVENT_TYPES } from "@/lib/karting";
 import { seasonIdForDate } from "@/lib/season-for-date";
@@ -58,14 +59,18 @@ export async function saveEventStep(_prev: FormState, formData: FormData): Promi
   let seasonId = await seasonIdForDate(supabase, garage.id, startsOn);
   if (!seasonId) {
     const year = Number(startsOn.slice(0, 4));
-    const { data: season } = await supabase.from("seasons").insert({ garage_id: garage.id, name: `Seizoen ${year}`, year }).select("id").single();
+    const { data: season } = await supabase
+      .from("seasons")
+      .insert({ garage_id: garage.id, name: `Seizoen ${year}`, year })
+      .select("id")
+      .single();
     seasonId = season?.id ?? null;
   }
 
   const { error } = await supabase
     .from("events")
     .insert({ garage_id: garage.id, season_id: seasonId, track_id: trackId, name, type, starts_on: startsOn });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   next(5);

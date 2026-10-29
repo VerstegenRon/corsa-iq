@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 
 import { optionalNumber, text } from "./form-data";
@@ -26,7 +27,7 @@ export async function createTrack(_prev: FormState, formData: FormData): Promise
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("tracks").insert({ ...track.values, created_by_garage_id: garage.id });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: `${track.values.name} is toegevoegd.` };
@@ -37,13 +38,8 @@ export async function updateTrack(trackId: string, _prev: FormState, formData: F
   if ("error" in track) return track;
 
   const { supabase, garage } = await getCurrentGarage();
-  const { data, error } = await supabase
-    .from("tracks")
-    .update(track.values)
-    .eq("id", trackId)
-    .eq("created_by_garage_id", garage.id)
-    .select("id");
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  const { data, error } = await supabase.from("tracks").update(track.values).eq("id", trackId).eq("created_by_garage_id", garage.id).select("id");
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   if (!data?.length) return { error: "Alleen circuits die je zelf hebt toegevoegd kun je bewerken." };
 
   revalidatePath("/dashboard", "layout");
@@ -52,19 +48,14 @@ export async function updateTrack(trackId: string, _prev: FormState, formData: F
 
 export async function deleteTrack(trackId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
-  const { data, error } = await supabase
-    .from("tracks")
-    .delete()
-    .eq("id", trackId)
-    .eq("created_by_garage_id", garage.id)
-    .select("id");
+  const { data, error } = await supabase.from("tracks").delete().eq("id", trackId).eq("created_by_garage_id", garage.id).select("id");
   if (error) {
     // Events keep pointing at the track they were held on.
     return {
       error:
         error.code === "23503"
           ? "Er zijn nog evenementen op dit circuit. Verwijder of verplaats die eerst."
-          : `Verwijderen mislukt: ${error.message}`,
+          : `Verwijderen mislukt: ${dbError(error)}`,
     };
   }
   if (!data?.length) return { error: "Alleen circuits die je zelf hebt toegevoegd kun je verwijderen." };
@@ -101,7 +92,7 @@ export async function createDriver(_prev: FormState, formData: FormData): Promis
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("drivers").insert({ garage_id: garage.id, ...driver.values });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   const fullName = [driver.values.first_name, driver.values.last_name].filter(Boolean).join(" ");
@@ -114,7 +105,7 @@ export async function updateDriver(driverId: string, _prev: FormState, formData:
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("drivers").update(driver.values).eq("id", driverId).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: "Wijzigingen opgeslagen." };
@@ -134,7 +125,7 @@ export async function deleteDriver(driverId: string): Promise<FormState> {
   if ((drivers ?? 0) <= 1) return { error: "Je garage heeft minimaal één coureur nodig." };
 
   const { error } = await supabase.from("drivers").delete().eq("id", driverId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return {};

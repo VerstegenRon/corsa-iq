@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import { GEAR_STATUSES, isGearCategory, labelFor, todayInAmsterdam } from "@/lib/karting";
@@ -80,7 +81,7 @@ export async function createGear(_prev: FormState, formData: FormData): Promise<
     .insert({ garage_id: garage.id, ...gear.values })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, inserted.id, gear.values);
   if (expenseError) return { error: `Opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
@@ -101,7 +102,7 @@ export async function updateGear(gearId: string, _prev: FormState, formData: For
     .eq("garage_id", garage.id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   if (!updated) return { error: "Dit item bestaat niet meer." };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, gearId, gear.values);
@@ -117,7 +118,7 @@ export async function deleteGear(gearId: string) {
   // The automatically booked purchase goes with it.
   const { data: purchase } = await purchaseExpense(supabase, gearId);
   const { error } = await supabase.from("gear_items").delete().eq("id", gearId).eq("garage_id", garage.id);
-  if (error) throw new Error(`Verwijderen mislukt: ${error.message}`);
+  if (error) throw new Error(`Verwijderen mislukt: ${dbError(error)}`);
   if (purchase) await supabase.from("expenses").delete().eq("id", purchase.id);
 
   revalidatePath("/dashboard", "layout");

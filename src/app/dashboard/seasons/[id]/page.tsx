@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 
@@ -43,19 +44,21 @@ export default async function SeasonEditPage({ params }: PageProps<"/dashboard/s
         </p>
       </section>
 
-      <section aria-labelledby="edit-heading" className={cardClass}>
-        <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
-          Bewerken
-        </h2>
-        <SeasonForm defaultYear={season.year} season={season} />
-        <div className="mt-8 border-t border-zinc-800/80 pt-6">
-          <DeleteButton
-            action={deleteSeason.bind(null, season.id)}
-            label="Seizoen verwijderen"
-            confirmText={`${season.name} verwijderen?${events > 0 ? ` De ${events} ${events === 1 ? "evenement blijft" : "evenementen blijven"} bestaan onder “Buiten seizoen”.` : ""} Kosten van dit seizoen blijven ook bewaard.`}
-          />
-        </div>
-      </section>
+      <EditOnly>
+        <section aria-labelledby="edit-heading" className={cardClass}>
+          <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
+            Bewerken
+          </h2>
+          <SeasonForm defaultYear={season.year} season={season} />
+          <div className="mt-8 border-t border-zinc-800/80 pt-6">
+            <DeleteButton
+              action={deleteSeason.bind(null, season.id)}
+              label="Seizoen verwijderen"
+              confirmText={`${season.name} verwijderen?${events > 0 ? ` De ${events} ${events === 1 ? "evenement blijft" : "evenementen blijven"} bestaan onder “Buiten seizoen”.` : ""} Kosten van dit seizoen blijven ook bewaard.`}
+            />
+          </div>
+        </section>
+      </EditOnly>
     </>
   );
 }

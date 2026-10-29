@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
+import { dbError } from "@/lib/db-error";
 import { readQuickTags } from "@/lib/feedback";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
@@ -46,7 +47,7 @@ export async function createSeason(_prev: FormState, formData: FormData): Promis
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("seasons").insert({ garage_id: garage.id, ...season.values });
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: `${season.values.name} is toegevoegd.` };
@@ -58,7 +59,7 @@ export async function updateSeason(seasonId: string, _prev: FormState, formData:
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("seasons").update(season.values).eq("id", seasonId).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: "Wijzigingen opgeslagen." };
@@ -68,7 +69,7 @@ export async function updateSeason(seasonId: string, _prev: FormState, formData:
 export async function deleteSeason(seasonId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("seasons").delete().eq("id", seasonId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/seasons");
@@ -102,7 +103,7 @@ async function readEvent(supabase: Supabase, garageId: string, formData: FormDat
       })
       .select("id")
       .single();
-    if (error) return { error: `Circuit opslaan mislukt: ${error.message}` };
+    if (error) return { error: `Circuit opslaan mislukt: ${dbError(error)}` };
     trackId = track.id;
   }
 
@@ -137,7 +138,7 @@ export async function createEvent(_prev: FormState, formData: FormData): Promise
     .insert({ garage_id: garage.id, ...event.values })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   redirect(`/dashboard/events/${inserted.id}`);
@@ -149,7 +150,7 @@ export async function updateEvent(eventId: string, _prev: FormState, formData: F
   if ("error" in event) return event;
 
   const { error } = await supabase.from("events").update(event.values).eq("id", eventId).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   // Costs booked on the event follow it to its (new) season.
   await supabase.from("expenses").update({ season_id: event.values.season_id }).eq("event_id", eventId);
@@ -168,7 +169,7 @@ export async function deleteEvent(eventId: string): Promise<FormState> {
     .eq("events.garage_id", garage.id);
 
   const { error } = await supabase.from("events").delete().eq("id", eventId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
   await removeSessionLeftovers(supabase, sessions ?? []);
 
   revalidatePath("/dashboard", "layout");
@@ -183,7 +184,11 @@ export async function deleteEvent(eventId: string): Promise<FormState> {
 function sameSetup(a: unknown, b: unknown): boolean {
   const sorted = (value: unknown): unknown =>
     value && typeof value === "object"
-      ? Object.fromEntries(Object.entries(value).sort(([x], [y]) => x.localeCompare(y)).map(([k, v]) => [k, sorted(v)]))
+      ? Object.fromEntries(
+          Object.entries(value)
+            .sort(([x], [y]) => x.localeCompare(y))
+            .map(([k, v]) => [k, sorted(v)]),
+        )
       : value;
   return JSON.stringify(sorted(a ?? {})) === JSON.stringify(sorted(b ?? {}));
 }
@@ -206,7 +211,13 @@ async function removeSessionLeftovers(
 
   const imports = sessions.map((s) => s.data_imports).filter((i): i is { id: string; file_path: string | null } => i !== null);
   if (imports.length > 0) {
-    await supabase.from("data_imports").delete().in("id", imports.map((i) => i.id));
+    await supabase
+      .from("data_imports")
+      .delete()
+      .in(
+        "id",
+        imports.map((i) => i.id),
+      );
     const files = imports.map((i) => i.file_path).filter((path): path is string => path !== null);
     if (files.length > 0) await supabase.storage.from(LOGGER_BUCKET).remove(files);
   }
@@ -226,7 +237,9 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
   const { supabase, garage } = await getCurrentGarage();
   const { data: current } = await supabase
     .from("sessions")
-    .select("event_id, started_at, conditions, setup_id, driver_feedback, setups(values, parent_setup_id), laps!laps_session_id_fkey(lap_number), events!inner(garage_id)")
+    .select(
+      "event_id, started_at, conditions, setup_id, driver_feedback, setups(values, parent_setup_id), laps!laps_session_id_fkey(lap_number), events!inner(garage_id)",
+    )
     .eq("id", sessionId)
     .eq("events.garage_id", garage.id)
     .limit(1, { referencedTable: "laps" })
@@ -263,7 +276,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
       setup_id: setupId,
     })
     .eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   // The old snapshot goes, unless a later setup was derived from it (those are frozen and keep their parent).
   if (setupChanged && current.setup_id) {
@@ -283,7 +296,6 @@ export async function saveFeedback(sessionId: string, _prev: FormState, formData
   return saveDebrief(supabase, garage.id, sessionId, text(formData, "driver_feedback"), readQuickTags(formData.getAll("quick")));
 }
 
-
 export async function deleteSession(sessionId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
   const { data: session } = await supabase
@@ -295,7 +307,7 @@ export async function deleteSession(sessionId: string): Promise<FormState> {
   if (!session) return { error: "Deze sessie bestaat niet meer." };
 
   const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
-  if (error) return { error: `Verwijderen mislukt: ${error.message}` };
+  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
   await removeSessionLeftovers(supabase, [session]);
 
   revalidatePath("/dashboard", "layout");

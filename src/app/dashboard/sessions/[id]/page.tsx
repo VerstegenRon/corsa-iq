@@ -65,7 +65,8 @@ const SOURCE_LABELS: Record<string, string> = {
   manual: "handmatig",
 };
 
-const COMPARE_SELECT = "id, type, started_at, best_lap_ms, conditions, kart_id, karts(name), setups(values), events!inner(starts_on, track_id, garage_id)";
+const COMPARE_SELECT =
+  "id, type, started_at, best_lap_ms, conditions, kart_id, karts(name), setups(values), events!inner(starts_on, track_id, garage_id)";
 
 type CompareRow = {
   id: string;
@@ -94,7 +95,7 @@ function toSetupInfo(row: CompareRow): SetupSessionInfo {
 export default async function SessionPage({ params, searchParams }: PageProps<"/dashboard/sessions/[id]">) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const vs = typeof query.vs === "string" ? query.vs : null;
-  const { supabase, garage } = await getCurrentGarage();
+  const { supabase, garage, canEdit } = await getCurrentGarage();
   const t = await getDictionary();
 
   const [sessionResult, driversResult] = await Promise.all([
@@ -115,17 +116,30 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
 
   // Sessions to compare the setup with: the same kart, and anything on the same circuit.
   const [sameKart, sameTrack] = await Promise.all([
-    supabase.from("sessions").select(COMPARE_SELECT).eq("kart_id", session.kart_id).eq("events.garage_id", garage.id).neq("id", session.id).order("started_at", { ascending: false }).limit(30),
+    supabase
+      .from("sessions")
+      .select(COMPARE_SELECT)
+      .eq("kart_id", session.kart_id)
+      .eq("events.garage_id", garage.id)
+      .neq("id", session.id)
+      .order("started_at", { ascending: false })
+      .limit(30),
     session.events.track_id
-      ? supabase.from("sessions").select(COMPARE_SELECT).eq("events.track_id", session.events.track_id).eq("events.garage_id", garage.id).neq("id", session.id).order("started_at", { ascending: false }).limit(30)
+      ? supabase
+          .from("sessions")
+          .select(COMPARE_SELECT)
+          .eq("events.track_id", session.events.track_id)
+          .eq("events.garage_id", garage.id)
+          .neq("id", session.id)
+          .order("started_at", { ascending: false })
+          .limit(30)
       : Promise.resolve({ data: [] as CompareRow[] }),
   ]);
-  const candidateRows = [...new Map([...(sameKart.data ?? []), ...(sameTrack.data ?? [])].map((row) => [row.id, row])).values()].sort(
-    (a, b) => b.started_at.localeCompare(a.started_at),
+  const candidateRows = [...new Map([...(sameKart.data ?? []), ...(sameTrack.data ?? [])].map((row) => [row.id, row])).values()].sort((a, b) =>
+    b.started_at.localeCompare(a.started_at),
   );
   // Default: the kart's previous session, else the latest one on this circuit.
-  const defaultRow =
-    (sameKart.data ?? []).find((row) => row.started_at < session.started_at) ?? (sameTrack.data ?? [])[0] ?? null;
+  const defaultRow = (sameKart.data ?? []).find((row) => row.started_at < session.started_at) ?? (sameTrack.data ?? [])[0] ?? null;
   const compareRow = (vs && candidateRows.find((row) => row.id === vs)) || defaultRow;
 
   const laps = toLaps(session.laps);
@@ -202,15 +216,17 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{labelFor(t.options.sessionTypes, session.type)}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {formatDate(session.events.starts_on)} · {formatTime(session.started_at)} · {session.karts?.name} ·{" "}
-          {session.drivers?.name} · {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
+          {formatDate(session.events.starts_on)} · {formatTime(session.started_at)} · {session.karts?.name} · {session.drivers?.name} ·{" "}
+          {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
           {conditions.weather && ` · ${weatherText(conditions, t.options.weather)}`}
           {session.position !== null && ` · P${session.position}`}
         </p>
         {weatherLine.length > 0 && (
           <p className="mt-1 text-xs text-zinc-500">
             {weatherLine.join(" · ")}
-            {conditions.auto && conditions.auto.length > 0 && ` · automatisch via Open-Meteo: ${conditions.auto.map((f) => AUTO_FIELD_LABELS[f] ?? f).join(", ")}`}
+            {conditions.auto &&
+              conditions.auto.length > 0 &&
+              ` · automatisch via Open-Meteo: ${conditions.auto.map((f) => AUTO_FIELD_LABELS[f] ?? f).join(", ")}`}
           </p>
         )}
         {setup.length > 0 && <p className="mt-1 text-xs text-zinc-500">{setup.join(" · ")}</p>}
@@ -226,16 +242,18 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         ))}
       </section>
 
-      <section aria-label="Telemetrie" className="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 px-5 py-4">
-        <p className="text-sm text-zinc-300">
-          {hasTelemetry
-            ? "Leg elke ronde naast een referentie: snelheid, tijdverschil en verlies per bocht."
-            : "Importeer de telemetrie van je logger om te zien in welke bocht de tijd zit."}
-        </p>
-        <Link href={`/dashboard/sessions/${session.id}/analyse`} className={hasTelemetry ? primaryButtonClass : secondaryButtonClass}>
-          {hasTelemetry ? "Waar zit de tijd?" : "Telemetrie importeren"}
-        </Link>
-      </section>
+      {(hasTelemetry || canEdit) && (
+        <section aria-label="Telemetrie" className="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 px-5 py-4">
+          <p className="text-sm text-zinc-300">
+            {hasTelemetry
+              ? "Leg elke ronde naast een referentie: snelheid, tijdverschil en verlies per bocht."
+              : "Importeer de telemetrie van je logger om te zien in welke bocht de tijd zit."}
+          </p>
+          <Link href={`/dashboard/sessions/${session.id}/analyse`} className={hasTelemetry ? primaryButtonClass : secondaryButtonClass}>
+            {hasTelemetry ? "Waar zit de tijd?" : "Telemetrie importeren"}
+          </Link>
+        </section>
+      )}
 
       <FeedbackCard
         sessionId={session.id}
@@ -261,7 +279,8 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             <div className="mt-6">
               <p className="mb-2 text-xs text-zinc-500">
                 Rondetijd per ronde · lager is sneller
-                {hiddenLaps > 0 && ` · ${hiddenLaps} ${hiddenLaps === 1 ? "ronde telt" : "ronden tellen"} niet mee en ${hiddenLaps === 1 ? "staat" : "staan"} alleen in de tabel`}
+                {hiddenLaps > 0 &&
+                  ` · ${hiddenLaps} ${hiddenLaps === 1 ? "ronde telt" : "ronden tellen"} niet mee en ${hiddenLaps === 1 ? "staat" : "staan"} alleen in de tabel`}
               </p>
               <LapTimeChart points={chartPoints} label="Rondetijd per ronde" />
             </div>
@@ -342,16 +361,18 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         showPicker={laps.length === 0}
       />
 
-      <section aria-labelledby="import-heading" className={cardClass}>
-        <h2 id="import-heading" className="text-lg font-semibold">
-          {laps.length > 0 ? "Ronden opnieuw importeren" : "Rondetijden toevoegen"}
-        </h2>
-        <p className="mt-2 mb-6 text-sm text-zinc-400">
-          Upload een CSV-export van je datalogger (AiM Race Studio, Alfano, Unipro) of een uitslag van de baan, of plak
-          de tijden. Je ziet eerst een voorvertoning.
-        </p>
-        <LapImportForm sessionId={session.id} garageId={garage.id} hasLaps={laps.length > 0} />
-      </section>
+      {canEdit && (
+        <section aria-labelledby="import-heading" className={cardClass}>
+          <h2 id="import-heading" className="text-lg font-semibold">
+            {laps.length > 0 ? "Ronden opnieuw importeren" : "Rondetijden toevoegen"}
+          </h2>
+          <p className="mt-2 mb-6 text-sm text-zinc-400">
+            Upload een CSV-export van je datalogger (AiM Race Studio, Alfano, Unipro) of een uitslag van de baan, of plak de tijden. Je ziet eerst een
+            voorvertoning.
+          </p>
+          <LapImportForm sessionId={session.id} garageId={garage.id} hasLaps={laps.length > 0} />
+        </section>
+      )}
 
       <EditSection
         title="Sessie bewerken"

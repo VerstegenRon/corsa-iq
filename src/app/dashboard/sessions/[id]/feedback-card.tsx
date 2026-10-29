@@ -5,6 +5,7 @@
 
 import { useActionState, type ReactNode } from "react";
 
+import { useCanEdit } from "@/components/edit-access";
 import { FeedbackField } from "@/components/feedback-field";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { Icon } from "@/components/icons";
@@ -16,8 +17,33 @@ import { saveFeedback } from "../../season-actions";
 
 const initialState: FormState = {};
 
-export function FeedbackCard({ sessionId, feedback, quick, tags }: { sessionId: string; feedback: string | null; quick: QuickTag[]; tags: ReactNode }) {
+export function FeedbackCard({
+  sessionId,
+  feedback,
+  quick,
+  tags,
+}: {
+  sessionId: string;
+  feedback: string | null;
+  quick: QuickTag[];
+  tags: ReactNode;
+}) {
   const [state, formAction, isPending] = useActionState(saveFeedback.bind(null, sessionId), initialState);
+
+  // Viewers read the debrief; they cannot change it.
+  if (!useCanEdit()) {
+    if (!feedback && quick.length === 0) return null;
+    return (
+      <section aria-labelledby="feedback-heading" className={cardClass}>
+        <h2 id="feedback-heading" className="flex items-center gap-2 text-lg font-semibold">
+          <Icon name="mic" className="size-5 text-brand-300" />
+          Debrief
+        </h2>
+        {tags}
+        {feedback && <p className="mt-4 text-sm whitespace-pre-line text-zinc-200">{feedback}</p>}
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="feedback-heading" className={cardClass}>

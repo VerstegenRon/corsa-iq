@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 
 import { DeleteButton } from "@/components/delete-button";
+import { EditOnly } from "@/components/edit-access";
 import { AddSection } from "@/components/edit-section";
 import { Icon } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
@@ -166,7 +167,11 @@ export default async function AgendaPage({ searchParams }: PageProps<"/dashboard
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-zinc-800 bg-zinc-800" role="grid" aria-label="Maandoverzicht">
+        <div
+          className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-zinc-800 bg-zinc-800"
+          role="grid"
+          aria-label="Maandoverzicht"
+        >
           {WEEKDAYS.map((day) => (
             <div key={day} role="columnheader" className="bg-zinc-900 py-1.5 text-center text-xs text-zinc-500">
               {day}
@@ -295,15 +300,22 @@ function AgendaRow({ entry }: { entry: Entry }) {
         body
       )}
       {entry.item && (
-        <details className="group mt-2 ml-5">
-          <summary className={`cursor-pointer list-none text-xs text-zinc-400 hover:text-white [&::-webkit-details-marker]:hidden ${focusRing}`}>
-            Bewerken
-          </summary>
-          <div className="mt-3 flex flex-col gap-4 rounded-xl border border-zinc-800 p-4">
-            <CalendarItemForm item={entry.item} />
-            <DeleteButton action={deleteCalendarItem.bind(null, entry.item.id)} label="Afspraak verwijderen" confirmText={`${entry.item.title} verwijderen?`} compact />
-          </div>
-        </details>
+        <EditOnly>
+          <details className="group mt-2 ml-5">
+            <summary className={`cursor-pointer list-none text-xs text-zinc-400 hover:text-white [&::-webkit-details-marker]:hidden ${focusRing}`}>
+              Bewerken
+            </summary>
+            <div className="mt-3 flex flex-col gap-4 rounded-xl border border-zinc-800 p-4">
+              <CalendarItemForm item={entry.item} />
+              <DeleteButton
+                action={deleteCalendarItem.bind(null, entry.item.id)}
+                label="Afspraak verwijderen"
+                confirmText={`${entry.item.title} verwijderen?`}
+                compact
+              />
+            </div>
+          </details>
+        </EditOnly>
       )}
     </li>
   );

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
 import { EMPTY_TAGS, parseFeedbackTags, type QuickTag } from "@/lib/feedback";
+import { dbError } from "@/lib/db-error";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import type { getCurrentGarage } from "@/lib/garage";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
@@ -123,7 +124,7 @@ export async function insertSetup(supabase: Supabase, garageId: string, setup: S
     .insert({ garage_id: garageId, parent_setup_id: parentId, values: setup as Json })
     .select("id")
     .single();
-  if (error) return { error: `Afstelling opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Afstelling opslaan mislukt: ${dbError(error)}` };
   return { id: data.id };
 }
 
@@ -171,10 +172,7 @@ export async function insertSession(
   const setup = await insertSetup(supabase, garageId, session.setup, previous?.setup_id ?? null);
   if ("error" in setup) return { error: setup.error };
 
-  const [values, feedbackTags] = await Promise.all([
-    withWeather(supabase, eventId, session.values),
-    tagFeedback(session.values.driver_feedback),
-  ]);
+  const [values, feedbackTags] = await Promise.all([withWeather(supabase, eventId, session.values), tagFeedback(session.values.driver_feedback)]);
   const { data: inserted, error } = await supabase
     .from("sessions")
     .insert({
@@ -188,7 +186,7 @@ export async function insertSession(
     })
     .select("id")
     .single();
-  if (error) return { error: `Sessie opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Sessie opslaan mislukt: ${dbError(error)}` };
 
   // The pre-start round of this session ("Klaar voor Q1?") now belongs to the session that was driven.
   const { data: round } = await supabase
@@ -204,15 +202,9 @@ export async function insertSession(
   if (round) await supabase.from("prestart_checks").update({ session_id: inserted.id }).eq("id", round.id);
 
   // Record which parts ran: everything mounted on the kart right now. This drives run time per part.
-  const { data: mounted } = await supabase
-    .from("part_installations")
-    .select("part_id")
-    .eq("kart_id", kartId)
-    .is("removed_at", null);
+  const { data: mounted } = await supabase.from("part_installations").select("part_id").eq("kart_id", kartId).is("removed_at", null);
   if (mounted && mounted.length > 0) {
-    const { error: partsError } = await supabase
-      .from("session_parts")
-      .insert(mounted.map(({ part_id }) => ({ session_id: inserted.id, part_id })));
+    const { error: partsError } = await supabase.from("session_parts").insert(mounted.map(({ part_id }) => ({ session_id: inserted.id, part_id })));
     if (partsError) return { error: `Sessie opgeslagen, maar onderdelen koppelen mislukt: ${partsError.message}`, id: inserted.id };
   }
 
@@ -220,7 +212,13 @@ export async function insertSession(
 }
 
 /** Saves the debrief (text and tapped tags) on a session. The text is labelled again only when it changed. */
-export async function saveDebrief(supabase: Supabase, garageId: string, sessionId: string, feedback: string | null, quick: QuickTag[]): Promise<FormState> {
+export async function saveDebrief(
+  supabase: Supabase,
+  garageId: string,
+  sessionId: string,
+  feedback: string | null,
+  quick: QuickTag[],
+): Promise<FormState> {
   const { data: current } = await supabase
     .from("sessions")
     .select("driver_feedback, feedback_tags, events!inner(garage_id)")
@@ -238,7 +236,7 @@ export async function saveDebrief(supabase: Supabase, garageId: string, sessionI
     .from("sessions")
     .update({ driver_feedback: feedback, feedback_tags: tags as Json })
     .eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
 
   revalidatePath("/dashboard", "layout");
   return { success: feedback || quick.length > 0 ? (auto ? "Debrief opgeslagen en gelabeld." : "Debrief opgeslagen.") : "Debrief verwijderd." };

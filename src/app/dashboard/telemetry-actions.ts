@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
+import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import type { LapSource } from "@/lib/lap-import";
 import { TELEMETRY_BUCKET } from "@/lib/storage";
@@ -16,7 +17,15 @@ import { CHANNELS, type Corner } from "@/lib/telemetry";
 export type TelemetryUpload = {
   source: LapSource;
   channels: string[];
-  laps: { lap_number: number; lap_time_ms: number; is_valid: boolean; max_speed_kmh: number | null; max_rpm: number | null; length_m: number; path: string }[];
+  laps: {
+    lap_number: number;
+    lap_time_ms: number;
+    is_valid: boolean;
+    max_speed_kmh: number | null;
+    max_rpm: number | null;
+    length_m: number;
+    path: string;
+  }[];
 };
 
 const SOURCES: LapSource[] = ["aim", "alfano", "unipro", "csv"];
@@ -86,7 +95,7 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
     });
     if (error) {
       await supabase.from("data_imports").update({ status: "failed", error: error.message }).eq("id", dataImport.id);
-      return { error: `Ronden opslaan mislukt: ${error.message}` };
+      return { error: `Ronden opslaan mislukt: ${dbError(error)}` };
     }
     const { data } = await supabase.from("laps").select("id, lap_number, lap_time_ms, lap_channels(storage_path)").eq("session_id", sessionId);
     laps = data ?? [];
@@ -95,7 +104,16 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
   const rows = input.laps.flatMap((lap) => {
     const match = laps.find((l) => l.lap_number === lap.lap_number && Math.abs(l.lap_time_ms - lap.lap_time_ms) <= MATCH_MS);
     return match
-      ? [{ lap_id: match.id, garage_id: garage.id, storage_path: lap.path, sample_m: 2.5, length_m: Math.round(lap.length_m * 10) / 10, channels: input.channels }]
+      ? [
+          {
+            lap_id: match.id,
+            garage_id: garage.id,
+            storage_path: lap.path,
+            sample_m: 2.5,
+            length_m: Math.round(lap.length_m * 10) / 10,
+            channels: input.channels,
+          },
+        ]
       : [];
   });
   if (rows.length === 0) {
@@ -104,7 +122,7 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
   }
 
   const { error } = await supabase.from("lap_channels").upsert(rows, { onConflict: "lap_id" });
-  if (error) return { error: `Telemetrie koppelen mislukt: ${error.message}` };
+  if (error) return { error: `Telemetrie koppelen mislukt: ${dbError(error)}` };
 
   // Files of an earlier import of this session are no longer used.
   const kept = new Set(rows.map((r) => r.storage_path));
@@ -127,7 +145,7 @@ export async function setReferenceLap(sessionId: string, lapId: number | null): 
     if (!lap) return { error: "Die ronde heeft geen telemetrie." };
   }
   const { error } = await supabase.from("sessions").update({ reference_lap_id: lapId }).eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath(`/dashboard/sessions/${sessionId}/analyse`);
   return { success: lapId === null ? "Referentie losgelaten." : "Referentie vastgezet." };
 }
@@ -136,7 +154,12 @@ export async function setReferenceLap(sessionId: string, lapId: number | null): 
 export async function saveCorners(sessionId: string, layoutId: string, corners: Corner[]): Promise<FormState> {
   if (!Array.isArray(corners) || corners.length === 0 || corners.length > 40) return { error: "Geen bochten om op te slaan." };
   const valid = corners.every(
-    (c) => Number.isInteger(c.number) && c.number > 0 && [c.start_m, c.apex_m, c.end_m].every(Number.isFinite) && c.start_m <= c.apex_m && c.apex_m <= c.end_m,
+    (c) =>
+      Number.isInteger(c.number) &&
+      c.number > 0 &&
+      [c.start_m, c.apex_m, c.end_m].every(Number.isFinite) &&
+      c.start_m <= c.apex_m &&
+      c.apex_m <= c.end_m,
   );
   if (!valid) return { error: "De bochten kloppen niet." };
   const { supabase, garage } = await getCurrentGarage();
@@ -152,7 +175,7 @@ export async function saveCorners(sessionId: string, layoutId: string, corners: 
     })),
     { onConflict: "garage_id,track_layout_id,number" },
   );
-  if (error) return { error: `Bochten opslaan mislukt: ${error.message}` };
+  if (error) return { error: `Bochten opslaan mislukt: ${dbError(error)}` };
   revalidatePath(`/dashboard/sessions/${sessionId}/analyse`);
   return { success: `${corners.length} bochten vastgelegd.` };
 }

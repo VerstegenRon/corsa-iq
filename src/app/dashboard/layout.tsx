@@ -1,3 +1,4 @@
+import { EditAccessProvider } from "@/components/edit-access";
 import { getCurrentGarage } from "@/lib/garage";
 
 import { signOut } from "../login/actions";
@@ -15,7 +16,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <DashboardNav />
           </div>
           <div className="ml-auto">
-            <MoreMenu signOut={signOut} hidden={canSeeCosts ? [] : ["/dashboard/costs"]} />
+            <MoreMenu signOut={signOut} hidden={[...(canSeeCosts ? [] : ["/dashboard/costs"]), ...(canEdit ? [] : ["/pitwall"])]} />
           </div>
         </div>
       </header>
@@ -29,7 +30,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       )}
 
       {/* Room at the bottom on a phone for the fixed bar. */}
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 pt-8 pb-28 sm:px-6 md:pb-20">{children}</main>
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 pt-8 pb-28 sm:px-6 md:pb-20">
+        <EditAccessProvider canEdit={canEdit}>{children}</EditAccessProvider>
+      </main>
       <BottomNav />
     </div>
   );

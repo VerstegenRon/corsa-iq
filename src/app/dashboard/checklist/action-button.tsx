@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { useCanEdit } from "@/components/edit-access";
 import type { FormState } from "@/components/form-message";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 
@@ -19,6 +20,7 @@ export function ActionButton({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  if (!useCanEdit()) return null;
   return (
     <div className="flex flex-col gap-2">
       <div>
