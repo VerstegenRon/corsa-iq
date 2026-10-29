@@ -24,7 +24,14 @@ function sumBy<T>(rows: T[], key: (row: T) => string, amount: (row: T) => number
 
 export default async function CostsPage({ searchParams }: PageProps<"/dashboard/costs">) {
   const { season: seasonParam } = await searchParams;
-  const { supabase, garage } = await getCurrentGarage();
+  const { supabase, garage, canSeeCosts } = await getCurrentGarage();
+  if (!canSeeCosts) {
+    return (
+      <section className={cardClass}>
+        <p className="text-zinc-300">De kosten zijn alleen zichtbaar voor de eigenaar en de monteur van het team.</p>
+      </section>
+    );
+  }
   const t = await getDictionary();
 
   const [seasonsResult, eventsResult] = await Promise.all([

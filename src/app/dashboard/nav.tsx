@@ -40,6 +40,7 @@ const MORE: { key: NavKey; items: { href: string; key: NavKey; icon: IconName }[
       { href: "/dashboard/tracks", key: "tracks", icon: "flag" },
       { href: "/dashboard/advice", key: "advice", icon: "target" },
       { href: "/dashboard/drivers", key: "drivers", icon: "user" },
+      { href: "/dashboard/team", key: "team", icon: "user" },
     ],
   },
   {
@@ -135,12 +136,15 @@ export function BottomNav() {
  * "Meer": every other page, settings and sign-out, as a panel under the header. It closes on Escape
  * and on navigating (it is open only for the page it was opened on).
  */
-export function MoreMenu({ signOut }: { signOut: () => Promise<void> }) {
+/** `hidden`: menu items this role has no access to, such as the costs. */
+export function MoreMenu({ signOut, hidden = [] }: { signOut: () => Promise<void>; hidden?: string[] }) {
   const t = useT();
   const pathname = usePathname();
   const [openOn, setOpenOn] = useState<string | null>(null);
   const isOpen = openOn === pathname;
-  const groups = MORE.map((group) => ({
+  const groups = MORE.map((group) => ({ ...group, items: group.items.filter((item) => !hidden.includes(item.href)) }))
+    .filter((group) => group.items.length > 0)
+    .map((group) => ({
     key: group.key,
     links: sortByLabel(
       group.items.map((item) => ({

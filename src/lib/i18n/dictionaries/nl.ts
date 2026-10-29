@@ -38,6 +38,7 @@ export const nl = {
     more: "Meer",
     pitwall: "Pitwall",
     pitboard: "Pitbord",
+    team: "Team",
     advice: "Advies voor setup",
     agenda: "Agenda",
     checklist: "Paklijst",

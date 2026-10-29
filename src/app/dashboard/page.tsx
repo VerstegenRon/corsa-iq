@@ -52,7 +52,7 @@ function addDays(date: string, days: number) {
 }
 
 export default async function DashboardPage() {
-  const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, user, garage, canSeeCosts }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const today = todayInAmsterdam();
   const horizon = addDays(today, TIMELINE_DAYS);
   const o = t.overview;
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
   const spent = (season.data?.expenses ?? []).reduce((sum, e) => sum + e.amount_cents, 0);
   const budget = season.data?.budget_cents ?? null;
 
-  const kpis: { label: string; value: string; detail: string; icon: IconName; color: string; href: string }[] = [
+  const allKpis: { label: string; value: string; detail: string; icon: IconName; color: string; href: string }[] = [
     { label: "Rijtijd", value: formatHours(seasonMinutes).replace(" uur", " u"), detail: "dit seizoen", icon: "stopwatch", color: CHART_COLORS[0], href: "/dashboard/seasons" },
     { label: "Sessies", value: String(seasonSessions.length), detail: `bij ${eventsDone} ${eventsDone === 1 ? "evenement" : "evenementen"}`, icon: "flag", color: CHART_COLORS[1], href: "/dashboard/seasons" },
     { label: "Evenementen", value: `${eventsDone} / ${seasonEvents.length}`, detail: "gereden / gepland", icon: "calendar", color: CHART_COLORS[2], href: "/dashboard/agenda" },
@@ -134,6 +134,7 @@ export default async function DashboardPage() {
       href: season.data ? `/dashboard/costs?season=${season.data.id}` : "/dashboard/costs",
     },
   ];
+  const kpis = canSeeCosts ? allKpis : allKpis.filter((k) => k.icon !== "euro");
 
   // ---- Run time per month of the season year -------------------------------------------------
   const year = season.data?.year ?? Number(today.slice(0, 4));
@@ -251,7 +252,7 @@ export default async function DashboardPage() {
   const sessionEventId = nextEvent?.id ?? lastEvent.data?.id;
   const quick: { href: string; icon: IconName; label: string; color: string }[] = [
     { href: sessionEventId ? `/dashboard/events/${sessionEventId}#add` : "/dashboard/seasons#add-event", icon: "stopwatch", label: o.addSession, color: CHART_COLORS[0] },
-    { href: "/dashboard/costs#add", icon: "receipt", label: o.scanReceipt, color: CHART_COLORS[6] },
+    ...(canSeeCosts ? [{ href: "/dashboard/costs#add", icon: "receipt" as IconName, label: o.scanReceipt, color: CHART_COLORS[6] }] : []),
     { href: "/dashboard/parts#add", icon: "engine", label: o.addPart, color: CHART_COLORS[1] },
     { href: "/dashboard/karts#add", icon: "kart", label: o.addKart, color: CHART_COLORS[2] },
   ];
@@ -337,6 +338,7 @@ export default async function DashboardPage() {
           )}
         </section>
 
+        {canSeeCosts && (
         <section aria-labelledby="budget-heading" className={cardClass}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="budget-heading" className="text-lg font-semibold">
@@ -367,6 +369,7 @@ export default async function DashboardPage() {
             <p className="mt-3 text-lg font-semibold">{o.noSeason}</p>
           )}
         </section>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
