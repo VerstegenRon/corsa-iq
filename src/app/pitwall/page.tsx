@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getCurrentGarage } from "@/lib/garage";
-import { formatDate, sortByLabel, todayInAmsterdam, type SetupValues } from "@/lib/karting";
+import { formatDate, ownOrOfficial, sortByLabel, todayInAmsterdam, trackLabel, type SetupValues } from "@/lib/karting";
 
 import { Pitwall, type KartDefaults, type PitwallEvent } from "./pitwall";
 
@@ -17,10 +17,10 @@ export default async function PitwallPage() {
   const { supabase, garage } = await getCurrentGarage();
   const today = todayInAmsterdam();
 
-  const [eventsResult, kartsResult, driversResult, sessionsResult] = await Promise.all([
+  const [eventsResult, kartsResult, driversResult, sessionsResult, tracksResult] = await Promise.all([
     supabase
       .from("events")
-      .select("id, name, starts_on, ends_on, tracks(name)")
+      .select("id, name, starts_on, ends_on, track_id, tracks(name)")
       .eq("garage_id", garage.id)
       .order("starts_on", { ascending: false })
       .limit(20),
@@ -33,6 +33,7 @@ export default async function PitwallPage() {
       .eq("events.garage_id", garage.id)
       .order("started_at", { ascending: false })
       .limit(50),
+    supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
   ]);
   if (eventsResult.error) throw new Error(eventsResult.error.message);
 
@@ -41,9 +42,8 @@ export default async function PitwallPage() {
     label: `${event.name} · ${formatDate(event.starts_on)}${event.tracks ? ` · ${event.tracks.name}` : ""}`,
     isToday: event.starts_on <= today && (event.ends_on ?? event.starts_on) >= today,
   }));
-  // Today's event first, else the nearest upcoming one, else the most recent one.
-  const upcoming = eventsResult.data.filter((event) => event.starts_on >= today).at(-1);
-  const defaultEventId = events.find((event) => event.isToday)?.id ?? upcoming?.id ?? events[0]?.id ?? null;
+  // Today's event; without one the pitwall starts a new event for today.
+  const defaultEventId = events.find((event) => event.isToday)?.id ?? null;
 
   const defaults: Record<string, KartDefaults> = {};
   let lastType: string | null = null;
@@ -66,6 +66,9 @@ export default async function PitwallPage() {
       drivers={sortByLabel((driversResult.data ?? []).map((driver) => ({ id: driver.id, label: driver.name })))}
       defaults={defaults}
       lastType={lastType}
+      tracks={sortByLabel((tracksResult.data ?? []).map((track) => ({ id: track.id, label: trackLabel(track), name: track.name })))}
+      lastTrackId={eventsResult.data[0]?.track_id ?? null}
+      today={today}
     />
   );
 }
