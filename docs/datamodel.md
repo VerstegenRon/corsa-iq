@@ -277,6 +277,7 @@ Eén keer de baan op: het hart van het model.
 | best_lap_ms | int, nullable | afgeleid, voor snel overzicht |
 | conditions | jsonb | `{ "weather": "dry", "air_temp_c": 18, "track_temp_c": 24, "humidity": 60, "track_state": "rubbered" }` |
 | driver_feedback | text | "onderstuur in bocht 3" |
+| feedback_tags | jsonb | labels die Claude uit de feedback haalt: `{ handling: ["understeer"], corners: ["3"], phases: ["entry"], topics: ["tyres"], mood: "negative" }`; null zonder feedback |
 | position | int, nullable | resultaat van heat/finale |
 
 ### `session_parts`

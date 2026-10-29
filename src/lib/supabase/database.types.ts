@@ -830,6 +830,7 @@ export type Database = {
           created_at: string
           data_import_id: string | null
           driver_feedback: string | null
+          feedback_tags: Json | null
           driver_id: string
           duration_s: number | null
           event_id: string
@@ -848,6 +849,7 @@ export type Database = {
           data_import_id?: string | null
           driver_feedback?: string | null
           driver_id: string
+          feedback_tags?: Json | null
           duration_s?: number | null
           event_id: string
           id?: string
@@ -866,6 +868,7 @@ export type Database = {
           driver_feedback?: string | null
           driver_id?: string
           duration_s?: number | null
+          feedback_tags?: Json | null
           event_id?: string
           id?: string
           kart_id?: string

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
+import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
 import { EVENT_TYPES, SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, setSetupValue } from "@/lib/setup";
@@ -297,7 +298,13 @@ export async function createSession(eventId: string, _prev: FormState, formData:
 
   const { data: inserted, error } = await supabase
     .from("sessions")
-    .insert({ event_id: eventId, kart_id: kartId, setup_id: setup.id, ...session.values })
+    .insert({
+      event_id: eventId,
+      kart_id: kartId,
+      setup_id: setup.id,
+      ...session.values,
+      feedback_tags: (await tagFeedback(session.values.driver_feedback)) as Json,
+    })
     .select("id")
     .single();
   if (error) return { error: `Sessie opslaan mislukt: ${error.message}` };
@@ -326,7 +333,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
   const { supabase, garage } = await getCurrentGarage();
   const { data: current } = await supabase
     .from("sessions")
-    .select("setup_id, setups(values, parent_setup_id), laps(lap_number), events!inner(garage_id)")
+    .select("setup_id, driver_feedback, setups(values, parent_setup_id), laps(lap_number), events!inner(garage_id)")
     .eq("id", sessionId)
     .eq("events.garage_id", garage.id)
     .limit(1, { referencedTable: "laps" })
@@ -345,9 +352,12 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
 
   // With imported laps the best lap follows from the laps, not from the form.
   const { best_lap_ms, ...values } = session.values;
+  // Label the feedback again only when it changed.
+  const tags =
+    values.driver_feedback !== current.driver_feedback ? { feedback_tags: (await tagFeedback(values.driver_feedback)) as Json } : {};
   const { error } = await supabase
     .from("sessions")
-    .update({ ...values, ...(current.laps.length > 0 ? {} : { best_lap_ms }), setup_id: setupId })
+    .update({ ...values, ...tags, ...(current.laps.length > 0 ? {} : { best_lap_ms }), setup_id: setupId })
     .eq("id", sessionId);
   if (error) return { error: `Opslaan mislukt: ${error.message}` };
 
@@ -358,6 +368,30 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
 
   revalidatePath("/dashboard", "layout");
   return { success: "Wijzigingen opgeslagen." };
+}
+
+/** Only the driver's feedback, from the card on the session page: typed or spoken right after the session. */
+export async function saveFeedback(sessionId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const feedback = text(formData, "driver_feedback");
+  const { supabase, garage } = await getCurrentGarage();
+  const { data: current } = await supabase
+    .from("sessions")
+    .select("driver_feedback, events!inner(garage_id)")
+    .eq("id", sessionId)
+    .eq("events.garage_id", garage.id)
+    .maybeSingle();
+  if (!current) return { error: "Deze sessie bestaat niet meer." };
+  if (feedback === current.driver_feedback) return { success: "Niets veranderd." };
+
+  const tags = await tagFeedback(feedback);
+  const { error } = await supabase
+    .from("sessions")
+    .update({ driver_feedback: feedback, feedback_tags: tags as Json })
+    .eq("id", sessionId);
+  if (error) return { error: `Opslaan mislukt: ${error.message}` };
+
+  revalidatePath("/dashboard", "layout");
+  return { success: feedback ? (tags ? "Feedback opgeslagen en gelabeld." : "Feedback opgeslagen.") : "Feedback verwijderd." };
 }
 
 export async function deleteSession(sessionId: string): Promise<FormState> {
