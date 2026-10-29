@@ -20,6 +20,7 @@ export const fr: Dictionary = {
     seasonMaterial: "Saison & matériel",
     more: "Plus",
     pitwall: "Muret des stands",
+    pitboard: "Panneau des stands",
     advice: "Conseils de réglage",
     agenda: "Agenda",
     checklist: "Liste de matériel",

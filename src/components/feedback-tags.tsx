@@ -1,12 +1,13 @@
-// The labels on a driver's feedback as chips: handling first (the accent), then corners, phases,
-// topics and, when it is not neutral, the mood.
+// The labels on a driver's feedback as chips: the tapped debrief tags and handling first (the accent),
+// then corners, phases, topics and, when it is not neutral, the mood.
 
 import { Chip } from "@/components/meter";
-import { CORNER_PHASES, FEEDBACK_MOODS, FEEDBACK_TOPICS, HANDLING, cornerLabel, type FeedbackTags as Tags } from "@/lib/feedback";
+import { CORNER_PHASES, FEEDBACK_MOODS, FEEDBACK_TOPICS, HANDLING, QUICK_TAGS, cornerLabel, type FeedbackTags as Tags } from "@/lib/feedback";
 
 export function FeedbackTags({ tags, className = "" }: { tags: Tags | null; className?: string }) {
   if (!tags) return null;
   const chips = [
+    ...tags.quick.map((key) => ({ key: `q-${key}`, label: QUICK_TAGS[key], tone: "brand" as const })),
     ...tags.handling.map((key) => ({ key: `h-${key}`, label: HANDLING[key], tone: "brand" as const })),
     ...tags.corners.map((corner) => ({ key: `c-${corner}`, label: cornerLabel(corner), tone: "neutral" as const })),
     ...tags.phases.map((key) => ({ key: `p-${key}`, label: CORNER_PHASES[key], tone: "neutral" as const })),

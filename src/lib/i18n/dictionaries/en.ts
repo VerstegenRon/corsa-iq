@@ -20,6 +20,7 @@ export const en: Dictionary = {
     seasonMaterial: "Season & kit",
     more: "More",
     pitwall: "Pitwall",
+    pitboard: "Pit board",
     advice: "Setup advice",
     agenda: "Calendar",
     checklist: "Packing list",

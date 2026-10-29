@@ -240,6 +240,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
       <FeedbackCard
         sessionId={session.id}
         feedback={session.driver_feedback}
+        quick={parseFeedbackTags(session.feedback_tags)?.quick ?? []}
         tags={<FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} className="mt-4" />}
       />
 

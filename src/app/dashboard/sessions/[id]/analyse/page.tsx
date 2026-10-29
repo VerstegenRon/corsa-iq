@@ -22,7 +22,7 @@ import {
   type TelemetryFile,
 } from "@/lib/telemetry";
 
-import { ReferenceButton, SaveCornersButton } from "./analyse-buttons";
+import { PitboardButton, ReferenceButton, SaveCornersButton } from "./analyse-buttons";
 import { TelemetryImportForm } from "./telemetry-import-form";
 import { TraceChart } from "./trace-chart";
 
@@ -278,6 +278,16 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
   }
 
   const diffMs = ref ? you.lap_time_ms - ref.lapTimeMs : null;
+  const { data: running } = await supabase
+    .from("live_sessions")
+    .select("id")
+    .eq("garage_id", garage.id)
+    .eq("kart_id", session.kart_id)
+    .is("ended_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const liveId = running?.id ?? null;
   const channel: Channel = analysis && typeof query.ch === "string" && analysis.channels.includes(query.ch as Channel) ? (query.ch as Channel) : "speed";
   const focus = analysis ? oneThing(analysis.results) : null;
   const scale = analysis ? Math.max(0.02, ...analysis.results.map((r) => Math.abs(r.lossS))) : 1;
@@ -381,15 +391,7 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
                 <p className="mt-2 text-sm font-medium">
                   {focus.corner.name} kost {formatGapSeconds(Math.round(focus.corner.lossS * 1000)).replace("+", "")} s, het meeste van de ronde.
                 </p>
-                <button
-                  type="button"
-                  disabled
-                  title="Volgt met Live (fase 2)"
-                  className="mt-4 inline-flex min-h-11 items-center border border-current px-4 text-sm font-bold opacity-60"
-                >
-                  Zet op het stuurscherm
-                </button>
-                <p className="mt-1 text-xs opacity-70">Volgt met Live: dan gaat dit naar het dashboard van de kart.</p>
+                <PitboardButton liveId={liveId} text={focus.advice.toUpperCase()} />
               </section>
             )}
 

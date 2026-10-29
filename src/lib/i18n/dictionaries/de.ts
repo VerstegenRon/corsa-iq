@@ -20,6 +20,7 @@ export const de: Dictionary = {
     seasonMaterial: "Saison & Material",
     more: "Mehr",
     pitwall: "Boxenmauer",
+    pitboard: "Boxentafel",
     advice: "Setup-Beratung",
     agenda: "Kalender",
     checklist: "Packliste",

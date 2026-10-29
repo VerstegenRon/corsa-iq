@@ -37,6 +37,7 @@ export const nl = {
     seasonMaterial: "Seizoen & materiaal",
     more: "Meer",
     pitwall: "Pitwall",
+    pitboard: "Pitbord",
     advice: "Advies voor setup",
     agenda: "Agenda",
     checklist: "Paklijst",

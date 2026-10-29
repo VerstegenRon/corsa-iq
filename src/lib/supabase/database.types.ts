@@ -890,6 +890,217 @@ export type Database = {
           },
         ]
       }
+      live_laps: {
+        Row: {
+          gap_to_p1_ms: number | null
+          garage_id: string
+          id: number
+          is_pit_lap: boolean
+          lap_number: number
+          lap_time_ms: number
+          live_session_id: string
+          max_egt_c: number | null
+          max_rpm: number | null
+          max_speed_kmh: number | null
+          max_water_temp_c: number | null
+          position: number | null
+          recorded_at: string
+          recorded_by: string | null
+          sectors_ms: number[]
+        }
+        Insert: {
+          gap_to_p1_ms?: number | null
+          garage_id: string
+          id?: never
+          is_pit_lap?: boolean
+          lap_number: number
+          lap_time_ms: number
+          live_session_id: string
+          max_egt_c?: number | null
+          max_rpm?: number | null
+          max_speed_kmh?: number | null
+          max_water_temp_c?: number | null
+          position?: number | null
+          recorded_at?: string
+          recorded_by?: string | null
+          sectors_ms?: number[]
+        }
+        Update: {
+          gap_to_p1_ms?: number | null
+          garage_id?: string
+          id?: never
+          is_pit_lap?: boolean
+          lap_number?: number
+          lap_time_ms?: number
+          live_session_id?: string
+          max_egt_c?: number | null
+          max_rpm?: number | null
+          max_speed_kmh?: number | null
+          max_water_temp_c?: number | null
+          position?: number | null
+          recorded_at?: string
+          recorded_by?: string | null
+          sectors_ms?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_laps_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_laps_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          ended_at: string | null
+          event_id: string
+          garage_id: string
+          id: string
+          kart_id: string
+          label: string
+          planned_laps: number | null
+          reference_lap_id: number | null
+          session_id: string | null
+          session_type: string
+          source: string
+          started_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          ended_at?: string | null
+          event_id: string
+          garage_id: string
+          id?: string
+          kart_id: string
+          label: string
+          planned_laps?: number | null
+          reference_lap_id?: number | null
+          session_id?: string | null
+          session_type: string
+          source?: string
+          started_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          ended_at?: string | null
+          event_id?: string
+          garage_id?: string
+          id?: string
+          kart_id?: string
+          label?: string
+          planned_laps?: number | null
+          reference_lap_id?: number | null
+          session_id?: string | null
+          session_type?: string
+          source?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_kart_id_fkey"
+            columns: ["kart_id"]
+            isOneToOne: false
+            referencedRelation: "karts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_reference_lap_id_fkey"
+            columns: ["reference_lap_id"]
+            isOneToOne: false
+            referencedRelation: "laps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pit_messages: {
+        Row: {
+          cleared_at: string | null
+          created_at: string
+          created_by: string | null
+          garage_id: string
+          id: string
+          live_session_id: string | null
+          text: string
+        }
+        Insert: {
+          cleared_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          garage_id: string
+          id?: string
+          live_session_id?: string | null
+          text: string
+        }
+        Update: {
+          cleared_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          garage_id?: string
+          id?: string
+          live_session_id?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pit_messages_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pit_messages_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_records: {
         Row: {
           components: string[]
