@@ -248,6 +248,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          pole_lap_ms: number | null
           result_position: number | null
           season_id: string | null
           starts_on: string
@@ -261,6 +262,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          pole_lap_ms?: number | null
           result_position?: number | null
           season_id?: string | null
           starts_on: string
@@ -274,6 +276,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          pole_lap_ms?: number | null
           result_position?: number | null
           season_id?: string | null
           starts_on?: string

@@ -7,7 +7,7 @@ import { FormMessage, type FormState } from "@/components/form-message";
 import type { IconName } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
-import { sortByLabel } from "@/lib/karting";
+import { formatLapTime, sortByLabel } from "@/lib/karting";
 
 import { createEvent, updateEvent } from "../season-actions";
 
@@ -25,6 +25,8 @@ export type EventValues = {
   track_id: string;
   starts_on: string;
   ends_on: string | null;
+  result_position: number | null;
+  pole_lap_ms: number | null;
 };
 
 /** Adds an event, or edits one when `event` is given. */
@@ -108,6 +110,25 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
           <label className={labelClass}>
             Land (code)
             <input name="new_track_country" maxLength={2} placeholder="NL" className={`${inputClass} uppercase`} />
+          </label>
+        </>
+      )}
+
+      {event && (
+        <>
+          <label className={labelClass}>
+            Uitslag (positie)
+            <input name="result_position" inputMode="numeric" defaultValue={event.result_position ?? ""} placeholder="3" className={inputClass} />
+          </label>
+          <label className={labelClass}>
+            Pole-tijd
+            <input
+              name="pole_lap"
+              inputMode="decimal"
+              defaultValue={event.pole_lap_ms ? formatLapTime(event.pole_lap_ms) : ""}
+              placeholder="48.871"
+              className={inputClass}
+            />
           </label>
         </>
       )}

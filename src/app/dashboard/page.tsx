@@ -160,14 +160,14 @@ export default async function DashboardPage() {
   );
   const rest = perCategory.slice(TOP_CATEGORIES).reduce((sum, [, cents]) => sum + cents, 0);
   const categoryRows: BarRow[] = [
-    ...perCategory.slice(0, TOP_CATEGORIES).map(([category, cents], i) => ({
+    ...perCategory.slice(0, TOP_CATEGORIES).map(([category, cents]) => ({
       key: category,
       label: labelFor(t.options.expenseCategories, category),
       value: cents,
       valueLabel: formatCents(cents),
-      color: CHART_COLORS[i],
+      color: "var(--color-zinc-400)",
     })),
-    ...(rest > 0 ? [{ key: "rest", label: "Overig", value: rest, valueLabel: formatCents(rest), color: CHART_COLORS[TOP_CATEGORIES] }] : []),
+    ...(rest > 0 ? [{ key: "rest", label: "Overig", value: rest, valueLabel: formatCents(rest), color: "var(--color-zinc-600)" }] : []),
   ];
 
   // ---- The coming months -----------------------------------------------------------------------
@@ -380,7 +380,13 @@ export default async function DashboardPage() {
           </p>
           {seasonMinutes > 0 ? (
             <div className="mt-3">
-              <ColumnChart columns={columns} label={`Rijtijd per maand in ${year}`} unit="minutes" />
+              <ColumnChart
+                columns={columns}
+                label={`Rijtijd per maand in ${year}`}
+                unit="minutes"
+                color="var(--color-zinc-600)"
+                highlightColor="var(--color-brand-400)"
+              />
             </div>
           ) : (
             <p className="mt-3 text-sm text-zinc-400">Nog geen sessies met een duur dit seizoen.</p>
@@ -409,7 +415,7 @@ export default async function DashboardPage() {
                 return (
                   <li key={item.key}>
                     <Link href={item.href} className={`flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-zinc-800/60 ${focusRing}`}>
-                      <IconTile name={item.icon} tone={tone === "due" ? "red" : tone === "soon" ? "amber" : undefined} color={tone === "ok" ? CHART_COLORS[2] : undefined} size="sm" />
+                      <IconTile name={item.icon} tone={tone === "due" ? "red" : tone === "soon" ? "amber" : undefined} color={tone === "ok" ? "var(--color-brand-400)" : undefined} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline justify-between gap-2">
                           <span className="truncate text-sm font-medium text-zinc-100">

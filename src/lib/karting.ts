@@ -198,11 +198,25 @@ export function decimalInput(value: number | null | undefined, divisor: number):
 }
 
 /** 52345 → "52.345", 62345 → "1:02.345" */
+/** A lap time with a decimal comma, as drivers write it: 48,871 or 1:02,345. */
 export function formatLapTime(ms: number | null): string {
   if (ms === null) return "—";
   const minutes = Math.floor(ms / 60000);
   const seconds = ((ms % 60000) / 1000).toFixed(3);
-  return minutes > 0 ? `${minutes}:${seconds.padStart(6, "0")}` : seconds;
+  return (minutes > 0 ? `${minutes}:${seconds.padStart(6, "0")}` : seconds).replace(".", ",");
+}
+
+/** A time difference in seconds with its sign: +0,214 or −0,084 (a real minus sign). */
+export function formatGapSeconds(ms: number): string {
+  return `${ms < 0 ? "−" : "+"}${(Math.abs(ms) / 1000).toFixed(3).replace(".", ",")}`;
+}
+
+/** Run time as hours and minutes the way a mechanic writes it: 4u48, 41u, 0u22. */
+export function formatHoursMinutes(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m === 0 && h >= 10 ? `${h}u` : `${h}u${String(m).padStart(2, "0")}`;
 }
 
 /** Accepts "52.345", "52,345" or "1:02.345"; returns milliseconds or null when invalid. */

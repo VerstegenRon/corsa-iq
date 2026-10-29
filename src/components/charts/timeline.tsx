@@ -16,8 +16,8 @@ export type TimelineItem = {
 
 export const TIMELINE_KINDS: Record<TimelineItem["kind"], { label: string; color: string }> = {
   event: { label: "Evenement", color: "var(--color-brand-400)" },
-  maintenance: { label: "Onderhoud", color: "var(--chart-4)" },
-  item: { label: "Afspraak", color: "var(--chart-7)" },
+  maintenance: { label: "Onderhoud", color: "var(--color-amber-400)" },
+  item: { label: "Afspraak", color: "var(--color-zinc-400)" },
 };
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";

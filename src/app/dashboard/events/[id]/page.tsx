@@ -50,7 +50,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
     supabase
       .from("events")
       .select(
-        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, city, country, latitude, longitude), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
+        "id, name, type, starts_on, ends_on, notes, season_id, track_id, result_position, pole_lap_ms, tracks(name, city, country, latitude, longitude), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
       )
       .eq("id", id)
       .eq("garage_id", garage.id)

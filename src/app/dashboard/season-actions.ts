@@ -7,7 +7,7 @@ import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
-import { EVENT_TYPES } from "@/lib/karting";
+import { EVENT_TYPES, parseLapTime } from "@/lib/karting";
 import { LOGGER_BUCKET } from "@/lib/storage";
 import type { SessionConditions } from "@/lib/weather";
 
@@ -105,8 +105,24 @@ async function readEvent(supabase: Supabase, garageId: string, formData: FormDat
     trackId = track.id;
   }
 
+  // The result and pole time are only on the form once the event exists (after it was driven).
+  const result: { result_position?: number | null; pole_lap_ms?: number | null } = {};
+  if (formData.has("result_position")) {
+    const position = optionalNumber(formData, "result_position");
+    if (position === undefined || (position !== null && (!Number.isInteger(position) || position < 1))) {
+      return { error: "Vul de uitslag in als een positie: 1, 2, 3…" };
+    }
+    result.result_position = position;
+  }
+  if (formData.has("pole_lap")) {
+    const raw = text(formData, "pole_lap");
+    const pole = raw ? parseLapTime(raw) : null;
+    if (raw && pole === null) return { error: "Schrijf de pole-tijd als 48.871 of 1:02.345." };
+    result.pole_lap_ms = pole;
+  }
+
   return {
-    values: { season_id: text(formData, "season_id"), track_id: trackId, name, type, starts_on: startsOn, ends_on: endsOn },
+    values: { season_id: text(formData, "season_id"), track_id: trackId, name, type, starts_on: startsOn, ends_on: endsOn, ...result },
   };
 }
 

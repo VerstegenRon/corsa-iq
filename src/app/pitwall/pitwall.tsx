@@ -8,7 +8,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { LineChart } from "@/components/charts/line-chart";
-import { CHART_COLORS } from "@/components/charts/palette";
 import { FeedbackField } from "@/components/feedback-field";
 import { LapTimeChart } from "@/components/lap-time-chart";
 import { Icon } from "@/components/icons";
@@ -839,12 +838,12 @@ function TodayPanel({ sessions }: { sessions: DaySession[] }) {
   const delta = previous && last ? last.bestLapMs! - previous.bestLapMs! : null;
   const hasPressures = sessions.some((s) => s.front !== null || s.rear !== null);
   const stats = [
-    { label: "Sessies", value: String(sessions.length), color: CHART_COLORS[0] },
+    { label: "Sessies", value: String(sessions.length), color: "var(--color-zinc-600)" },
     { label: "Snelste", value: best === null ? "—" : formatLapTime(best), color: "var(--color-brand-500)" },
     {
       label: "t.o.v. vorige",
       value: delta === null ? "—" : `${delta <= 0 ? "▼" : "▲"} ${gapFormat.format(Math.abs(delta) / 1000)}`,
-      color: delta === null ? CHART_COLORS[6] : delta <= 0 ? CHART_COLORS[2] : CHART_COLORS[1],
+      color: delta === null ? "var(--color-zinc-600)" : delta <= 0 ? "var(--color-brand-400)" : "var(--color-red-400)",
     },
   ];
 
@@ -887,8 +886,8 @@ function TodayPanel({ sessions }: { sessions: DaySession[] }) {
             format={(v) => pressureFormat.format(v)}
             minRange={0.06}
             series={[
-              { key: "front", label: "Voor (gemiddeld)", color: CHART_COLORS[0], values: sessions.map((s) => s.front) },
-              { key: "rear", label: "Achter (gemiddeld)", color: CHART_COLORS[1], values: sessions.map((s) => s.rear) },
+              { key: "front", label: "Voor (gemiddeld)", color: "var(--color-brand-400)", values: sessions.map((s) => s.front) },
+              { key: "rear", label: "Achter (gemiddeld)", color: "var(--color-zinc-400)", values: sessions.map((s) => s.rear) },
             ]}
           />
         </div>
