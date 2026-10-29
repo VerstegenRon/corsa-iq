@@ -46,6 +46,21 @@ export function LoginForm({ next }: { next?: string }) {
         {t.login.forgotPassword}
       </Link>
 
+      <label className="flex items-start gap-3 text-sm text-zinc-300">
+        <input type="checkbox" name="accept" className="mt-0.5 size-5 shrink-0 accent-brand-400" />
+        <span>
+          {t.login.acceptPrefix}{" "}
+          <Link href="/voorwaarden" target="_blank" className="text-brand-300 underline underline-offset-4">
+            {t.login.acceptTerms}
+          </Link>{" "}
+          {t.login.acceptAnd}{" "}
+          <Link href="/privacy" target="_blank" className="text-brand-300 underline underline-offset-4">
+            {t.login.acceptPrivacy}
+          </Link>
+          . <span className="text-zinc-500">{t.login.acceptHelp}</span>
+        </span>
+      </label>
+
       {state.error && (
         <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {state.error}
