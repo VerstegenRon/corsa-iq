@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
 import { AddSection, EditSection } from "@/components/edit-section";
+import { FeedbackTags } from "@/components/feedback-tags";
 import { cardClass, linkClass } from "@/components/ui";
+import { parseFeedbackTags } from "@/lib/feedback";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import {
@@ -42,7 +44,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
     supabase
       .from("events")
       .select(
-        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, city, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, karts(name), drivers(name), setups(values), session_parts(part_id))",
+        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, city, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
       )
       .eq("id", id)
       .eq("garage_id", garage.id)
@@ -146,6 +148,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                     {session.driver_feedback && (
                       <p className="mt-2 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>
                     )}
+                    <FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} className="mt-2" />
                   </div>
                   <div className="text-left sm:text-right">
                     <p className={`text-lg font-semibold tabular-nums ${isBest ? "text-brand-300" : "text-zinc-100"}`}>

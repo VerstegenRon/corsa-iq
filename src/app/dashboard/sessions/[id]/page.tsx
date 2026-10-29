@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { DeleteButton } from "@/components/delete-button";
 import { EditSection } from "@/components/edit-section";
+import { FeedbackTags } from "@/components/feedback-tags";
 import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
@@ -18,10 +19,12 @@ import {
   toLocalDateTimeInput,
   type SetupValues,
 } from "@/lib/karting";
+import { parseFeedbackTags } from "@/lib/feedback";
 import { formatDelta, summarizeLaps, type EngineLap } from "@/lib/lap-analysis";
 
 import { SessionForm } from "../../events/[id]/session-form";
 import { deleteSession } from "../../season-actions";
+import { FeedbackCard } from "./feedback-card";
 import { EngineAnalysis, SectorAnalysis, SessionComparison, StintAnalysis } from "./lap-insights";
 import { LapImportForm } from "./lap-import-form";
 import { SetupSection, sessionLabel, type SetupSessionInfo } from "./setup-section";
@@ -97,7 +100,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
     supabase
       .from("sessions")
       .select(
-        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, events!inner(id, name, starts_on, track_id, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
+        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, feedback_tags, events!inner(id, name, starts_on, track_id, garage_id), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
       )
       .eq("id", id)
       .eq("events.garage_id", garage.id)
@@ -193,7 +196,6 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
           {session.position !== null && ` · P${session.position}`}
         </p>
         {setup.length > 0 && <p className="mt-1 text-xs text-zinc-500">{setup.join(" · ")}</p>}
-        {session.driver_feedback && <p className="mt-3 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>}
       </section>
 
       <section aria-label="Analyse" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -205,6 +207,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
           </div>
         ))}
       </section>
+
+      <FeedbackCard
+        sessionId={session.id}
+        feedback={session.driver_feedback}
+        tags={<FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} className="mt-4" />}
+      />
 
       {laps.length > 0 && (
         <section aria-labelledby="laps-heading" className={cardClass}>

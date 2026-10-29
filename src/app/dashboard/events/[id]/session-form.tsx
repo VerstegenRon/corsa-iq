@@ -2,6 +2,7 @@
 
 import { useActionState, useRef } from "react";
 
+import { FeedbackField } from "@/components/feedback-field";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { useT } from "@/lib/i18n/client";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
@@ -222,16 +223,7 @@ export function SessionForm({
         </label>
       </fieldset>
 
-      <label className={labelClass}>
-        Gevoel coureur
-        <textarea
-          name="driver_feedback"
-          rows={3}
-          defaultValue={session?.driverFeedback ?? ""}
-          placeholder="Onderstuur in bocht 3, goede tractie uit de haarspeld…"
-          className={`${inputClass} h-auto py-3`}
-        />
-      </label>
+      <FeedbackField defaultValue={session?.driverFeedback} />
 
       <div className="flex flex-col gap-4">
         <FormMessage state={state} />
