@@ -12,6 +12,12 @@ export const fr: Dictionary = {
     themeDark: "Sombre",
   },
   nav: {
+    today: "Aujourd’hui",
+    live: "Live",
+    analysis: "Analyse",
+    setup: "Réglages",
+    seasonMaterial: "Saison & matériel",
+    more: "Plus",
     pitwall: "Muret des stands",
     advice: "Conseils de réglage",
     agenda: "Agenda",

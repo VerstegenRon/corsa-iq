@@ -1,20 +1,66 @@
 @import "tailwindcss";
 
 /*
- * Themes. The UI is written with dark-first Tailwind colours (zinc for neutrals, brand for the
- * CorsaIQ red accent). The light theme re-maps those colour variables instead of adding light: variants to
- * every class: the zinc scale is reversed (zinc-950 background becomes the lightest step), and the
- * light accent and status steps used as text on dark become darker steps, so text keeps its
- * contrast on a light surface. data-theme is set on <html> before paint (see app/layout.tsx).
+ * Corsa IQ, "Niets aan het lot": black, hairlines and three signal colours that each mean one thing.
+ * Volt is you, a gain and the button you press; violet is your reference; red is time or tolerance
+ * you lost; amber is "almost at the limit".
+ *
+ * The UI is written with Tailwind's zinc (neutrals), brand (volt), red (loss), amber (warning) and
+ * emerald (fine) scales. Each theme re-maps those variables, so every page follows without its own
+ * light: or dark: variants. In the light theme the signal colours used as text or lines are darker
+ * steps, so text keeps 4.5:1; volt as a fill (buttons) stays volt in both themes, with black on it.
+ * data-theme is set on <html> before paint (see app/layout.tsx).
  */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #09090b;
-  --foreground: #fafafa;
-  /* Card surface (zinc-900/50 on zinc-950), used where a mark needs a ring in the surface colour. */
-  --chart-surface: #111113;
-  /* Chart series, in this fixed order (checked for colour-blind separation and 3:1 on the card). */
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  /* The panel surface, used where a mark needs a ring in the surface colour. */
+  --chart-surface: #111111;
+
+  /* Neutrals: ground, panel, hairlines, text. */
+  --color-zinc-50: #f5f5f5;
+  --color-zinc-100: #f5f5f5;
+  --color-zinc-200: #e2e2e2;
+  --color-zinc-300: #cfcfcf;
+  --color-zinc-400: #b5b5b5;
+  --color-zinc-500: #8a8a8a;
+  --color-zinc-600: #5a5a5a;
+  --color-zinc-700: #3a3a3a;
+  --color-zinc-800: #262626;
+  --color-zinc-900: #111111;
+  --color-zinc-950: #0a0a0a;
+  --color-white: #f5f5f5;
+
+  /* Volt: you, gains, the primary action. */
+  --color-brand-100: #e5ff66;
+  --color-brand-200: #dcff33;
+  --color-brand-300: #d4ff00;
+  --color-brand-400: #d4ff00;
+  --color-brand-500: #d4ff00;
+  --color-brand-600: #bee600;
+  --color-on-brand: #0a0a0a;
+
+  /* Violet: the reference. */
+  --color-ref: #a08cff;
+
+  /* Loss and warning. */
+  --color-red-200: #ff8a73;
+  --color-red-300: #ff5a3c;
+  --color-red-400: #ff5a3c;
+  --color-red-500: #ff5a3c;
+  --color-red-600: #e8452a;
+  --color-red-700: #c93518;
+  --color-amber-200: #ffc94d;
+  --color-amber-300: #ffb000;
+  --color-amber-400: #ffb000;
+
+  /* "Fine" and "found" states read as volt, the colour of being on target. */
+  --color-emerald-200: #d4ff00;
+  --color-emerald-400: #d4ff00;
+
+  /* Chart series, in this fixed order (checked for colour-blind separation and 3:1 on the panel). */
   --chart-1: #3987e5;
   --chart-2: #d95926;
   --chart-3: #199e70;
@@ -27,10 +73,49 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --background: oklch(98.5% 0 none);
-  --foreground: oklch(14.1% 0.005 285.823);
-  --chart-surface: #f6f6f7;
-  /* The same eight hues stepped for the light card; some are below 3:1, so charts label their values. */
+  --background: #f4f4f2;
+  --foreground: #0a0a0a;
+  --chart-surface: #ffffff;
+
+  /* Neutrals reversed: zinc-950 is the ground, zinc-900 the panel, zinc-50 the strongest text. */
+  --color-zinc-50: #0a0a0a;
+  --color-zinc-100: #0a0a0a;
+  --color-zinc-200: #1f1f1f;
+  --color-zinc-300: #333333;
+  --color-zinc-400: #474747;
+  --color-zinc-500: #5c5c5c;
+  --color-zinc-600: #8a8a8a;
+  --color-zinc-700: #b5b5b0;
+  --color-zinc-800: #d6d6d3;
+  --color-zinc-900: #ffffff;
+  --color-zinc-950: #f4f4f2;
+  --color-white: #0a0a0a;
+
+  /* Volt as text and lines is a deep olive on light; as a fill it stays volt with black text. */
+  --color-brand-100: #3d4a00;
+  --color-brand-200: #455400;
+  --color-brand-300: #4d5c00;
+  --color-brand-400: #5f7300;
+  --color-brand-500: #d4ff00;
+  --color-brand-600: #c2eb00;
+  --color-on-brand: #0a0a0a;
+
+  --color-ref: #5b46d6;
+
+  --color-red-200: #9e2810;
+  --color-red-300: #b42d14;
+  --color-red-400: #d23a1e;
+  --color-red-500: #e8452a;
+  --color-red-600: #d23a1e;
+  --color-red-700: #b42d14;
+  --color-amber-200: #6e4800;
+  --color-amber-300: #855800;
+  --color-amber-400: #b87a00;
+
+  --color-emerald-200: #4d5c00;
+  --color-emerald-400: #5f7300;
+
+  /* The same eight hues stepped for a light panel; some are below 3:1, so charts label their values. */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
   --chart-3: #1baf7a;
@@ -39,67 +124,83 @@
   --chart-6: #008300;
   --chart-7: #6250d6;
   --chart-8: #e34948;
-
-  /* Neutrals: the zinc scale reversed. */
-  --color-zinc-50: oklch(14.1% 0.005 285.823);
-  --color-zinc-100: oklch(21% 0.006 285.885);
-  --color-zinc-200: oklch(27.4% 0.006 286.033);
-  --color-zinc-300: oklch(37% 0.013 285.805);
-  --color-zinc-400: oklch(44.2% 0.017 285.786);
-  /* Muted text: a touch darker than zinc-500, so small notes reach 4.5:1 on the light card surface. */
-  --color-zinc-500: oklch(51% 0.016 285.938);
-  --color-zinc-600: oklch(70.5% 0.015 286.067);
-  --color-zinc-700: oklch(87.1% 0.006 286.286);
-  --color-zinc-800: oklch(92% 0.004 286.32);
-  --color-zinc-900: oklch(96.7% 0.001 286.375);
-  --color-zinc-950: oklch(98.5% 0 none);
-  /* "text-white" is the strongest text on dark; on light that is near-black. */
-  --color-white: oklch(14.1% 0.005 285.823);
-
-  /* Brand: the light reds used as text and lines on dark become deep reds on light. Buttons
-   (brand-500/600 with white text) stay the same in both themes. */
-  --color-brand-100: #7f1d1d;
-  --color-brand-200: #991b1b;
-  --color-brand-300: #b91c1c;
-  --color-brand-400: #dc2626;
-
-  /* Status text: errors and warnings in darker steps. */
-  --color-red-200: oklch(44.4% 0.177 26.899);
-  --color-red-300: oklch(50.5% 0.213 27.518);
-  --color-red-400: oklch(57.7% 0.245 27.325);
-  --color-amber-200: oklch(47.3% 0.137 46.201);
-  --color-amber-300: oklch(55.5% 0.163 48.998);
-  --color-amber-400: oklch(66.6% 0.179 58.318);
-  --color-emerald-200: oklch(43.2% 0.095 166.913);
-  --color-emerald-400: oklch(59.6% 0.145 163.225);
 }
 
-/*
- * CorsaIQ house colours: red, black and white. Text steps (100-300) are for dark surfaces,
- * brand-400 for lines, bars, borders and focus rings, brand-500/600 for filled buttons with
- * on-brand (white) text; each pair is checked for contrast against its surface in both themes.
- * Red also marks errors and overdue maintenance, so "fine" states (ok meters, success
- * messages) use neutrals rather than the accent.
- */
 @theme {
-  --color-brand-100: #fecaca;
-  --color-brand-200: #fca5a5;
-  --color-brand-300: #f87171;
-  --color-brand-400: #ef4444;
-  --color-brand-500: #dc2626;
-  --color-brand-600: #b91c1c;
-  --color-on-brand: #ffffff;
+  --color-brand-100: #e5ff66;
+  --color-brand-200: #dcff33;
+  --color-brand-300: #d4ff00;
+  --color-brand-400: #d4ff00;
+  --color-brand-500: #d4ff00;
+  --color-brand-600: #bee600;
+  --color-on-brand: #0a0a0a;
+  --color-ref: #a08cff;
+
+  /* Square corners everywhere. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter-tight), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-unbounded), var(--font-inter-tight), sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Pills became squares too: the design has no round shapes outside charts. */
+.rounded-full {
+  border-radius: 0;
+}
+
+/* Page titles: Unbounded, upper case, tight. */
+h1 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+/* Every number in a column or a figure is set in the mono face. */
+.tabular-nums {
+  font-family: var(--font-mono);
+}
+
+/* Crop marks: an L of volt on the top left of a panel. */
+.crop {
+  position: relative;
+}
+.crop::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 14px;
+  height: 14px;
+  border-left: 2px solid var(--color-brand-400);
+  border-top: 2px solid var(--color-brand-400);
+  pointer-events: none;
+}
+
+/* Small upper-case channel labels: "CH.01 SNELHEID [KM/U]". */
+.channel-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-zinc-500);
 }

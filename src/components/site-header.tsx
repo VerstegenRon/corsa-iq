@@ -28,8 +28,8 @@ export function SiteHeader({ t, current, signedIn }: { t: Dictionary; current: S
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-800/60 bg-zinc-950/85 backdrop-blur">
       <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className={`text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase ${focusRing}`}>
-          CorsaIQ
+        <Link href="/" className={`font-display text-lg font-black tracking-tight text-zinc-50 ${focusRing}`}>
+          CORSA<span className="text-brand-400">/</span>IQ
         </Link>
 
         <nav aria-label={t.home.navLabel} className="hidden items-center gap-1 text-sm md:flex">

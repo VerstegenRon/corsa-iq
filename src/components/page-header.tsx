@@ -5,7 +5,11 @@ import { Icon, IconTile, type IconName } from "@/components/icons";
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
-/** Icon, title and one short line, with an optional "+" that opens the page's add form. */
+/**
+ * A short line as a channel label, then the title: upper case, ending on a volt full stop (or a volt
+ * question mark when it asks one). An optional "+" opens the page's add form. The icon is kept for
+ * screen-reader-free callers but no longer drawn: the design has none in headings.
+ */
 export function PageHeader({
   icon,
   title,
@@ -21,17 +25,22 @@ export function PageHeader({
   /** Id of the AddSection the "+" opens, when a page has more than one. */
   addId?: string;
 }) {
+  void icon;
+  const question = title.trim().endsWith("?");
+  const text = question ? title.trim().slice(0, -1) : title;
   return (
-    <section className="flex items-center gap-4">
-      <IconTile name={icon} size="lg" />
+    <section className="flex items-end gap-4">
       <div className="min-w-0 flex-1">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
-        {subtitle && <p className="mt-0.5 truncate text-sm text-zinc-400">{subtitle}</p>}
+        {subtitle && <p className="channel-label mb-2 truncate">{subtitle}</p>}
+        <h1 className="text-3xl break-words sm:text-4xl">
+          {text}
+          <span className="text-brand-400">{question ? "?" : "."}</span>
+        </h1>
       </div>
       {add && (
         <AddButton
           targetId={addId}
-          className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-brand-500 px-4 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-600 ${focusRing}`}
+          className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 bg-brand-500 px-4 text-sm font-bold text-on-brand transition-colors hover:bg-brand-600 ${focusRing}`}
         >
           <Icon name="plus" className="size-4" />
           <span>{add}</span>

@@ -491,7 +491,9 @@ function PitwallShell({ online, waiting, children }: { online: boolean; waiting:
     <div className="flex min-h-full flex-1 flex-col bg-zinc-950 text-zinc-50">
       <header className="border-b-2 border-zinc-800">
         <div className="mx-auto flex w-full max-w-xl items-center gap-3 px-4 py-3">
-          <span className="text-base font-bold tracking-[0.2em] text-brand-300 uppercase">Pitwall</span>
+          <span className="font-display text-base font-black tracking-tight text-zinc-50">
+            CORSA<span className="text-brand-400">/</span>IQ <span className="font-sans text-xs font-bold tracking-widest text-zinc-400">LIVE</span>
+          </span>
           <ConnectionBadge online={online} waiting={waiting} />
           <a
             href="/dashboard"
