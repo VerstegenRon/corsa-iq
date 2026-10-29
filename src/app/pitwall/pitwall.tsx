@@ -10,6 +10,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { FeedbackField } from "@/components/feedback-field";
 import { Icon } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
+import { nearestTrack, NEAREST_TRACK_MAX_KM } from "@/lib/geo";
 import { formatDate, type SetupValues } from "@/lib/karting";
 import { PITWALL_EVENTS_KEY, PITWALL_QUEUE_KEY, PITWALL_SETUP_FIELDS, type NewEvent, type QueuedSession } from "@/lib/pitwall";
 import { getSetupValue, inputSetupValue, type SetupField } from "@/lib/setup";
@@ -17,7 +18,7 @@ import { getSetupValue, inputSetupValue, type SetupField } from "@/lib/setup";
 export type PitwallEvent = { id: string; label: string; isToday: boolean };
 export type KartDefaults = { driverId: string; durationMin: number | null; setup: SetupValues | null };
 type Option = { id: string; label: string };
-type Track = Option & { name: string };
+type Track = Option & { name: string; latitude: number | null; longitude: number | null };
 /** An event made here that the server may not have yet. */
 type LocalEvent = PitwallEvent & { newEvent: NewEvent };
 
@@ -332,6 +333,7 @@ export function Pitwall({
             </p>
           ) : (
             <>
+              <LocateTrack tracks={tracks} onFound={setNewTrackId} />
               <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
                 Circuit
                 <select value={newTrackId} onChange={(e) => setNewTrackId(e.target.value)} className={bigInputClass}>
@@ -663,6 +665,71 @@ function BigStepper({
           <Icon name="plus" className="size-6" />
         </button>
       </div>
+    </div>
+  );
+}
+
+const GEO_ERRORS: Record<number, string> = {
+  1: "Geef de browser toegang tot je locatie, of kies het circuit uit de lijst.",
+  2: "Je locatie is nu niet te bepalen. Kies het circuit uit de lijst.",
+  3: "Je locatie bepalen duurde te lang. Probeer het opnieuw of kies uit de lijst.",
+};
+
+/**
+ * Picks the circuit you are standing at from the phone's GPS, which needs no signal. Asks for the
+ * location only on a tap, or by itself when the browser already has permission.
+ */
+function LocateTrack({ tracks, onFound }: { tracks: Track[]; onFound: (trackId: string) => void }) {
+  const [state, setState] = useState<{ tone: "busy" | "ok" | "error"; text: string } | null>(null);
+  const [supported, setSupported] = useState(false);
+
+  const locate = useCallback(() => {
+    setState({ tone: "busy", text: "Locatie bepalen…" });
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const found = nearestTrack(tracks, coords);
+        if (!found) {
+          setState({ tone: "error", text: `Geen bekend circuit binnen ${NEAREST_TRACK_MAX_KM} km. Kies het uit de lijst.` });
+          return;
+        }
+        onFound(found.track.id);
+        const km = found.km < 1 ? "minder dan 1 km" : `${found.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`;
+        setState({ tone: "ok", text: `Gevonden: ${found.track.name} (${km})` });
+      },
+      (error) => setState({ tone: "error", text: GEO_ERRORS[error.code] ?? GEO_ERRORS[2] }),
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 5 * 60_000 },
+    );
+  }, [tracks, onFound]);
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupported(true);
+    navigator.permissions
+      ?.query({ name: "geolocation" })
+      .then((status) => {
+        if (status.state === "granted") locate();
+      })
+      .catch(() => {});
+  }, [locate]);
+
+  if (!supported) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={locate}
+        disabled={state?.tone === "busy"}
+        className={`inline-flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-brand-400/70 text-base font-semibold text-zinc-50 disabled:opacity-60 ${focusRing}`}
+      >
+        <Icon name="pin" className="size-5 text-brand-300" />
+        {state?.tone === "busy" ? "Locatie bepalen…" : "Circuit zoeken via GPS"}
+      </button>
+      {state && state.tone !== "busy" && (
+        <p role="status" className={`text-base ${state.tone === "ok" ? "text-emerald-200" : "text-amber-200"}`}>
+          {state.text}
+        </p>
+      )}
     </div>
   );
 }
