@@ -7,7 +7,10 @@ import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import { countryName, formatDate, formatLapTime, labelFor, type SetupValues } from "@/lib/karting";
+import { findInsights } from "@/lib/setup-advisor";
 
+import { ExplainButton } from "../../advice/explain-button";
+import { InsightList, NoInsights } from "../../advice/insight-list";
 import { deleteTrack } from "../../track-actions";
 import { TrackForm } from "../track-form";
 import { SetupComparison, type ComparedSession } from "./setup-comparison";
@@ -15,6 +18,9 @@ import { SetupComparison, type ComparedSession } from "./setup-comparison";
 export const metadata: Metadata = {
   title: "Circuit — CorsaIQ",
 };
+
+/** The strongest findings on the circuit page; the advice page has the rest. */
+const ADVICE_SHOWN = 5;
 
 export default async function TrackPage({ params, searchParams }: PageProps<"/dashboard/tracks/[id]">) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
@@ -57,6 +63,8 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/da
     conditions: s.conditions as ComparedSession["conditions"],
     setup: (s.setups?.values ?? {}) as SetupValues,
   }));
+  const insights = findInsights(setupSessions.map((s) => ({ ...s, trackId: track.id, trackName: track.name })));
+  const showKart = new Set(setupSessions.map((s) => s.kart?.id)).size > 1;
   const bestEver = events.reduce<number | null>((best, e) => (e.best !== null && (best === null || e.best < best) ? e.best : best), null);
 
   return (
@@ -112,6 +120,35 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/da
           </ul>
         )}
       </section>
+
+      {setupSessions.length > 0 && (
+        <section aria-labelledby="advice-heading" className={cardClass}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="advice-heading" className="text-lg font-semibold">
+              Advies voor setup
+            </h2>
+            {insights.length > ADVICE_SHOWN && (
+              <Link href={`/dashboard/advice?track=${track.id}`} className={`${linkClass} text-sm`}>
+                Alle {insights.length} verbanden
+              </Link>
+            )}
+          </div>
+          {insights.length === 0 ? (
+            <div className="mt-2">
+              <NoInsights />
+            </div>
+          ) : (
+            <>
+              <div className="mt-2">
+                <InsightList insights={insights.slice(0, ADVICE_SHOWN)} showTrack={false} showKart={showKart} />
+              </div>
+              <div className="mt-4">
+                <ExplainButton trackId={track.id} />
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       {setupSessions.length > 0 && (
         <SetupComparison trackId={track.id} sessions={setupSessions} weather={weather} kartId={kartId} t={t} />

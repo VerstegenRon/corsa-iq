@@ -13,6 +13,7 @@ export const fr: Dictionary = {
   },
   nav: {
     pitwall: "Muret des stands",
+    advice: "Conseils de réglage",
     tracks: "Circuits",
     drivers: "Pilotes",
     karts: "Karts",
