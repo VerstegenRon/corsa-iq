@@ -12,6 +12,7 @@ export const en: Dictionary = {
     themeDark: "Dark",
   },
   nav: {
+    overview: "Overview",
     today: "Today",
     live: "Live",
     analysis: "Analysis",

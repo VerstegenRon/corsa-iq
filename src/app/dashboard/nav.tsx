@@ -20,7 +20,7 @@ type NavKey = keyof Dictionary["nav"];
 type Destination = { key: NavKey; href: string; icon: IconName; also?: string[]; exact?: boolean; plain?: boolean; phone: boolean };
 
 const DESTINATIONS: Destination[] = [
-  { key: "today", href: "/dashboard", icon: "check", exact: true, phone: true },
+  { key: "today", href: "/dashboard/vandaag", icon: "check", phone: true },
   { key: "live", href: "/pitwall", icon: "stopwatch", plain: true, phone: true },
   { key: "analysis", href: "/dashboard/analyse", icon: "gauge", also: ["/dashboard/sessions"], phone: true },
   { key: "setup", href: "/dashboard/setups", icon: "compare", phone: true },
@@ -32,6 +32,7 @@ const MORE: { key: NavKey; items: { href: string; key: NavKey; icon: IconName }[
   {
     key: "groupRacing",
     items: [
+      { href: "/dashboard", key: "overview", icon: "home" },
       { href: "/dashboard/seasons", key: "seasons", icon: "calendar" },
       { href: "/dashboard/agenda", key: "agenda", icon: "agenda" },
       { href: "/dashboard/tracks", key: "tracks", icon: "flag" },
@@ -139,7 +140,14 @@ export function MoreMenu({ signOut }: { signOut: () => Promise<void> }) {
   const isOpen = openOn === pathname;
   const groups = MORE.map((group) => ({
     key: group.key,
-    links: sortByLabel(group.items.map((item) => ({ ...item, label: t.nav[item.key], isActive: pathname.startsWith(item.href) }))),
+    links: sortByLabel(
+      group.items.map((item) => ({
+        ...item,
+        label: t.nav[item.key],
+        // The overview is /dashboard itself; every other page lives under it.
+        isActive: item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href),
+      })),
+    ),
   }));
   const tile = (active: boolean) =>
     `flex min-h-14 items-center gap-3 border px-3 text-sm transition-colors ${focusRing} ${
