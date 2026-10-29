@@ -145,6 +145,186 @@ export type Database = {
           },
         ]
       }
+      prestart_checks: {
+        Row: {
+          created_at: string
+          event_id: string
+          garage_id: string
+          id: string
+          kart_id: string
+          locked_at: string | null
+          locked_by: string | null
+          session_id: string | null
+          session_label: string
+          session_type: string | null
+          setup_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          garage_id: string
+          id?: string
+          kart_id: string
+          locked_at?: string | null
+          locked_by?: string | null
+          session_id?: string | null
+          session_label: string
+          session_type?: string | null
+          setup_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          garage_id?: string
+          id?: string
+          kart_id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          session_id?: string | null
+          session_label?: string
+          session_type?: string | null
+          setup_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prestart_checks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prestart_checks_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prestart_checks_kart_id_fkey"
+            columns: ["kart_id"]
+            isOneToOne: false
+            referencedRelation: "karts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prestart_checks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prestart_checks_setup_id_fkey"
+            columns: ["setup_id"]
+            isOneToOne: false
+            referencedRelation: "setups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_checks: {
+        Row: {
+          checked_at: string
+          checked_by: string | null
+          garage_id: string
+          id: string
+          key: string
+          prestart_check_id: string
+          status: string
+          target: string | null
+          tolerance: number | null
+          value: string | null
+        }
+        Insert: {
+          checked_at?: string
+          checked_by?: string | null
+          garage_id: string
+          id?: string
+          key: string
+          prestart_check_id: string
+          status?: string
+          target?: string | null
+          tolerance?: number | null
+          value?: string | null
+        }
+        Update: {
+          checked_at?: string
+          checked_by?: string | null
+          garage_id?: string
+          id?: string
+          key?: string
+          prestart_check_id?: string
+          status?: string
+          target?: string | null
+          tolerance?: number | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_checks_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_checks_prestart_check_id_fkey"
+            columns: ["prestart_check_id"]
+            isOneToOne: false
+            referencedRelation: "prestart_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tyre_pressure_readings: {
+        Row: {
+          bar: number
+          corner: string
+          garage_id: string
+          id: string
+          measured_at: string
+          measured_by: string | null
+          prestart_check_id: string
+          temp_state: string
+        }
+        Insert: {
+          bar: number
+          corner: string
+          garage_id: string
+          id?: string
+          measured_at?: string
+          measured_by?: string | null
+          prestart_check_id: string
+          temp_state?: string
+        }
+        Update: {
+          bar?: number
+          corner?: string
+          garage_id?: string
+          id?: string
+          measured_at?: string
+          measured_by?: string | null
+          prestart_check_id?: string
+          temp_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tyre_pressure_readings_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tyre_pressure_readings_prestart_check_id_fkey"
+            columns: ["prestart_check_id"]
+            isOneToOne: false
+            referencedRelation: "prestart_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_imports: {
         Row: {
           channel_summary: Json | null
@@ -1113,6 +1293,8 @@ export type Database = {
           created_at: string
           garage_id: string
           id: string
+          locked_at: string | null
+          locked_by: string | null
           parent_setup_id: string | null
           template_id: string | null
           values: Json
@@ -1121,6 +1303,8 @@ export type Database = {
           created_at?: string
           garage_id: string
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           parent_setup_id?: string | null
           template_id?: string | null
           values?: Json
@@ -1129,6 +1313,8 @@ export type Database = {
           created_at?: string
           garage_id?: string
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           parent_setup_id?: string | null
           template_id?: string | null
           values?: Json

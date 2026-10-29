@@ -187,6 +187,19 @@ export async function insertSession(
     .single();
   if (error) return { error: `Sessie opslaan mislukt: ${error.message}` };
 
+  // The pre-start round of this session ("Klaar voor Q1?") now belongs to the session that was driven.
+  const { data: round } = await supabase
+    .from("prestart_checks")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("kart_id", kartId)
+    .eq("session_type", values.type)
+    .is("session_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (round) await supabase.from("prestart_checks").update({ session_id: inserted.id }).eq("id", round.id);
+
   // Record which parts ran: everything mounted on the kart right now. This drives run time per part.
   const { data: mounted } = await supabase
     .from("part_installations")

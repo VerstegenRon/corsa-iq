@@ -29,6 +29,7 @@ export const nl = {
     themeDark: "Donker",
   },
   nav: {
+    overview: "Overzicht",
     today: "Vandaag",
     live: "Live",
     analysis: "Analyse",

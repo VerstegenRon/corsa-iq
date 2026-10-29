@@ -5,8 +5,9 @@ import { PageHeader } from "@/components/page-header";
 import { cardClass, inputClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
-import { formatDate, formatGapSeconds, labelFor, type SetupValues } from "@/lib/karting";
-import { buildTree, compareRows, type Version } from "@/lib/setup-tree";
+import { formatDate, formatGapSeconds, labelFor } from "@/lib/karting";
+import { compareRows, type Version } from "@/lib/setup-tree";
+import { loadSetupTree } from "@/lib/setup-tree-data";
 
 import { SetupGraph } from "./setup-graph";
 
@@ -33,42 +34,7 @@ export default async function SetupsPage({ searchParams }: PageProps<"/dashboard
   const query = await searchParams;
   const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
 
-  const [sessionsResult, setupsResult] = await Promise.all([
-    supabase
-      .from("sessions")
-      .select("id, type, started_at, best_lap_ms, conditions, setup_id, karts(id, name), events!inner(name, garage_id, tracks(name))")
-      .eq("events.garage_id", garage.id)
-      .not("setup_id", "is", null)
-      .order("started_at", { ascending: false }),
-    supabase.from("setups").select("id, parent_setup_id, values, created_at").eq("garage_id", garage.id),
-  ]);
-  const sessions = sessionsResult.data ?? [];
-  const karts = [...new Map(sessions.flatMap((s) => (s.karts ? [[s.karts.id, s.karts.name] as const] : []))).entries()];
-  const kartId = karts.find(([id]) => id === query.kart)?.[0] ?? karts[0]?.[0] ?? null;
-  const own = sessions.filter((s) => s.karts?.id === kartId);
-
-  // The kart's setups and what they were derived from.
-  const all = new Map((setupsResult.data ?? []).map((s) => [s.id, s]));
-  const ids = new Set<string>();
-  for (const s of own) {
-    for (let id: string | null = s.setup_id; id && !ids.has(id); id = all.get(id)?.parent_setup_id ?? null) ids.add(id);
-  }
-  const versions = buildTree(
-    [...ids].flatMap((id) => {
-      const s = all.get(id);
-      return s ? [{ id: s.id, parentId: s.parent_setup_id, createdAt: s.created_at, values: (s.values ?? {}) as SetupValues }] : [];
-    }),
-    own.map((s) => ({
-      id: s.id,
-      setupId: s.setup_id!,
-      type: s.type,
-      startedAt: s.started_at,
-      bestLapMs: s.best_lap_ms,
-      wet: (s.conditions as { weather?: string } | null)?.weather === "wet",
-      eventName: s.events.name,
-      trackName: s.events.tracks?.name ?? null,
-    })),
-  );
+  const { karts, kartId, versions, trackName: track } = await loadSetupTree(supabase, garage.id, typeof query.kart === "string" ? query.kart : null);
   const newestFirst = [...versions].reverse();
   const fastest = versions.find((v) => v.isFastest);
   const current = versions.find((v) => v.isCurrent);
@@ -76,7 +42,6 @@ export default async function SetupsPage({ searchParams }: PageProps<"/dashboard
   const b = versions.find((v) => v.label === query.b) ?? current ?? versions.at(-1);
   const rows = a && b ? compareRows(a.values, b.values) : [];
   const kartName = karts.find(([id]) => id === kartId)?.[1];
-  const track = own[0]?.events.tracks?.name;
 
   const meta = (v: Version) => {
     const last = v.sessions.at(-1);
