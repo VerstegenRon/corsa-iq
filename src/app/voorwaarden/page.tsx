@@ -3,13 +3,13 @@ import Link from "next/link";
 
 import { LegalPage } from "@/components/legal-page";
 import { getLocale } from "@/lib/i18n/server";
-import { COMPANY, LEGAL_VERSION, LEGAL_VERSION_EN, MIN_ACCOUNT_AGE } from "@/lib/legal";
+import { COMPANY, LEGAL_REVIEWED, LEGAL_VERSION, LEGAL_VERSION_EN, MIN_ACCOUNT_AGE } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Voorwaarden — Corsa IQ",
 };
 
-const draft = COMPANY.name.startsWith("[");
+const draft = !LEGAL_REVIEWED;
 
 function Dutch() {
   return (
@@ -110,7 +110,7 @@ function Dutch() {
         <h2>10. Wijzigingen en recht</h2>
         <p>
           We kunnen deze voorwaarden wijzigen; bij belangrijke wijzigingen laten we het je vooraf weten. Op deze voorwaarden is Nederlands recht van toepassing.
-          Geschillen leggen we voor aan de {COMPANY.court}, tenzij de wet een andere rechter aanwijst. Vragen? Mail {COMPANY.email}.
+          Geschillen leggen we voor aan de {COMPANY.court} (’s-Hertogenbosch), tenzij de wet een andere rechter aanwijst. Vragen? Mail {COMPANY.email}.
         </p>
       </section>
     </>
@@ -212,7 +212,7 @@ function English() {
       <section>
         <h2>10. Changes and law</h2>
         <p>
-          We may change these terms; for important changes we tell you in advance. Dutch law applies to these terms. Disputes go to the {COMPANY.court} in the
+          We may change these terms; for important changes we tell you in advance. Dutch law applies to these terms. Disputes go to the {COMPANY.court} (’s-Hertogenbosch) in the
           Netherlands, unless the law points to another court. Questions? E-mail {COMPANY.email}.
         </p>
       </section>
@@ -229,7 +229,7 @@ export default async function TermsPage({ searchParams }: PageProps<"/voorwaarde
       title="Terms of use"
       version={`Version ${LEGAL_VERSION_EN} · translation; the Dutch text is binding`}
       switchTo={{ href: "/voorwaarden?lang=nl", label: "Nederlands" }}
-      draftNotice={draft ? "Draft: the company details are still to be filled in and the text is to be reviewed." : undefined}
+      draftNotice={draft ? "Draft: this text is still being reviewed." : undefined}
     >
       <English />
     </LegalPage>
@@ -238,7 +238,7 @@ export default async function TermsPage({ searchParams }: PageProps<"/voorwaarde
       title="Voorwaarden"
       version={`Versie ${LEGAL_VERSION}`}
       switchTo={{ href: "/voorwaarden?lang=en", label: "English" }}
-      draftNotice={draft ? "Concept: de bedrijfsgegevens moeten nog worden ingevuld en de tekst moet nog worden nagekeken." : undefined}
+      draftNotice={draft ? "Concept: deze tekst wordt nog juridisch nagekeken." : undefined}
     >
       <Dutch />
     </LegalPage>

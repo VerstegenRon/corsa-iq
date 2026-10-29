@@ -1,15 +1,17 @@
-// Who offers Corsa IQ, for the privacy statement and the terms. One place to fill in; the pages show
-// a placeholder in brackets until it is.
+// Who offers Corsa IQ, for the privacy statement and the terms.
 
 export const COMPANY = {
-  name: "[BEDRIJFSNAAM]",
-  legalForm: "[RECHTSVORM]",
-  kvk: "[KVK-NUMMER]",
-  address: "[ADRES, POSTCODE PLAATS]",
-  email: "[E-MAILADRES VOOR PRIVACYVRAGEN]",
-  /** The district court for disputes, usually the one of the company's seat. */
-  court: "[RECHTBANK]",
+  name: "Corsa Events",
+  legalForm: "eenmanszaak",
+  kvk: "67676715",
+  address: "Laan van Selis 102, 5283 PG Boxtel",
+  email: "privacy@corsaiq.com",
+  /** The district court for disputes: the one of the company's seat (Boxtel). */
+  court: "Rechtbank Oost-Brabant",
 };
+
+/** Set to true once a lawyer has reviewed both texts; until then the pages say they are a draft. */
+export const LEGAL_REVIEWED = false;
 
 /** Date of the current version of both texts; change it with every change of content. */
 export const LEGAL_VERSION = "29 oktober 2026";

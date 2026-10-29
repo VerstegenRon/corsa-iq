@@ -3,13 +3,13 @@ import Link from "next/link";
 
 import { LegalPage } from "@/components/legal-page";
 import { getLocale } from "@/lib/i18n/server";
-import { COMPANY, LEGAL_VERSION, LEGAL_VERSION_EN, MIN_ACCOUNT_AGE, PROCESSORS } from "@/lib/legal";
+import { COMPANY, LEGAL_REVIEWED, LEGAL_VERSION, LEGAL_VERSION_EN, MIN_ACCOUNT_AGE, PROCESSORS } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy — Corsa IQ",
 };
 
-const draft = COMPANY.name.startsWith("[");
+const draft = !LEGAL_REVIEWED;
 
 function Dutch() {
   return (
@@ -274,7 +274,7 @@ export default async function PrivacyPage({ searchParams }: PageProps<"/privacy"
       title="Privacy statement"
       version={`Version ${LEGAL_VERSION_EN} · translation; the Dutch text is binding`}
       switchTo={{ href: "/privacy?lang=nl", label: "Nederlands" }}
-      draftNotice={draft ? "Draft: the company details are still to be filled in and the text is to be reviewed." : undefined}
+      draftNotice={draft ? "Draft: this text is still being reviewed." : undefined}
     >
       <English />
     </LegalPage>
@@ -283,7 +283,7 @@ export default async function PrivacyPage({ searchParams }: PageProps<"/privacy"
       title="Privacyverklaring"
       version={`Versie ${LEGAL_VERSION}`}
       switchTo={{ href: "/privacy?lang=en", label: "English" }}
-      draftNotice={draft ? "Concept: de bedrijfsgegevens moeten nog worden ingevuld en de tekst moet nog worden nagekeken." : undefined}
+      draftNotice={draft ? "Concept: deze tekst wordt nog juridisch nagekeken." : undefined}
     >
       <Dutch />
     </LegalPage>
