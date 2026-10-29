@@ -52,7 +52,7 @@ function addDays(date: string, days: number) {
 }
 
 export default async function DashboardPage() {
-  const [{ supabase, user, garage, canSeeCosts }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, user, garage, canSeeCosts, canManageTeam }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   const today = todayInAmsterdam();
   const horizon = addDays(today, TIMELINE_DAYS);
   const o = t.overview;
@@ -263,8 +263,22 @@ export default async function DashboardPage() {
     { href: "/dashboard/gear", label: `${gearCount.count ?? 0} × uitrusting` },
   ];
 
+  // A new garage: no kart or no event yet. The start route sets both up.
+  const isNew = canManageTeam && ((karts.count ?? 0) === 0 || (!nextEvent && !lastEvent.data));
+
   return (
     <>
+      {isNew && (
+        <section aria-label="Aan de slag" className="crop flex flex-wrap items-center justify-between gap-4 bg-brand-500 p-5 text-on-brand sm:p-6">
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] font-bold tracking-[0.1em] uppercase opacity-70">Aan de slag</p>
+            <p className="mt-1 text-lg font-bold">Zet in vier korte stappen je team, coureur, kart en eerste evenement klaar.</p>
+          </div>
+          <Link href="/dashboard/start" className="inline-flex min-h-12 items-center border-2 border-current px-5 font-bold">
+            Beginnen
+          </Link>
+        </section>
+      )}
       <section>
         <p className="text-sm text-zinc-500">{garage.name}</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">

@@ -35,16 +35,18 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
       return { error: format(t.passwordTooShort, { min: MIN_PASSWORD_LENGTH }), email };
     }
 
+    // A new account starts with the start route, unless it came for something else (an invitation).
+    const target = next === "/dashboard" ? "/dashboard/start" : next;
     const origin = (await headers()).get("origin") ?? "";
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}` },
+      options: { emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(target)}` },
     });
 
     if (error) return { error: error.message, email };
     // Email confirmation disabled in Supabase: the user is signed in right away.
-    if (data.session) redirect(next);
+    if (data.session) redirect(target);
 
     return { message: t.signUpDone, email };
   }
