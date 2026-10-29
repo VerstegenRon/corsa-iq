@@ -9,16 +9,31 @@ import { useT } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { sortByLabel } from "@/lib/karting";
 
-type NavItem = { href: string; key: keyof Dictionary["nav"]; icon: IconName; also?: string[] };
+const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
-// Grouped by what you are doing; A–Z within a group. The overview has no tab: the CorsaIQ logo is the
-// home link.
-const groups: { key: keyof Dictionary["nav"]; items: NavItem[] }[] = [
+type NavKey = keyof Dictionary["nav"];
+
+/**
+ * The four places you go to most, plus the season: on a phone as a bar at the bottom, on a tablet
+ * and desktop in the header. Live is the pitwall, a plain link so its service worker sees the load.
+ */
+type Destination = { key: NavKey; href: string; icon: IconName; also?: string[]; exact?: boolean; plain?: boolean; phone: boolean };
+
+const DESTINATIONS: Destination[] = [
+  { key: "today", href: "/dashboard", icon: "check", exact: true, phone: true },
+  { key: "live", href: "/pitwall", icon: "stopwatch", plain: true, phone: true },
+  { key: "analysis", href: "/dashboard/analyse", icon: "gauge", also: ["/dashboard/sessions"], phone: true },
+  { key: "setup", href: "/dashboard/advice", icon: "compare", phone: true },
+  { key: "seasonMaterial", href: "/dashboard/seasons", icon: "calendar", also: ["/dashboard/events"], phone: false },
+];
+
+// Everything else, grouped by what you are doing; A–Z within a group.
+const MORE: { key: NavKey; items: { href: string; key: NavKey; icon: IconName }[] }[] = [
   {
     key: "groupRacing",
     items: [
+      { href: "/dashboard/seasons", key: "seasons", icon: "calendar" },
       { href: "/dashboard/agenda", key: "agenda", icon: "agenda" },
-      { href: "/dashboard/seasons", key: "seasons", icon: "calendar", also: ["/dashboard/events", "/dashboard/sessions"] },
       { href: "/dashboard/tracks", key: "tracks", icon: "flag" },
       { href: "/dashboard/advice", key: "advice", icon: "target" },
       { href: "/dashboard/drivers", key: "drivers", icon: "user" },
@@ -36,25 +51,12 @@ const groups: { key: keyof Dictionary["nav"]; items: NavItem[] }[] = [
   { key: "groupFinance", items: [{ href: "/dashboard/costs", key: "costs", icon: "euro" }] },
 ];
 
-function useNavGroups() {
-  const t = useT();
-  const pathname = usePathname();
-  return groups.map((group) => ({
-    key: group.key,
-    label: t.nav[group.key],
-    links: sortByLabel(
-      group.items.map((item) => ({
-        ...item,
-        label: t.nav[item.key],
-        isActive: [item.href, ...(item.also ?? [])].some((prefix) => pathname.startsWith(prefix)),
-      })),
-    ),
-  }));
+function isActive(pathname: string, d: Destination) {
+  if (d.exact) return pathname === d.href;
+  return [d.href, ...(d.also ?? [])].some((prefix) => pathname.startsWith(prefix));
 }
 
-const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
-
-/** The CorsaIQ logo, linking to the overview; marked as the current page while you are on it. */
+/** CORSA/IQ, linking to Vandaag; marked as the current page while you are on it. */
 export function HomeLink() {
   const t = useT();
   const isHome = usePathname() === "/dashboard";
@@ -63,96 +65,86 @@ export function HomeLink() {
       href="/dashboard"
       aria-label={t.common.homeLabel}
       aria-current={isHome ? "page" : undefined}
-      className="text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase transition-colors hover:text-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+      className={`font-display text-lg font-black tracking-tight text-zinc-50 ${focusRing}`}
     >
-      CorsaIQ
+      CORSA<span className="text-brand-400">/</span>IQ
     </Link>
   );
 }
 
-/**
- * To the pitwall, the trackside screen. A plain link, not a client-side navigation, so the service
- * worker sees the page load and keeps a fresh copy for when there is no signal.
- */
-export function PitwallLink() {
+function DestinationLink({ d, variant }: { d: Destination; variant: "top" | "bottom" }) {
   const t = useT();
-  return (
-    <a
-      href="/pitwall"
-      className={`inline-flex h-9 items-center gap-2 rounded-full border border-brand-400/50 px-3 text-sm font-medium text-brand-200 transition-colors hover:border-brand-400 hover:text-white ${focusRing}`}
-    >
-      <Icon name="stopwatch" className="size-4" />
-      {t.nav.pitwall}
+  const active = isActive(usePathname(), d);
+  const className =
+    variant === "top"
+      ? `inline-flex min-h-11 items-center px-3.5 text-sm whitespace-nowrap transition-colors ${focusRing} ${
+          active ? "bg-brand-500 font-bold text-on-brand" : "text-zinc-400 hover:text-zinc-50"
+        }`
+      : `flex flex-1 flex-col items-center justify-center gap-1 text-[11px] tracking-wide uppercase transition-colors ${focusRing} ${
+          active ? "bg-brand-500 font-bold text-on-brand" : "text-zinc-400 hover:text-zinc-50"
+        }`;
+  const content = (
+    <>
+      {variant === "bottom" && <Icon name={d.icon} className="size-5" />}
+      {t.nav[d.key]}
+    </>
+  );
+  return d.plain ? (
+    <a href={d.href} aria-current={active ? "page" : undefined} className={className}>
+      {content}
     </a>
-  );
-}
-
-/** Gear button to the settings page (language, theme, profile, account). */
-export function SettingsLink() {
-  const t = useT();
-  const isActive = usePathname().startsWith("/dashboard/settings");
-  return (
-    <Link
-      href="/dashboard/settings"
-      aria-current={isActive ? "page" : undefined}
-      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 ${
-        isActive ? "border-zinc-700 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
-      }`}
-    >
-      <Icon name="settings" className="size-4" />
-      <span className="hidden xl:inline">{t.settings.link}</span>
-      <span className="sr-only xl:hidden">{t.settings.link}</span>
+  ) : (
+    <Link href={d.href} aria-current={active ? "page" : undefined} className={className}>
+      {content}
     </Link>
   );
 }
 
-/** Desktop (lg and up): one row, groups divided by a rule; group names show from xl. */
+/** Tablet and desktop: the destinations in the header. */
 export function DashboardNav() {
   const t = useT();
-  const navGroups = useNavGroups();
-
   return (
-    <nav aria-label={t.common.navLabel} className="flex items-center">
-      {navGroups.map((group, index) => (
-        <div
-          key={group.key}
-          role="group"
-          aria-label={group.label}
-          className={`flex items-center gap-1 ${index > 0 ? "ml-3 border-l border-zinc-800 pl-3" : ""}`}
-        >
-          <span aria-hidden="true" className="mr-1 hidden text-[11px] font-medium tracking-wider text-zinc-500 uppercase 2xl:inline">
-            {group.label}
-          </span>
-          {group.links.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={item.isActive ? "page" : undefined}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm whitespace-nowrap transition-colors ${focusRing} ${
-                item.isActive ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              <Icon name={item.icon} className={`hidden size-4 xl:inline-block ${item.isActive ? "text-brand-300" : ""}`} />
-              {item.label}
-            </Link>
-          ))}
-        </div>
+    <nav aria-label={t.common.navLabel} className="flex items-center gap-0.5">
+      {DESTINATIONS.map((d) => (
+        <DestinationLink key={d.key} d={d} variant="top" />
+      ))}
+    </nav>
+  );
+}
+
+/** Phone: a bar fixed at the bottom with the four main destinations. */
+export function BottomNav() {
+  const t = useT();
+  return (
+    <nav
+      aria-label={t.common.navLabel}
+      className="fixed inset-x-3 bottom-3 z-30 flex h-[68px] border border-zinc-800 bg-zinc-900 md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      {DESTINATIONS.filter((d) => d.phone).map((d) => (
+        <DestinationLink key={d.key} d={d} variant="bottom" />
       ))}
     </nav>
   );
 }
 
 /**
- * Phones and tablets: a menu button that opens the groups, settings and sign-out as a panel under the
- * header. It closes on Escape and on navigating (it is open only for the page it was opened on).
+ * "Meer": every other page, settings and sign-out, as a panel under the header. It closes on Escape
+ * and on navigating (it is open only for the page it was opened on).
  */
-export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
+export function MoreMenu({ signOut }: { signOut: () => Promise<void> }) {
   const t = useT();
   const pathname = usePathname();
-  const navGroups = useNavGroups();
   const [openOn, setOpenOn] = useState<string | null>(null);
   const isOpen = openOn === pathname;
-  const isSettings = pathname.startsWith("/dashboard/settings");
+  const groups = MORE.map((group) => ({
+    key: group.key,
+    links: sortByLabel(group.items.map((item) => ({ ...item, label: t.nav[item.key], isActive: pathname.startsWith(item.href) }))),
+  }));
+  const tile = (active: boolean) =>
+    `flex min-h-14 items-center gap-3 border px-3 text-sm transition-colors ${focusRing} ${
+      active ? "border-brand-400 bg-brand-500 font-bold text-on-brand" : "border-zinc-800 text-zinc-200 hover:border-zinc-600"
+    }`;
 
   return (
     <div
@@ -163,54 +155,42 @@ export function MobileMenu({ signOut }: { signOut: () => Promise<void> }) {
       <button
         type="button"
         aria-expanded={isOpen}
-        aria-controls="mobile-menu"
-        aria-label={isOpen ? t.nav.closeMenu : t.nav.openMenu}
+        aria-controls="more-menu"
         onClick={() => setOpenOn(isOpen ? null : pathname)}
-        className={`inline-flex size-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-200 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
+        className={`inline-flex min-h-11 items-center gap-2 border border-zinc-800 px-3 text-sm text-zinc-200 transition-colors hover:border-zinc-600 ${focusRing}`}
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="square">
           {isOpen ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
         </svg>
+        {t.nav.more}
       </button>
 
       {isOpen && (
-        <div id="mobile-menu" className="absolute inset-x-0 top-full z-20 border-b border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
-          {/* All pages as icon tiles, four to a row, so the whole menu fits in two rows. */}
-          <nav aria-label={t.common.navLabel} className="mx-auto grid max-w-6xl grid-cols-4 gap-2 px-4 pt-4 pb-3 sm:px-6">
-            {navGroups.flatMap((group) => group.links).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={item.isActive ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-3 text-xs transition-colors ${focusRing} ${
-                  item.isActive
-                    ? "border-zinc-700 bg-zinc-800 text-white"
-                    : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
-                }`}
-              >
-                <Icon name={item.icon} className={`size-5 ${item.isActive ? "text-brand-300" : "text-zinc-400"}`} />
-                {item.label}
-              </Link>
+        <div id="more-menu" className="absolute inset-x-0 top-full z-40 border-b border-zinc-800 bg-zinc-950">
+          <nav aria-label={t.nav.more} className="mx-auto grid max-w-6xl gap-5 px-4 py-5 sm:grid-cols-3 sm:px-6">
+            {groups.map((group) => (
+              <div key={group.key}>
+                <p className="channel-label mb-2">{t.nav[group.key]}</p>
+                <ul className="grid grid-cols-2 gap-1 sm:grid-cols-1">
+                  {group.links.map((item) => (
+                    <li key={item.href}>
+                      <Link href={item.href} aria-current={item.isActive ? "page" : undefined} className={tile(item.isActive)}>
+                        <Icon name={item.icon} className="size-5 shrink-0" />
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-            <Link
-              href="/dashboard/settings"
-              aria-current={isSettings ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-3 text-xs transition-colors ${focusRing} ${
-                  isSettings
-                    ? "border-zinc-700 bg-zinc-800 text-white"
-                    : "border-zinc-800 text-zinc-300 hover:border-brand-400/40 hover:text-white"
-                }`}
-            >
-              <Icon name="settings" className={`size-5 ${isSettings ? "text-brand-300" : "text-zinc-400"}`} />
+          </nav>
+          <div className="mx-auto flex max-w-6xl flex-wrap justify-end gap-2 border-t border-zinc-800 px-4 py-3 sm:px-6">
+            <Link href="/dashboard/settings" aria-current={pathname.startsWith("/dashboard/settings") ? "page" : undefined} className={tile(pathname.startsWith("/dashboard/settings"))}>
+              <Icon name="settings" className="size-5" />
               {t.settings.link}
             </Link>
-          </nav>
-          <div className="mx-auto flex max-w-6xl justify-end border-t border-zinc-800/80 px-4 py-3 sm:px-6">
             <form action={signOut}>
-              <button
-                type="submit"
-                className={`inline-flex h-9 items-center rounded-full border border-zinc-800 px-4 text-sm text-zinc-300 transition-colors hover:border-brand-400/40 hover:text-white ${focusRing}`}
-              >
+              <button type="submit" className={tile(false)}>
                 {t.common.signOut}
               </button>
             </form>

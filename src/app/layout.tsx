@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter_Tight, JetBrains_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
 
 import { ServiceWorker } from "@/components/service-worker";
@@ -8,18 +8,13 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { themeScript } from "@/lib/theme";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Unbounded for titles, Inter Tight for text, JetBrains Mono for every number and channel label.
+const display = Unbounded({ variable: "--font-unbounded", subsets: ["latin"], weight: ["700", "900"] });
+const sans = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400", "500", "700"] });
 
 export const metadata: Metadata = {
-  title: "CorsaIQ",
+  title: "Corsa IQ",
   description:
     "Je hele kartseizoen in één pitbox: rondetijden, onderhoud, kosten en bonnetjes.",
 };
@@ -34,7 +29,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={locale}
       data-theme="dark"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

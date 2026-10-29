@@ -15,7 +15,7 @@ export type TimelineItem = {
 };
 
 export const TIMELINE_KINDS: Record<TimelineItem["kind"], { label: string; color: string }> = {
-  event: { label: "Evenement", color: "var(--color-brand-500)" },
+  event: { label: "Evenement", color: "var(--color-brand-400)" },
   maintenance: { label: "Onderhoud", color: "var(--chart-4)" },
   item: { label: "Afspraak", color: "var(--chart-7)" },
 };
@@ -48,7 +48,7 @@ export function Timeline({ items, today, days }: { items: TimelineItem[]; today:
       <div aria-hidden="true" className="relative mx-2 mt-2 mb-7 h-8">
         <div
           className="absolute top-1/2 right-0 left-0 h-1 -translate-y-1/2 rounded-full opacity-60"
-          style={{ background: "linear-gradient(90deg, var(--color-brand-500), var(--chart-1), var(--chart-3))" }}
+          style={{ background: "var(--color-zinc-700)" }}
         />
         <span className="absolute top-full -left-2 mt-1 text-[11px] font-medium text-zinc-300">vandaag</span>
         {months.map((m) => (

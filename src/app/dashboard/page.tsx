@@ -279,7 +279,7 @@ export default async function DashboardPage() {
             className={`flex flex-col items-center gap-2 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 px-1 py-4 text-xs font-medium text-zinc-200 transition-colors hover:border-brand-400/40 hover:text-white sm:text-sm ${focusRing}`}
           >
             <span className="relative">
-              <IconTile name={action.icon} color={action.color} />
+              <IconTile name={action.icon} tone="neutral" />
               <span aria-hidden="true" className="absolute -right-1.5 -bottom-1.5 inline-flex size-5 items-center justify-center rounded-full border-2 border-zinc-950 bg-brand-500 text-on-brand">
                 <Icon name="plus" className="size-3" />
               </span>
@@ -299,19 +299,16 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <section aria-label={season.data ? `Seizoen ${season.data.name}` : "Seizoen"} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/* The season in figures: a data grid of hairlines, every number in mono. */}
+      <section
+        aria-label={season.data ? `Seizoen ${season.data.name}` : "Seizoen"}
+        className="grid grid-cols-2 gap-px border border-zinc-800 bg-zinc-800 lg:grid-cols-4"
+      >
         {kpis.map((kpi) => (
-          <Link key={kpi.label} href={kpi.href} className={`${tileLink} relative flex flex-col gap-3 overflow-hidden`}>
-            {/* A band of the tile's colour along the top. */}
-            <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1" style={{ background: kpi.color }} />
-            <span className="flex items-center justify-between gap-2">
-              <span className="text-sm text-zinc-300">{kpi.label}</span>
-              <IconTile name={kpi.icon} color={kpi.color} size="sm" />
-            </span>
-            <span>
-              <span className="block text-2xl leading-tight font-semibold sm:text-3xl">{kpi.value}</span>
-              <span className="block truncate text-xs text-zinc-400">{kpi.detail}</span>
-            </span>
+          <Link key={kpi.label} href={kpi.href} className={`flex flex-col gap-1 bg-zinc-950 p-4 transition-colors hover:bg-zinc-900 ${focusRing}`}>
+            <span className="channel-label">{kpi.label}</span>
+            <span className="font-mono text-2xl font-bold text-zinc-50 sm:text-3xl">{kpi.value}</span>
+            <span className="truncate text-xs text-zinc-500">{kpi.detail}</span>
           </Link>
         ))}
       </section>

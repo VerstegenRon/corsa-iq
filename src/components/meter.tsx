@@ -1,4 +1,4 @@
-// A thin bar for "used of a limit" (run time, budget), and a small status pill. Fine is aqua, amber
+// A thin bar for "used of a limit" (run time, budget), and a small status pill. Fine is volt, amber
 // and red mean attention (the pill adds a symbol, so colour is never the only signal). The empty part
 // of the bar is a light tint of the same colour.
 
@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export type Tone = "ok" | "soon" | "due";
 
-const barColor: Record<Tone, string> = { ok: "var(--chart-3)", soon: "var(--color-amber-400)", due: "var(--color-red-400)" };
+const barColor: Record<Tone, string> = { ok: "var(--color-brand-400)", soon: "var(--color-amber-400)", due: "var(--color-red-400)" };
 
 /** Share of the limit used: below 90% fine, from 90% soon, at 100% due. */
 export function toneForShare(share: number): Tone {

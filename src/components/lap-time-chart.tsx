@@ -12,7 +12,7 @@ import { formatLapTime } from "@/lib/karting";
 // never the series color.
 const COLORS = {
   line: "var(--color-brand-400)", // the app accent
-  compare: "var(--color-zinc-400)", // the other session: neutral and dashed, so it never reads as a second accent
+  compare: "var(--color-ref)", // the reference: violet and dashed
   surface: "var(--chart-surface)", // card surface, used for marker rings
   grid: "var(--color-zinc-800)", // hairline
   axis: "var(--color-zinc-500)", // muted text
