@@ -12,6 +12,7 @@ export const fr: Dictionary = {
     themeDark: "Sombre",
   },
   nav: {
+    pitwall: "Muret des stands",
     tracks: "Circuits",
     drivers: "Pilotes",
     karts: "Karts",

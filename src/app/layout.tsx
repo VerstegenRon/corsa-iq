@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { ServiceWorker } from "@/components/service-worker";
 import { ThemeWatcher } from "@/components/theme-watcher";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeWatcher />
+        <ServiceWorker />
         <I18nProvider locale={locale} dictionary={dictionary}>
           {children}
         </I18nProvider>

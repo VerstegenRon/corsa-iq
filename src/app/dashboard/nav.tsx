@@ -67,6 +67,23 @@ export function HomeLink() {
   );
 }
 
+/**
+ * To the pitwall, the trackside screen. A plain link, not a client-side navigation, so the service
+ * worker sees the page load and keeps a fresh copy for when there is no signal.
+ */
+export function PitwallLink() {
+  const t = useT();
+  return (
+    <a
+      href="/pitwall"
+      className={`inline-flex h-9 items-center gap-2 rounded-full border border-brand-400/50 px-3 text-sm font-medium text-brand-200 transition-colors hover:border-brand-400 hover:text-white ${focusRing}`}
+    >
+      <Icon name="stopwatch" className="size-4" />
+      {t.nav.pitwall}
+    </a>
+  );
+}
+
 /** Gear button to the settings page (language, theme, profile, account). */
 export function SettingsLink() {
   const t = useT();

@@ -7,13 +7,11 @@ import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
-import { EVENT_TYPES, SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
-import { SETUP_FIELDS, setSetupValue } from "@/lib/setup";
+import { EVENT_TYPES } from "@/lib/karting";
 import { LOGGER_BUCKET } from "@/lib/storage";
 
-import { optionalNumber, optionalSignedNumber, text } from "./form-data";
-
-type Supabase = Awaited<ReturnType<typeof getCurrentGarage>>["supabase"];
+import { optionalNumber, text } from "./form-data";
+import { insertSession, insertSetup, readSession, type Supabase } from "./session-save";
 
 // ---------------------------------------------------------------------------
 // Seasons
@@ -163,86 +161,6 @@ export async function deleteEvent(eventId: string): Promise<FormState> {
 // Sessions
 // ---------------------------------------------------------------------------
 
-function readSetup(formData: FormData): SetupValues | { error: string } {
-  const setup: SetupValues = {};
-  for (const field of SETUP_FIELDS) {
-    if (field.kind === "text") {
-      const value = text(formData, field.name);
-      if (value) setSetupValue(setup, field, value);
-      continue;
-    }
-    const value = optionalNumber(formData, field.name);
-    if (value === null) continue;
-    if (value === undefined || (field.kind === "integer" && !Number.isInteger(value))) {
-      return { error: `Controleer de afstelling: ${field.label.toLowerCase()} moet een ${field.kind === "integer" ? "heel getal" : "getal"} zijn.` };
-    }
-    setSetupValue(setup, field, value);
-  }
-  const notes = text(formData, "setup_notes");
-  if (notes) setup.notes = notes;
-  return setup;
-}
-
-/** Everything on the session form except the kart, which is fixed once parts are linked. */
-function readSession(formData: FormData) {
-  const type = text(formData, "type");
-  const driverId = text(formData, "driver_id");
-  const startedAt = text(formData, "started_at_iso");
-  if (!type || !(type in SESSION_TYPES)) return { error: "Kies het soort sessie." };
-  if (!driverId) return { error: "Kies de coureur." };
-  if (!startedAt || Number.isNaN(Date.parse(startedAt))) return { error: "Vul de starttijd in." };
-
-  const durationMin = optionalNumber(formData, "duration_min");
-  if (durationMin === undefined || durationMin === null || durationMin === 0) {
-    return { error: "Vul in hoeveel minuten de sessie duurde." };
-  }
-
-  const bestLapRaw = text(formData, "best_lap");
-  const bestLapMs = bestLapRaw ? parseLapTime(bestLapRaw) : null;
-  if (bestLapRaw && bestLapMs === null) return { error: "Schrijf de rondetijd als 52.345 of 1:02.345." };
-
-  const position = optionalNumber(formData, "position");
-  const airTemp = optionalSignedNumber(formData, "air_temp_c");
-  const trackTemp = optionalSignedNumber(formData, "track_temp_c");
-  if (position === undefined || airTemp === undefined || trackTemp === undefined) {
-    return { error: "Controleer positie en temperaturen: vul alleen getallen in." };
-  }
-
-  const setup = readSetup(formData);
-  if ("error" in setup) return setup;
-
-  const weather = text(formData, "weather");
-  const conditions: Record<string, string | number> = {};
-  if (weather && weather in WEATHER) conditions.weather = weather;
-  if (airTemp !== null) conditions.air_temp_c = airTemp;
-  if (trackTemp !== null) conditions.track_temp_c = trackTemp;
-
-  return {
-    setup,
-    values: {
-      type,
-      driver_id: driverId,
-      started_at: new Date(startedAt).toISOString(),
-      duration_s: Math.round(durationMin * 60),
-      best_lap_ms: bestLapMs,
-      position: position === null ? null : Math.round(position),
-      conditions,
-      driver_feedback: text(formData, "driver_feedback"),
-    },
-  };
-}
-
-async function insertSetup(supabase: Supabase, garageId: string, setup: SetupValues, parentId: string | null) {
-  if (Object.keys(setup).length === 0) return { id: null };
-  const { data, error } = await supabase
-    .from("setups")
-    .insert({ garage_id: garageId, parent_setup_id: parentId, values: setup as Json })
-    .select("id")
-    .single();
-  if (error) return { error: `Afstelling opslaan mislukt: ${error.message}` };
-  return { id: data.id };
-}
-
 /** Compares setups regardless of key order (jsonb reorders keys). */
 function sameSetup(a: unknown, b: unknown): boolean {
   const sorted = (value: unknown): unknown =>
@@ -277,53 +195,10 @@ async function removeSessionLeftovers(
 }
 
 export async function createSession(eventId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const kartId = text(formData, "kart_id");
-  if (!kartId) return { error: "Kies met welke kart je reed." };
-  const session = readSession(formData);
-  if ("error" in session) return session;
-
   const { supabase, garage } = await getCurrentGarage();
-
-  // Link to the kart's previous setup so changes between sessions can be shown later.
-  const { data: previous } = await supabase
-    .from("sessions")
-    .select("setup_id")
-    .eq("kart_id", kartId)
-    .not("setup_id", "is", null)
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const setup = await insertSetup(supabase, garage.id, session.setup, previous?.setup_id ?? null);
-  if ("error" in setup) return { error: setup.error };
-
-  const { data: inserted, error } = await supabase
-    .from("sessions")
-    .insert({
-      event_id: eventId,
-      kart_id: kartId,
-      setup_id: setup.id,
-      ...session.values,
-      feedback_tags: (await tagFeedback(session.values.driver_feedback)) as Json,
-    })
-    .select("id")
-    .single();
-  if (error) return { error: `Sessie opslaan mislukt: ${error.message}` };
-
-  // Record which parts ran: everything mounted on the kart right now. This drives run time per part.
-  const { data: mounted } = await supabase
-    .from("part_installations")
-    .select("part_id")
-    .eq("kart_id", kartId)
-    .is("removed_at", null);
-  if (mounted && mounted.length > 0) {
-    const { error: partsError } = await supabase
-      .from("session_parts")
-      .insert(mounted.map(({ part_id }) => ({ session_id: inserted.id, part_id })));
-    if (partsError) return { error: `Sessie opgeslagen, maar onderdelen koppelen mislukt: ${partsError.message}` };
-  }
-
-  revalidatePath("/dashboard", "layout");
-  return { success: "Sessie opgeslagen." };
+  const result = await insertSession(supabase, garage.id, eventId, formData);
+  if (result.id) revalidatePath("/dashboard", "layout");
+  return result.error ? { error: result.error } : { success: result.success };
 }
 
 export async function updateSession(sessionId: string, _prev: FormState, formData: FormData): Promise<FormState> {
