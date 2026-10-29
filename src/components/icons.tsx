@@ -88,7 +88,18 @@ export function Icon({ name, className = "size-5", ...props }: { name: IconName 
 }
 
 /** A rounded tile with an icon, the visual anchor of a card or list row. */
-export function IconTile({ name, tone = "brand", size = "md" }: { name: IconName; tone?: "brand" | "neutral" | "amber" | "red"; size?: "sm" | "md" | "lg" }) {
+export function IconTile({
+  name,
+  tone = "brand",
+  size = "md",
+  color,
+}: {
+  name: IconName;
+  tone?: "brand" | "neutral" | "amber" | "red";
+  size?: "sm" | "md" | "lg";
+  /** A chart colour (e.g. "var(--chart-1)") instead of a tone: the icon in it, on a tint of it. */
+  color?: string;
+}) {
   const tones = {
     brand: "bg-brand-400/10 text-brand-300",
     neutral: "bg-zinc-800 text-zinc-300",
@@ -97,7 +108,11 @@ export function IconTile({ name, tone = "brand", size = "md" }: { name: IconName
   };
   const sizes = { sm: "size-8 rounded-lg [&>svg]:size-4", md: "size-10 rounded-xl [&>svg]:size-5", lg: "size-12 rounded-2xl [&>svg]:size-6" };
   return (
-    <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center ${tones[tone]} ${sizes[size]}`}>
+    <span
+      aria-hidden="true"
+      className={`inline-flex shrink-0 items-center justify-center ${color ? "" : tones[tone]} ${sizes[size]}`}
+      style={color ? { color, background: `color-mix(in oklab, ${color} 16%, transparent)` } : undefined}
+    >
       <Icon name={name} />
     </span>
   );

@@ -7,16 +7,21 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
+import { LineChart } from "@/components/charts/line-chart";
+import { CHART_COLORS } from "@/components/charts/palette";
 import { FeedbackField } from "@/components/feedback-field";
+import { LapTimeChart } from "@/components/lap-time-chart";
 import { Icon } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { nearestTrack, NEAREST_TRACK_MAX_KM } from "@/lib/geo";
-import { formatDate, type SetupValues } from "@/lib/karting";
+import { formatDate, formatLapTime, parseLapTime, type SetupValues } from "@/lib/karting";
 import { PITWALL_EVENTS_KEY, PITWALL_QUEUE_KEY, PITWALL_SETUP_FIELDS, type NewEvent, type QueuedSession } from "@/lib/pitwall";
-import { getSetupValue, inputSetupValue, type SetupField } from "@/lib/setup";
+import { SETUP_FIELDS, getSetupValue, inputSetupValue, type SetupField } from "@/lib/setup";
 
 export type PitwallEvent = { id: string; label: string; isToday: boolean };
 export type KartDefaults = { driverId: string; durationMin: number | null; setup: SetupValues | null };
+/** A saved session, for the day's charts. */
+export type PitwallSession = { id: string; eventId: string; kartId: string; startedAt: string; bestLapMs: number | null; setup: SetupValues | null };
 type Option = { id: string; label: string };
 type Track = Option & { name: string; latitude: number | null; longitude: number | null };
 /** An event made here that the server may not have yet. */
@@ -74,6 +79,7 @@ function startedAtIso(time: string, durationMin: number): string {
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
 
 export function Pitwall({
+  history,
   events,
   defaultEventId,
   karts,
@@ -84,6 +90,7 @@ export function Pitwall({
   lastTrackId,
   today,
 }: {
+  history: PitwallSession[];
   events: PitwallEvent[];
   defaultEventId: string | null;
   karts: Option[];
@@ -105,6 +112,8 @@ export function Pitwall({
   const [logged, setLogged] = useState<Record<string, Record<string, string>>>({});
   const [formKey, setFormKey] = useState(0);
   const [queue, setQueue] = useState<QueuedSession[]>([]);
+  // Sessions sent since the page loaded, so the day's charts keep them without reloading.
+  const [sent, setSent] = useState<QueuedSession[]>([]);
   const [online, setOnline] = useState(true);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<{ tone: "ok" | "wait" | "error"; text: string } | null>(null);
@@ -148,6 +157,7 @@ export function Pitwall({
         setAuthError(false);
         if (response.ok) {
           updateQueue((queue) => queue.filter((queued) => queued.id !== item.id));
+          setSent((list) => [...list, item]);
           setNotice({ tone: "ok", text: `Verstuurd: ${item.label}` });
         } else {
           const error = body.error ?? "Versturen mislukt.";
@@ -362,6 +372,8 @@ export function Pitwall({
         <BigChoice legend="Kart" name="kart_choice" options={karts} value={kartId} onChange={setKartId} />
       )}
 
+      <TodayPanel sessions={daySessions(history, sent, queue, eventId, kartId)} />
+
       <form key={`${kartId}-${formKey}`} onSubmit={handleSubmit} className="flex flex-col gap-7">
         <input type="hidden" name="kart_id" value={kartId} />
         <BigChoice
@@ -389,6 +401,10 @@ export function Pitwall({
             <span className="text-sm font-normal text-zinc-400">Leeg = net afgelopen</span>
           </label>
         </div>
+        <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
+          Snelste ronde
+          <input name="best_lap" inputMode="decimal" autoComplete="off" placeholder="52.345" className={`${bigInputClass} text-center text-2xl font-semibold tabular-nums`} />
+        </label>
 
         {/* Automatic: looked up from the circuit's weather once the session is sent. */}
         <BigChoice
@@ -754,6 +770,128 @@ function LocateTrack({ tracks, onFound }: { tracks: Track[]; onFound: (trackId: 
         </p>
       )}
     </div>
+  );
+}
+
+type DaySession = { key: string; startedAt: string; bestLapMs: number | null; front: number | null; rear: number | null; pending: boolean };
+
+const fieldNamed = (name: string) => SETUP_FIELDS.find((f) => f.name === name)!;
+const PRESSURE_FIELDS = {
+  front: [fieldNamed("pressure_fl"), fieldNamed("pressure_fr")],
+  rear: [fieldNamed("pressure_rl"), fieldNamed("pressure_rr")],
+};
+
+function average(values: (number | null)[]): number | null {
+  const known = values.filter((v): v is number => v !== null && Number.isFinite(v));
+  return known.length > 0 ? known.reduce((a, b) => a + b, 0) / known.length : null;
+}
+
+/** The sessions of this event with this kart: saved before, sent from here, and still waiting in the queue. */
+function daySessions(history: PitwallSession[], sent: QueuedSession[], queue: QueuedSession[], eventId: string, kartId: string): DaySession[] {
+  const fromSetup = (setup: SetupValues | null, side: "front" | "rear") =>
+    average(
+      PRESSURE_FIELDS[side].map((f) => {
+        const value = setup ? getSetupValue(setup, f) : undefined;
+        return typeof value === "number" ? value : null;
+      }),
+    );
+  const fromFields = (fields: Record<string, string>, side: "front" | "rear") =>
+    average(PRESSURE_FIELDS[side].map((f) => (fields[f.name] ? Number(fields[f.name].replace(",", ".")) : null)));
+  const saved = history
+    .filter((s) => s.eventId === eventId && s.kartId === kartId)
+    .map((s) => ({ key: s.id, startedAt: s.startedAt, bestLapMs: s.bestLapMs, front: fromSetup(s.setup, "front"), rear: fromSetup(s.setup, "rear"), pending: false }));
+  const ids = new Set(saved.map((s) => s.key));
+  const sentIds = new Set(sent.map((q) => q.id));
+  const waiting = [...sent, ...queue]
+    .filter((q) => q.eventId === eventId && q.fields.kart_id === kartId && !ids.has(q.id))
+    .map((q) => ({
+      key: q.id,
+      startedAt: q.fields.started_at_iso,
+      bestLapMs: q.fields.best_lap ? parseLapTime(q.fields.best_lap) : null,
+      front: fromFields(q.fields, "front"),
+      rear: fromFields(q.fields, "rear"),
+      pending: !sentIds.has(q.id),
+    }));
+  return [...saved, ...waiting].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+}
+
+const pressureFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const gapFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+
+/** The day at a glance, above the form: lap times and tyre pressures per session. */
+function TodayPanel({ sessions }: { sessions: DaySession[] }) {
+  if (sessions.length === 0) {
+    return (
+      <p className="rounded-2xl border-2 border-dashed border-zinc-800 px-4 py-3 text-base text-zinc-400">
+        Nog geen sessies bij dit evenement met deze kart. Na de eerste sessie zie je hier de rondetijden en de bandenspanning.
+      </p>
+    );
+  }
+  const step = (s: DaySession, i: number) => ({
+    label: `S${i + 1}`,
+    title: `Sessie ${i + 1} · ${clock(s.startedAt)}${s.pending ? " · nog niet verstuurd" : ""}`,
+  });
+  const timed = sessions.map((s, index) => ({ ...s, index })).filter((s) => s.bestLapMs !== null);
+  const best = timed.length > 0 ? Math.min(...timed.map((s) => s.bestLapMs!)) : null;
+  const [previous, last] = timed.slice(-2);
+  const delta = previous && last ? last.bestLapMs! - previous.bestLapMs! : null;
+  const hasPressures = sessions.some((s) => s.front !== null || s.rear !== null);
+  const stats = [
+    { label: "Sessies", value: String(sessions.length), color: CHART_COLORS[0] },
+    { label: "Snelste", value: best === null ? "—" : formatLapTime(best), color: "var(--color-brand-500)" },
+    {
+      label: "t.o.v. vorige",
+      value: delta === null ? "—" : `${delta <= 0 ? "▼" : "▲"} ${gapFormat.format(Math.abs(delta) / 1000)}`,
+      color: delta === null ? CHART_COLORS[6] : delta <= 0 ? CHART_COLORS[2] : CHART_COLORS[1],
+    },
+  ];
+
+  return (
+    <section aria-labelledby="today-heading" className="flex flex-col gap-4 rounded-3xl border-2 border-zinc-800 bg-zinc-900/60 p-4">
+      <h2 id="today-heading" className="text-lg font-semibold text-zinc-50">
+        Vandaag
+      </h2>
+      <div className="grid grid-cols-3 gap-2">
+        {stats.map((stat) => (
+          <div key={stat.label} className="relative overflow-hidden rounded-2xl bg-zinc-950 px-3 pt-3 pb-2.5">
+            <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1" style={{ background: stat.color }} />
+            <p className="text-xs text-zinc-400">{stat.label}</p>
+            <p className="mt-0.5 text-lg font-semibold whitespace-nowrap text-zinc-50 sm:text-xl">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+      {delta !== null && (
+        <p className="-mt-2 text-sm text-zinc-300">
+          {delta <= 0 ? "De laatste sessie was sneller dan de vorige." : "De laatste sessie was langzamer dan de vorige."}
+        </p>
+      )}
+
+      {timed.length >= 2 && (
+        <div>
+          <h3 className="mb-1 text-sm font-medium text-zinc-300">Snelste ronde per sessie</h3>
+          <LapTimeChart
+            label="Snelste ronde per sessie"
+            points={timed.map((s) => ({ key: s.key, xLabel: step(s, s.index).label, ms: s.bestLapMs!, title: step(s, s.index).title, position: s.index }))}
+          />
+        </div>
+      )}
+
+      {hasPressures && sessions.length >= 2 && (
+        <div>
+          <h3 className="mb-1 text-sm font-medium text-zinc-300">Bandenspanning koud (bar)</h3>
+          <LineChart
+            label="Koude bandenspanning per sessie"
+            steps={sessions.map(step)}
+            format={(v) => pressureFormat.format(v)}
+            minRange={0.06}
+            series={[
+              { key: "front", label: "Voor (gemiddeld)", color: CHART_COLORS[0], values: sessions.map((s) => s.front) },
+              { key: "rear", label: "Achter (gemiddeld)", color: CHART_COLORS[1], values: sessions.map((s) => s.rear) },
+            ]}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 

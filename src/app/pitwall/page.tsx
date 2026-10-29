@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getCurrentGarage } from "@/lib/garage";
 import { formatDate, ownOrOfficial, sortByLabel, todayInAmsterdam, trackLabel, type SetupValues } from "@/lib/karting";
 
-import { Pitwall, type KartDefaults, type PitwallEvent } from "./pitwall";
+import { Pitwall, type KartDefaults, type PitwallEvent, type PitwallSession } from "./pitwall";
 
 export const metadata: Metadata = {
   title: "Pitwall — CorsaIQ",
@@ -26,10 +26,10 @@ export default async function PitwallPage() {
       .limit(20),
     supabase.from("karts").select("id, name").eq("garage_id", garage.id).in("status", ["active", "spare"]).order("created_at"),
     supabase.from("drivers").select("id, name").eq("garage_id", garage.id).order("created_at"),
-    // The latest sessions give each kart its usual driver, duration and setup.
+    // The latest sessions give each kart its usual driver, duration and setup, and the day so far.
     supabase
       .from("sessions")
-      .select("kart_id, driver_id, type, duration_s, setups(values), events!inner(garage_id)")
+      .select("id, event_id, started_at, best_lap_ms, kart_id, driver_id, type, duration_s, setups(values), events!inner(garage_id)")
       .eq("events.garage_id", garage.id)
       .order("started_at", { ascending: false })
       .limit(50),
@@ -58,8 +58,18 @@ export default async function PitwallPage() {
     if (!defaults[session.kart_id].setup && session.setups) defaults[session.kart_id].setup = session.setups.values as SetupValues;
   }
 
+  const history: PitwallSession[] = (sessionsResult.data ?? []).map((session) => ({
+    id: session.id,
+    eventId: session.event_id,
+    kartId: session.kart_id,
+    startedAt: session.started_at,
+    bestLapMs: session.best_lap_ms,
+    setup: (session.setups?.values ?? null) as SetupValues | null,
+  }));
+
   return (
     <Pitwall
+      history={history}
       events={events}
       defaultEventId={defaultEventId}
       karts={sortByLabel((kartsResult.data ?? []).map((kart) => ({ id: kart.id, label: kart.name })))}
