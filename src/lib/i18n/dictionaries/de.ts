@@ -14,6 +14,7 @@ export const de: Dictionary = {
   nav: {
     pitwall: "Boxenmauer",
     advice: "Setup-Beratung",
+    agenda: "Kalender",
     tracks: "Strecken",
     drivers: "Fahrer",
     karts: "Karts",

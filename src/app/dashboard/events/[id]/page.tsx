@@ -18,10 +18,13 @@ import {
   labelFor,
   ownOrOfficial,
   summarizeSetup,
+  todayInAmsterdam,
   trackLabel,
   type SetupValues,
 } from "@/lib/karting";
+import { loadMaintenancePlan } from "@/lib/maintenance-plan-data";
 
+import { MaintenancePlanList } from "../../agenda/maintenance-plan-list";
 import { ExpenseForm } from "../../costs/expense-form";
 import { deleteEvent } from "../../season-actions";
 import { EventForm } from "../../seasons/event-form";
@@ -73,6 +76,12 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const event = eventResult.data;
   if (!event) notFound();
 
+  // For an event still to come: the maintenance to have done before it.
+  const upcoming = (event.ends_on ?? event.starts_on) >= todayInAmsterdam();
+  const beforeThis = upcoming
+    ? (await loadMaintenancePlan(supabase, garage.id, todayInAmsterdam())).filter((job) => job.event?.id === event.id)
+    : [];
+
   const karts = (kartsResult.data ?? []).map((kart) => ({ id: kart.id, label: kart.name }));
   const drivers = (driversResult.data ?? []).map((driver) => ({ id: driver.id, label: driver.name }));
   const lapTimes = event.sessions.map((s) => s.best_lap_ms).filter((ms): ms is number => ms !== null);
@@ -114,6 +123,22 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
           <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatCents(totalCents)}</p>
         </div>
       </section>
+
+      {beforeThis.length > 0 && (
+        <section aria-labelledby="plan-heading" className={`${cardClass} border-amber-400/30`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="plan-heading" className="text-lg font-semibold">
+              Onderhoud vóór dit evenement
+            </h2>
+            <Link href="/dashboard/agenda" className={`${linkClass} text-sm`}>
+              Agenda
+            </Link>
+          </div>
+          <div className="mt-2">
+            <MaintenancePlanList jobs={beforeThis} showEvent={false} />
+          </div>
+        </section>
+      )}
 
       {event.sessions.length > 0 && (
         <section aria-labelledby="sessions-heading" className={cardClass}>
