@@ -12,6 +12,7 @@ export const en: Dictionary = {
     themeDark: "Dark",
   },
   nav: {
+    pitwall: "Pitwall",
     tracks: "Circuits",
     drivers: "Drivers",
     karts: "Karts",

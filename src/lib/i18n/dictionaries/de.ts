@@ -12,6 +12,7 @@ export const de: Dictionary = {
     themeDark: "Dunkel",
   },
   nav: {
+    pitwall: "Boxenmauer",
     tracks: "Strecken",
     drivers: "Fahrer",
     karts: "Karts",

@@ -29,6 +29,7 @@ export const nl = {
     themeDark: "Donker",
   },
   nav: {
+    pitwall: "Pitwall",
     tracks: "Circuits",
     drivers: "Coureurs",
     karts: "Karts",

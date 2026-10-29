@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { supabasePublishableKey, supabaseUrl } from "./env";
 
-const PROTECTED_PREFIXES = ["/dashboard"];
+const PROTECTED_PREFIXES = ["/dashboard", "/pitwall"];
 
 /** Refreshes the auth session cookie and redirects signed-out users away from protected routes. */
 export async function updateSession(request: NextRequest) {

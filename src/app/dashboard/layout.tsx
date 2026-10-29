@@ -1,7 +1,7 @@
 import { getDictionary } from "@/lib/i18n/server";
 
 import { signOut } from "../login/actions";
-import { DashboardNav, HomeLink, MobileMenu, SettingsLink } from "./nav";
+import { DashboardNav, HomeLink, MobileMenu, PitwallLink, SettingsLink } from "./nav";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const t = await getDictionary();
@@ -16,6 +16,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <DashboardNav />
           </div>
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            <PitwallLink />
             <SettingsLink />
             <form action={signOut}>
               <button
@@ -26,7 +27,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
               </button>
             </form>
           </div>
-          <div className="ml-auto lg:hidden">
+          <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <PitwallLink />
             <MobileMenu signOut={signOut} />
           </div>
         </div>

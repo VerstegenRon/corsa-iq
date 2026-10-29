@@ -1,0 +1,167 @@
+// Reading and saving a session, shared by the session form (Server Actions) and the pitwall, which
+// sends its queued sessions to a route handler once there is signal again.
+
+import type { FormState } from "@/components/form-message";
+import type { Json } from "@/lib/supabase/database.types";
+import { tagFeedback } from "@/lib/feedback-tagger";
+import type { getCurrentGarage } from "@/lib/garage";
+import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
+import { SETUP_FIELDS, getSetupValue, inputSetupValue, setSetupValue } from "@/lib/setup";
+
+import { optionalNumber, optionalSignedNumber, text } from "./form-data";
+
+export type Supabase = Awaited<ReturnType<typeof getCurrentGarage>>["supabase"];
+
+export function readSetup(formData: FormData): SetupValues | { error: string } {
+  const setup: SetupValues = {};
+  for (const field of SETUP_FIELDS) {
+    if (field.kind === "text") {
+      const value = text(formData, field.name);
+      if (value) setSetupValue(setup, field, value);
+      continue;
+    }
+    const value = optionalNumber(formData, field.name);
+    if (value === null) continue;
+    if (value === undefined || (field.kind === "integer" && !Number.isInteger(value))) {
+      return { error: `Controleer de afstelling: ${field.label.toLowerCase()} moet een ${field.kind === "integer" ? "heel getal" : "getal"} zijn.` };
+    }
+    setSetupValue(setup, field, value);
+  }
+  const notes = text(formData, "setup_notes");
+  if (notes) setup.notes = notes;
+  return setup;
+}
+
+/** Everything on the session form except the kart, which is fixed once parts are linked. */
+export function readSession(formData: FormData) {
+  const type = text(formData, "type");
+  const driverId = text(formData, "driver_id");
+  const startedAt = text(formData, "started_at_iso");
+  if (!type || !(type in SESSION_TYPES)) return { error: "Kies het soort sessie." };
+  if (!driverId) return { error: "Kies de coureur." };
+  if (!startedAt || Number.isNaN(Date.parse(startedAt))) return { error: "Vul de starttijd in." };
+
+  const durationMin = optionalNumber(formData, "duration_min");
+  if (durationMin === undefined || durationMin === null || durationMin === 0) {
+    return { error: "Vul in hoeveel minuten de sessie duurde." };
+  }
+
+  const bestLapRaw = text(formData, "best_lap");
+  const bestLapMs = bestLapRaw ? parseLapTime(bestLapRaw) : null;
+  if (bestLapRaw && bestLapMs === null) return { error: "Schrijf de rondetijd als 52.345 of 1:02.345." };
+
+  const position = optionalNumber(formData, "position");
+  const airTemp = optionalSignedNumber(formData, "air_temp_c");
+  const trackTemp = optionalSignedNumber(formData, "track_temp_c");
+  if (position === undefined || airTemp === undefined || trackTemp === undefined) {
+    return { error: "Controleer positie en temperaturen: vul alleen getallen in." };
+  }
+
+  const setup = readSetup(formData);
+  if ("error" in setup) return setup;
+
+  const weather = text(formData, "weather");
+  const conditions: Record<string, string | number> = {};
+  if (weather && weather in WEATHER) conditions.weather = weather;
+  if (airTemp !== null) conditions.air_temp_c = airTemp;
+  if (trackTemp !== null) conditions.track_temp_c = trackTemp;
+
+  return {
+    setup,
+    values: {
+      type,
+      driver_id: driverId,
+      started_at: new Date(startedAt).toISOString(),
+      duration_s: Math.round(durationMin * 60),
+      best_lap_ms: bestLapMs,
+      position: position === null ? null : Math.round(position),
+      conditions,
+      driver_feedback: text(formData, "driver_feedback"),
+    },
+  };
+}
+
+export async function insertSetup(supabase: Supabase, garageId: string, setup: SetupValues, parentId: string | null) {
+  if (Object.keys(setup).length === 0) return { id: null };
+  const { data, error } = await supabase
+    .from("setups")
+    .insert({ garage_id: garageId, parent_setup_id: parentId, values: setup as Json })
+    .select("id")
+    .single();
+  if (error) return { error: `Afstelling opslaan mislukt: ${error.message}` };
+  return { id: data.id };
+}
+
+/**
+ * Adds a session to an event. `id` lets a client pick the id, so sending the same queued session
+ * twice saves it once. Setup fields named in `keepSetupFields` are not on the form: they keep the
+ * value from the kart's previous setup.
+ */
+export async function insertSession(
+  supabase: Supabase,
+  garageId: string,
+  eventId: string,
+  formData: FormData,
+  { id, keepSetupFields = [] }: { id?: string; keepSetupFields?: string[] } = {},
+): Promise<FormState & { id?: string }> {
+  const kartId = text(formData, "kart_id");
+  if (!kartId) return { error: "Kies met welke kart je reed." };
+
+  if (id) {
+    const { data: existing } = await supabase.from("sessions").select("id").eq("id", id).maybeSingle();
+    if (existing) return { success: "Sessie was al opgeslagen.", id };
+  }
+
+  // Link to the kart's previous setup so changes between sessions can be shown later.
+  const { data: previous } = await supabase
+    .from("sessions")
+    .select("setup_id, setups(values)")
+    .eq("kart_id", kartId)
+    .not("setup_id", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const previousValues = (previous?.setups?.values ?? {}) as SetupValues;
+  for (const name of keepSetupFields) {
+    const field = SETUP_FIELDS.find((f) => f.name === name);
+    const value = field && inputSetupValue(field, getSetupValue(previousValues, field));
+    if (value !== undefined) formData.set(name, value);
+  }
+  if (keepSetupFields.includes("setup_notes") && previousValues.notes) formData.set("setup_notes", previousValues.notes);
+
+  const session = readSession(formData);
+  if ("error" in session) return session;
+
+  const setup = await insertSetup(supabase, garageId, session.setup, previous?.setup_id ?? null);
+  if ("error" in setup) return { error: setup.error };
+
+  const { data: inserted, error } = await supabase
+    .from("sessions")
+    .insert({
+      ...(id ? { id } : {}),
+      event_id: eventId,
+      kart_id: kartId,
+      setup_id: setup.id,
+      ...session.values,
+      feedback_tags: (await tagFeedback(session.values.driver_feedback)) as Json,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: `Sessie opslaan mislukt: ${error.message}` };
+
+  // Record which parts ran: everything mounted on the kart right now. This drives run time per part.
+  const { data: mounted } = await supabase
+    .from("part_installations")
+    .select("part_id")
+    .eq("kart_id", kartId)
+    .is("removed_at", null);
+  if (mounted && mounted.length > 0) {
+    const { error: partsError } = await supabase
+      .from("session_parts")
+      .insert(mounted.map(({ part_id }) => ({ session_id: inserted.id, part_id })));
+    if (partsError) return { error: `Sessie opgeslagen, maar onderdelen koppelen mislukt: ${partsError.message}`, id: inserted.id };
+  }
+
+  return { success: "Sessie opgeslagen.", id: inserted.id };
+}
