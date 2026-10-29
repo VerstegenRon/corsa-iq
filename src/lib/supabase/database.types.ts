@@ -1815,6 +1815,11 @@ export type Database = {
         Args: { p_garage_id: string }
         Returns: { user_id: string; role: string; joined_at: string; display_name: string | null; email: string }[]
       }
+      delete_my_account: { Args: never; Returns: undefined }
+      my_account_garages: {
+        Args: never
+        Returns: { garage_id: string; garage_name: string; role: string; members: number; outcome: string }[]
+      }
       garage_invite_info: {
         Args: { p_token: string }
         Returns: { garage_name: string; role: string; status: string }[]

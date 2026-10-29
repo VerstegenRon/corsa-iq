@@ -70,6 +70,7 @@ export const nl = {
     signUpDone: "Account aangemaakt. Check je e-mail en klik op de bevestigingslink om in te loggen.",
     emailNotConfirmed: "Bevestig eerst je e-mailadres via de link in je inbox.",
     invalidCredentials: "E-mailadres of wachtwoord klopt niet.",
+    accountDeleted: "Je account is verwijderd. Bedankt dat je Corsa IQ hebt gebruikt.",
     forgotPassword: "Wachtwoord vergeten?",
     resetMetaTitle: "Wachtwoord vergeten — Corsa IQ",
     resetHeading: "Wachtwoord vergeten",

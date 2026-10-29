@@ -53,6 +53,7 @@ export const fr: Dictionary = {
     signUpDone: "Compte créé. Consulte tes e-mails et clique sur le lien de confirmation pour te connecter.",
     emailNotConfirmed: "Confirme d'abord ton adresse e-mail via le lien reçu par e-mail.",
     invalidCredentials: "Adresse e-mail ou mot de passe incorrect.",
+    accountDeleted: "Ton compte a été supprimé. Merci d’avoir utilisé Corsa IQ.",
     forgotPassword: "Mot de passe oublié ?",
     resetMetaTitle: "Mot de passe oublié — Corsa IQ",
     resetHeading: "Mot de passe oublié",

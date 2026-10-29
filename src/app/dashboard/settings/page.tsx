@@ -7,6 +7,7 @@ import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 
+import { AccountData } from "./account-data";
 import { PasswordForm } from "./password-form";
 import { ProfileForm } from "./profile-form";
 
@@ -16,7 +17,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage() {
   const [{ supabase, user, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
-  const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+  const [{ data: profile }, { data: accountGarages }] = await Promise.all([
+    supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
+    supabase.rpc("my_account_garages"),
+  ]);
 
   return (
     <>
@@ -77,6 +81,15 @@ export default async function SettingsPage() {
         <div className="mt-6 border-t border-zinc-800/80 pt-6">
           <h3 className="mb-4 text-sm font-semibold text-zinc-200">{t.settings.passwordHeading}</h3>
           <PasswordForm />
+        </div>
+      </section>
+
+      <section aria-labelledby="data-heading" className={cardClass}>
+        <h2 id="data-heading" className="text-lg font-semibold">
+          Je gegevens en account
+        </h2>
+        <div className="mt-4">
+          <AccountData garages={accountGarages ?? []} />
         </div>
       </section>
     </>
