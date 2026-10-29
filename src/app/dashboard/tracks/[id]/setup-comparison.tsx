@@ -7,6 +7,7 @@ import { cardClass, linkClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { formatDate, formatLapTime, labelFor, type SetupValues } from "@/lib/karting";
 import { formatDelta } from "@/lib/lap-analysis";
+import { weatherText, type SessionConditions } from "@/lib/weather";
 import { SETUP_GROUPS, fieldsInUse, formatSetupValue, gearRatio, getSetupValue } from "@/lib/setup";
 
 export type ComparedSession = {
@@ -16,7 +17,7 @@ export type ComparedSession = {
   eventName: string;
   kart: { id: string; name: string } | null;
   bestLapMs: number;
-  conditions: { weather?: string; air_temp_c?: number; track_temp_c?: number };
+  conditions: SessionConditions;
   setup: SetupValues;
 };
 
@@ -158,7 +159,7 @@ export function SetupComparison({
                     </td>
                     <td className="py-2 pr-4 text-zinc-400">
                       {[
-                        c.weather && labelFor(t.options.weather, c.weather),
+                        weatherText(c, t.options.weather),
                         c.air_temp_c !== undefined && `lucht ${c.air_temp_c}°`,
                         c.track_temp_c !== undefined && `baan ${c.track_temp_c}°`,
                       ]

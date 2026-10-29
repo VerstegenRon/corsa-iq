@@ -5,6 +5,7 @@ import { cardClass, secondaryButtonClass, inputClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { formatDate, formatLapTime, formatTime, labelFor, type SetupValues } from "@/lib/karting";
 import { formatDelta } from "@/lib/lap-analysis";
+import { weatherText, type SessionConditions } from "@/lib/weather";
 import {
   SETUP_FIELDS,
   SETUP_GROUPS,
@@ -15,7 +16,7 @@ import {
   type SetupGroup,
 } from "@/lib/setup";
 
-type Conditions = { weather?: string; air_temp_c?: number; track_temp_c?: number };
+type Conditions = SessionConditions;
 
 export type SetupSessionInfo = {
   id: string;
@@ -38,13 +39,9 @@ export function sessionLabel(s: SetupSessionInfo, t: Dictionary) {
 
 function conditionChanges(from: Conditions, to: Conditions, t: Dictionary) {
   const rows: { label: string; from: string; to: string }[] = [];
-  if (from.weather !== to.weather) {
-    rows.push({
-      label: "Weer",
-      from: from.weather ? labelFor(t.options.weather, from.weather) : "—",
-      to: to.weather ? labelFor(t.options.weather, to.weather) : "—",
-    });
-  }
+  const fromWeather = weatherText(from, t.options.weather);
+  const toWeather = weatherText(to, t.options.weather);
+  if (fromWeather !== toWeather) rows.push({ label: "Weer", from: fromWeather ?? "—", to: toWeather ?? "—" });
   const temp = (value: number | undefined) => (value === undefined ? "—" : `${value}°C`);
   if (from.air_temp_c !== to.air_temp_c) rows.push({ label: "Luchttemperatuur", from: temp(from.air_temp_c), to: temp(to.air_temp_c) });
   if (from.track_temp_c !== to.track_temp_c) rows.push({ label: "Baantemperatuur", from: temp(from.track_temp_c), to: temp(to.track_temp_c) });

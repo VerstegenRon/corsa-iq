@@ -9,9 +9,10 @@ import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
 import { EVENT_TYPES } from "@/lib/karting";
 import { LOGGER_BUCKET } from "@/lib/storage";
+import type { SessionConditions } from "@/lib/weather";
 
 import { optionalNumber, text } from "./form-data";
-import { insertSession, insertSetup, readSession, type Supabase } from "./session-save";
+import { insertSession, insertSetup, readSession, withWeather, type Supabase } from "./session-save";
 
 // ---------------------------------------------------------------------------
 // Seasons
@@ -208,7 +209,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
   const { supabase, garage } = await getCurrentGarage();
   const { data: current } = await supabase
     .from("sessions")
-    .select("setup_id, driver_feedback, setups(values, parent_setup_id), laps(lap_number), events!inner(garage_id)")
+    .select("event_id, started_at, conditions, setup_id, driver_feedback, setups(values, parent_setup_id), laps(lap_number), events!inner(garage_id)")
     .eq("id", sessionId)
     .eq("events.garage_id", garage.id)
     .limit(1, { referencedTable: "laps" })
@@ -225,14 +226,25 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
     setupId = setup.id;
   }
 
-  // With imported laps the best lap follows from the laps, not from the form.
-  const { best_lap_ms, ...values } = session.values;
-  // Label the feedback again only when it changed.
-  const tags =
-    values.driver_feedback !== current.driver_feedback ? { feedback_tags: (await tagFeedback(values.driver_feedback)) as Json } : {};
+  // With imported laps the best lap follows from the laps, not from the form. Label the feedback again
+  // only when it changed.
+  const [{ best_lap_ms, ...values }, newTags] = await Promise.all([
+    withWeather(supabase, current.event_id, session.values, {
+      conditions: (current.conditions ?? {}) as SessionConditions,
+      started_at: current.started_at,
+    }),
+    session.values.driver_feedback !== current.driver_feedback ? tagFeedback(session.values.driver_feedback) : undefined,
+  ]);
+  const tags = newTags === undefined ? {} : { feedback_tags: newTags as Json };
   const { error } = await supabase
     .from("sessions")
-    .update({ ...values, ...tags, ...(current.laps.length > 0 ? {} : { best_lap_ms }), setup_id: setupId })
+    .update({
+      ...values,
+      conditions: values.conditions as Json,
+      ...tags,
+      ...(current.laps.length > 0 ? {} : { best_lap_ms }),
+      setup_id: setupId,
+    })
     .eq("id", sessionId);
   if (error) return { error: `Opslaan mislukt: ${error.message}` };
 

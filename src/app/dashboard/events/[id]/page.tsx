@@ -23,6 +23,7 @@ import {
   type SetupValues,
 } from "@/lib/karting";
 import { loadMaintenancePlan } from "@/lib/maintenance-plan-data";
+import { weatherText, type SessionConditions } from "@/lib/weather";
 
 import { MaintenancePlanList } from "../../agenda/maintenance-plan-list";
 import { ExpenseForm } from "../../costs/expense-form";
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
   title: "Evenement — CorsaIQ",
 };
 
-type Conditions = { weather?: string; air_temp_c?: number; track_temp_c?: number };
+type Conditions = SessionConditions;
 
 export default async function EventPage({ params }: PageProps<"/dashboard/events/[id]">) {
   const { id } = await params;
@@ -47,7 +48,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
     supabase
       .from("events")
       .select(
-        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, city, country), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
+        "id, name, type, starts_on, ends_on, notes, season_id, track_id, tracks(name, city, country, latitude, longitude), seasons(name), sessions(id, type, started_at, duration_s, best_lap_ms, position, conditions, driver_feedback, feedback_tags, karts(name), drivers(name), setups(values), session_parts(part_id))",
       )
       .eq("id", id)
       .eq("garage_id", garage.id)
@@ -164,9 +165,11 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
                       {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
-                      {conditions.weather && ` · ${labelFor(t.options.weather, conditions.weather)}`}
-                      {conditions.air_temp_c !== undefined && ` · lucht ${conditions.air_temp_c} °C`}
-                      {conditions.track_temp_c !== undefined && ` · baan ${conditions.track_temp_c} °C`}
+                      {conditions.weather && ` · ${weatherText(conditions, t.options.weather)}`}
+                      {conditions.air_temp_c !== undefined && ` · lucht ${String(conditions.air_temp_c).replace(".", ",")} °C`}
+                      {conditions.track_temp_c !== undefined && ` · baan ${String(conditions.track_temp_c).replace(".", ",")} °C`}
+                      {conditions.humidity_pct !== undefined && ` · ${conditions.humidity_pct}% vocht`}
+                      {conditions.precipitation_mm ? ` · ${String(conditions.precipitation_mm).replace(".", ",")} mm regen` : ""}
                       {` · ${session.session_parts.length} ${session.session_parts.length === 1 ? "onderdeel" : "onderdelen"}`}
                     </p>
                     {setup.length > 0 && <p className="mt-1 text-xs text-zinc-400">{setup.join(" · ")}</p>}
@@ -203,6 +206,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
             karts={karts}
             drivers={drivers}
             lastSetup={(lastSetupResult.data?.values as SetupValues | undefined) ?? null}
+            autoWeather={event.tracks?.latitude != null && event.tracks.longitude != null}
           />
         )}
       </AddSection>

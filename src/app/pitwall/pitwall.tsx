@@ -276,6 +276,7 @@ export function Pitwall({
   const tyreFields = PITWALL_SETUP_FIELDS.filter((field) => field.group === "tyres" && !field.name.startsWith("hot_"));
   const hotFields = PITWALL_SETUP_FIELDS.filter((field) => field.name.startsWith("hot_"));
   const gearFields = PITWALL_SETUP_FIELDS.filter((field) => field.group === "gearing");
+  const weatherOptions = Object.entries(t.options.weather).map(([id, label]) => ({ id, label }));
 
   return (
     <PitwallShell online={online} waiting={waiting.length}>
@@ -388,6 +389,28 @@ export function Pitwall({
             <span className="text-sm font-normal text-zinc-400">Leeg = net afgelopen</span>
           </label>
         </div>
+
+        {/* Automatic: looked up from the circuit's weather once the session is sent. */}
+        <BigChoice
+          legend="Weer"
+          name="weather"
+          options={[{ id: "auto", label: "Automatisch" }, ...weatherOptions]}
+          defaultValue="auto"
+        />
+        <details className="group -mt-3 rounded-2xl border-2 border-zinc-800 px-4 py-3">
+          <summary className={`flex cursor-pointer list-none items-center justify-between rounded-lg text-base font-medium text-zinc-200 ${focusRing}`}>
+            Weer sloeg om tijdens de sessie
+            <Icon name="chevron" className="size-5 rotate-90 text-zinc-400 transition-transform group-open:-rotate-90" />
+          </summary>
+          <div className="mt-4">
+            <BigChoice
+              legend="Aan het eind was het"
+              name="weather_to"
+              options={[{ id: "", label: "Niet omgeslagen" }, ...weatherOptions]}
+              defaultValue=""
+            />
+          </div>
+        </details>
 
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-3 text-lg font-semibold text-zinc-50">Bandenspanning koud (bar)</legend>
