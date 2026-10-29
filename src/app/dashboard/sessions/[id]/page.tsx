@@ -6,7 +6,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditSection } from "@/components/edit-section";
 import { FeedbackTags } from "@/components/feedback-tags";
 import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
-import { cardClass, linkClass } from "@/components/ui";
+import { cardClass, linkClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
 import {
@@ -101,7 +101,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
     supabase
       .from("sessions")
       .select(
-        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, feedback_tags, events!inner(id, name, starts_on, track_id, garage_id, tracks(latitude, longitude)), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
+        "id, type, started_at, duration_s, best_lap_ms, driver_id, kart_id, position, conditions, driver_feedback, feedback_tags, events!inner(id, name, starts_on, track_id, garage_id, tracks(latitude, longitude)), karts(name), drivers(name), setups(values), data_imports(source, created_at), laps!laps_session_id_fkey(lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms))",
       )
       .eq("id", id)
       .eq("events.garage_id", garage.id)
@@ -166,6 +166,11 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const sectorCount = Math.max(0, ...laps.map((lap) => lap.sectors.length));
   const hasSpeed = laps.some((lap) => lap.max_speed_kmh !== null);
   const hasRpm = laps.some((lap) => lap.max_rpm !== null);
+  const { count: telemetryCount } = await supabase
+    .from("lap_channels")
+    .select("lap_id, laps!inner(session_id)", { count: "exact", head: true })
+    .eq("laps.session_id", session.id);
+  const hasTelemetry = (telemetryCount ?? 0) > 0;
   const conditions = session.conditions as Conditions;
   const weatherLine = [
     conditions.air_temp_c !== undefined && `lucht ${String(conditions.air_temp_c).replace(".", ",")} °C`,
@@ -219,6 +224,17 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             {stat.note && <p className="mt-1 text-xs text-zinc-500">{stat.note}</p>}
           </div>
         ))}
+      </section>
+
+      <section aria-label="Telemetrie" className="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 px-5 py-4">
+        <p className="text-sm text-zinc-300">
+          {hasTelemetry
+            ? "Leg elke ronde naast een referentie: snelheid, tijdverschil en verlies per bocht."
+            : "Importeer de telemetrie van je logger om te zien in welke bocht de tijd zit."}
+        </p>
+        <Link href={`/dashboard/sessions/${session.id}/analyse`} className={hasTelemetry ? primaryButtonClass : secondaryButtonClass}>
+          {hasTelemetry ? "Waar zit de tijd?" : "Telemetrie importeren"}
+        </Link>
       </section>
 
       <FeedbackCard

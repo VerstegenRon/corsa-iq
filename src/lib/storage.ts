@@ -5,3 +5,7 @@ export const RECEIPT_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/
 export const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
 export const LOGGER_BUCKET = "logger-files";
+
+/** Resampled channels per lap, "<garage_id>/<session_id>/<file>.json". */
+export const TELEMETRY_BUCKET = "telemetry";
+export const TELEMETRY_MAX_BYTES = 60 * 1024 * 1024;

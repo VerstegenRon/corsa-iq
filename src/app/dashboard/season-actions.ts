@@ -225,7 +225,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
   const { supabase, garage } = await getCurrentGarage();
   const { data: current } = await supabase
     .from("sessions")
-    .select("event_id, started_at, conditions, setup_id, driver_feedback, setups(values, parent_setup_id), laps(lap_number), events!inner(garage_id)")
+    .select("event_id, started_at, conditions, setup_id, driver_feedback, setups(values, parent_setup_id), laps!laps_session_id_fkey(lap_number), events!inner(garage_id)")
     .eq("id", sessionId)
     .eq("events.garage_id", garage.id)
     .limit(1, { referencedTable: "laps" })
