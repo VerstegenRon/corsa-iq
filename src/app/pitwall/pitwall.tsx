@@ -4,18 +4,25 @@
 // sent from there, so a paddock without signal loses nothing: the queue empties itself as soon as
 // the connection is back.
 
+import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { FeedbackField } from "@/components/feedback-field";
 import { Icon } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
-import type { SetupValues } from "@/lib/karting";
-import { PITWALL_QUEUE_KEY, PITWALL_SETUP_FIELDS, type QueuedSession } from "@/lib/pitwall";
+import { formatDate, type SetupValues } from "@/lib/karting";
+import { PITWALL_EVENTS_KEY, PITWALL_QUEUE_KEY, PITWALL_SETUP_FIELDS, type NewEvent, type QueuedSession } from "@/lib/pitwall";
 import { getSetupValue, inputSetupValue, type SetupField } from "@/lib/setup";
 
 export type PitwallEvent = { id: string; label: string; isToday: boolean };
 export type KartDefaults = { driverId: string; durationMin: number | null; setup: SetupValues | null };
 type Option = { id: string; label: string };
+type Track = Option & { name: string };
+/** An event made here that the server may not have yet. */
+type LocalEvent = PitwallEvent & { newEvent: NewEvent };
+
+/** The event select's value for "make a new event for today". */
+const NEW_EVENT = "new";
 
 const focusRing = "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 const bigInputClass = `h-14 w-full rounded-2xl border-2 border-zinc-700 bg-zinc-950 px-4 text-lg text-zinc-50 placeholder:text-zinc-500 ${focusRing}`;
@@ -28,6 +35,21 @@ function readQueue(): QueuedSession[] {
   } catch {
     return [];
   }
+}
+
+function readLocalEvents(): LocalEvent[] {
+  try {
+    const raw = localStorage.getItem(PITWALL_EVENTS_KEY);
+    return raw ? (JSON.parse(raw) as LocalEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalEvents(events: LocalEvent[]) {
+  try {
+    localStorage.setItem(PITWALL_EVENTS_KEY, JSON.stringify(events));
+  } catch {}
 }
 
 function writeQueue(queue: QueuedSession[]) {
@@ -57,6 +79,9 @@ export function Pitwall({
   drivers,
   defaults,
   lastType,
+  tracks,
+  lastTrackId,
+  today,
 }: {
   events: PitwallEvent[];
   defaultEventId: string | null;
@@ -64,9 +89,16 @@ export function Pitwall({
   drivers: Option[];
   defaults: Record<string, KartDefaults>;
   lastType: string | null;
+  tracks: Track[];
+  lastTrackId: string | null;
+  /** YYYY-MM-DD in Dutch time, the date of an event made here. */
+  today: string;
 }) {
   const t = useT();
-  const [eventId, setEventId] = useState(defaultEventId ?? "");
+  const [eventId, setEventId] = useState(defaultEventId ?? NEW_EVENT);
+  const [localEvents, setLocalEvents] = useState<LocalEvent[]>([]);
+  const [newTrackId, setNewTrackId] = useState(lastTrackId ?? tracks[0]?.id ?? "");
+  const [newEventType, setNewEventType] = useState("training");
   const [kartId, setKartId] = useState(karts[0]?.id ?? "");
   // What was logged last per kart in this visit, so the next session starts from it.
   const [logged, setLogged] = useState<Record<string, Record<string, string>>>({});
@@ -98,7 +130,7 @@ export function Pitwall({
           response = await fetch("/api/pitwall/sessions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: item.id, eventId: item.eventId, fields: item.fields }),
+            body: JSON.stringify({ id: item.id, eventId: item.eventId, fields: item.fields, newEvent: item.newEvent }),
           });
         } catch {
           setOnline(false);
@@ -131,6 +163,14 @@ export function Pitwall({
     // Mount only: the queue lives in this browser's storage.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQueue(readQueue());
+    // Events made here stay listed until the server sends them along with the page.
+    const pending = readLocalEvents().filter((local) => !events.some((event) => event.id === local.id));
+    writeLocalEvents(pending);
+    setLocalEvents(pending);
+    if (!defaultEventId) {
+      const todays = pending.find((local) => local.newEvent.starts_on === today);
+      if (todays) setEventId(todays.id);
+    }
     setOnline(navigator.onLine);
     void flush();
     const goOnline = () => {
@@ -148,6 +188,8 @@ export function Pitwall({
       window.removeEventListener("offline", goOffline);
       window.clearInterval(timer);
     };
+    // Mount only: the events and today come with the page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flush]);
 
   const kartDefaults = defaults[kartId];
@@ -162,8 +204,23 @@ export function Pitwall({
     for (const [key, value] of form.entries()) if (typeof value === "string") fields[key] = value.trim();
 
     const durationMin = Number((fields.duration_min || "0").replace(",", "."));
-    if (!eventId) return setNotice({ tone: "error", text: "Kies eerst het evenement." });
+    if (eventId === NEW_EVENT && !newTrackId) return setNotice({ tone: "error", text: "Kies het circuit van het evenement." });
     if (!(durationMin > 0)) return setNotice({ tone: "error", text: "Vul in hoeveel minuten de sessie duurde." });
+
+    // A new event gets its id here and is saved with this session, so it also works without signal.
+    let newEvent = localEvents.find((local) => local.id === eventId)?.newEvent;
+    let targetEventId = eventId;
+    if (eventId === NEW_EVENT) {
+      const typeName = t.options.eventTypes[newEventType as keyof typeof t.options.eventTypes] ?? newEventType;
+      const track = tracks.find((option) => option.id === newTrackId);
+      newEvent = { id: crypto.randomUUID(), name: `${typeName} ${track?.name ?? ""}`.trim(), type: newEventType, track_id: newTrackId, starts_on: today };
+      const local: LocalEvent = { id: newEvent.id, label: `${newEvent.name} · ${formatDate(today)}`, isToday: true, newEvent };
+      const next = [local, ...readLocalEvents().filter((event) => event.id !== local.id)];
+      writeLocalEvents(next);
+      setLocalEvents(next);
+      setEventId(local.id);
+      targetEventId = local.id;
+    }
     fields.started_at_iso = startedAtIso(fields.start_time, durationMin);
     delete fields.start_time;
 
@@ -171,7 +228,8 @@ export function Pitwall({
     const kartLabel = karts.find((kart) => kart.id === kartId)?.label ?? "";
     const item: QueuedSession = {
       id: crypto.randomUUID(),
-      eventId,
+      eventId: targetEventId,
+      ...(newEvent ? { newEvent } : {}),
       label: `${typeLabel} · ${kartLabel} · ${clock(fields.started_at_iso)}`,
       fields,
       queuedAt: new Date().toISOString(),
@@ -196,18 +254,16 @@ export function Pitwall({
   const waiting = queue.filter((item) => !item.error);
   const failed = queue.filter((item) => item.error);
 
-  if (events.length === 0 || karts.length === 0 || drivers.length === 0) {
+  if (karts.length === 0 || drivers.length === 0) {
     return (
       <PitwallShell online={online} waiting={0}>
         <p className="text-lg text-zinc-200">
-          {events.length === 0
-            ? "Maak eerst een evenement aan, dan kun je hier sessies loggen."
-            : karts.length === 0
-              ? "Voeg eerst een kart toe, dan kun je hier sessies loggen."
-              : "Voeg eerst een coureur toe, dan kun je hier sessies loggen."}
+          {karts.length === 0
+            ? "Voeg eerst een kart toe, dan kun je hier sessies loggen."
+            : "Voeg eerst een coureur toe, dan kun je hier sessies loggen."}
         </p>
         <a
-          href={events.length === 0 ? "/dashboard/seasons" : karts.length === 0 ? "/dashboard/karts" : "/dashboard/drivers"}
+          href={karts.length === 0 ? "/dashboard/karts" : "/dashboard/drivers"}
           className={`inline-flex h-14 items-center justify-center rounded-full bg-brand-500 px-6 text-lg font-semibold text-on-brand ${focusRing}`}
         >
           Naar het dashboard
@@ -245,18 +301,59 @@ export function Pitwall({
         authError={authError}
         onSend={() => void flush()}
         onRemove={(id) => updateQueue((queue) => queue.filter((item) => item.id !== id))}
+        onRetry={(id) => {
+          updateQueue((queue) => queue.map(({ error: _error, ...item }) => (item.id === id ? item : { ...item, error: _error })));
+          void flush();
+        }}
       />
 
       <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
         Evenement
         <select value={eventId} onChange={(e) => setEventId(e.target.value)} className={bigInputClass}>
-          {events.map((event) => (
+          <option value={NEW_EVENT}>+ Nieuw evenement vandaag</option>
+          {[...localEvents, ...events].map((event) => (
             <option key={event.id} value={event.id}>
               {event.isToday ? `Vandaag: ${event.label}` : event.label}
             </option>
           ))}
         </select>
       </label>
+
+      {eventId === NEW_EVENT && (
+        <fieldset className="flex flex-col gap-4 rounded-2xl border-2 border-zinc-700 p-4">
+          <legend className="px-1 text-lg font-semibold text-zinc-50">Nieuw evenement vandaag</legend>
+          {tracks.length === 0 ? (
+            <p className="text-base text-zinc-200">
+              Er is nog geen circuit.{" "}
+              <Link href="/dashboard/tracks" className="underline underline-offset-4">
+                Voeg er een toe
+              </Link>{" "}
+              in het dashboard.
+            </p>
+          ) : (
+            <>
+              <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
+                Circuit
+                <select value={newTrackId} onChange={(e) => setNewTrackId(e.target.value)} className={bigInputClass}>
+                  {tracks.map((track) => (
+                    <option key={track.id} value={track.id}>
+                      {track.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <BigChoice
+                legend="Soort"
+                name="event_type_choice"
+                options={Object.entries(t.options.eventTypes).map(([id, label]) => ({ id, label }))}
+                value={newEventType}
+                onChange={setNewEventType}
+              />
+              <p className="text-sm text-zinc-400">Wordt samen met de eerste sessie opgeslagen, ook zonder bereik.</p>
+            </>
+          )}
+        </fieldset>
+      )}
 
       {karts.length > 1 && (
         <BigChoice legend="Kart" name="kart_choice" options={karts} value={kartId} onChange={setKartId} />
@@ -396,6 +493,7 @@ function QueueList({
   authError,
   onSend,
   onRemove,
+  onRetry,
 }: {
   waiting: QueuedSession[];
   failed: QueuedSession[];
@@ -404,6 +502,7 @@ function QueueList({
   authError: boolean;
   onSend: () => void;
   onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
 }) {
   if (waiting.length === 0 && failed.length === 0) return null;
   return (
@@ -424,7 +523,7 @@ function QueueList({
           </li>
         ))}
         {failed.map((item) => (
-          <FailedItem key={item.id} item={item} onRemove={() => onRemove(item.id)} />
+          <FailedItem key={item.id} item={item} onRemove={() => onRemove(item.id)} onRetry={() => onRetry(item.id)} />
         ))}
       </ul>
       {waiting.length > 0 && (
@@ -441,7 +540,7 @@ function QueueList({
   );
 }
 
-function FailedItem({ item, onRemove }: { item: QueuedSession; onRemove: () => void }) {
+function FailedItem({ item, onRemove, onRetry }: { item: QueuedSession; onRemove: () => void; onRetry: () => void }) {
   const [confirming, setConfirming] = useState(false);
   return (
     <li className="flex flex-col gap-2 rounded-xl border-2 border-red-400/60 p-3 text-base">
@@ -458,9 +557,14 @@ function FailedItem({ item, onRemove }: { item: QueuedSession; onRemove: () => v
             </button>
           </>
         ) : (
-          <button type="button" onClick={() => setConfirming(true)} className={`h-11 rounded-full border-2 border-zinc-600 px-4 ${focusRing}`}>
-            Weggooien
-          </button>
+          <>
+            <button type="button" onClick={onRetry} className={`h-11 rounded-full border-2 border-zinc-600 px-4 ${focusRing}`}>
+              Opnieuw proberen
+            </button>
+            <button type="button" onClick={() => setConfirming(true)} className={`h-11 rounded-full border-2 border-zinc-600 px-4 ${focusRing}`}>
+              Weggooien
+            </button>
+          </>
         )}
       </div>
     </li>
