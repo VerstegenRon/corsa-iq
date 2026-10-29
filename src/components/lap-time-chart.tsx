@@ -12,6 +12,7 @@ import { formatLapTime } from "@/lib/karting";
 // never the series color.
 const COLORS = {
   line: "var(--color-brand-400)", // the app accent
+  compare: "var(--color-zinc-400)", // the other session: neutral and dashed, so it never reads as a second accent
   surface: "var(--chart-surface)", // card surface, used for marker rings
   grid: "var(--color-zinc-800)", // hairline
   axis: "var(--color-zinc-500)", // muted text
@@ -36,13 +37,35 @@ export type LapPoint = {
 const HEIGHT = 220;
 const PAD = { top: 24, right: 16, bottom: 28, left: 56 };
 
-/** Clean tick step for a range in ms: 0.1 s, 0.2 s, 0.5 s, 1 s, 2 s, … */
-function tickStep(range: number) {
-  const steps = [100, 200, 500, 1000, 2000, 5000, 10_000, 30_000, 60_000];
-  return steps.find((step) => range / step <= 5) ?? 60_000;
+/** What the values are. Lap times: lower is better; speed and revs: higher is better. */
+export type ChartKind = "lapTime" | "speed" | "rpm";
+
+const SCALES: Record<ChartKind, { format: (v: number) => string; steps: number[]; best: "min" | "max"; minRange: number }> = {
+  // Clean tick steps: 0.1 s, 0.2 s, 0.5 s, 1 s, …
+  lapTime: { format: (v) => formatLapTime(v), steps: [100, 200, 500, 1000, 2000, 5000, 10_000, 30_000, 60_000], best: "min", minRange: 100 },
+  speed: { format: (v) => `${Math.round(v * 10) / 10}`, steps: [1, 2, 5, 10, 20, 50], best: "max", minRange: 2 },
+  rpm: { format: (v) => `${Math.round(v)}`, steps: [100, 200, 500, 1000, 2000, 5000], best: "max", minRange: 200 },
+};
+
+function tickStep(range: number, steps: number[]) {
+  return steps.find((step) => range / step <= 5) ?? steps.at(-1)!;
 }
 
-export function LapTimeChart({ points, label }: { points: LapPoint[]; label: string }) {
+export function LapTimeChart({
+  points,
+  label,
+  kind = "lapTime",
+  seriesLabel,
+  compare,
+}: {
+  points: LapPoint[];
+  label: string;
+  kind?: ChartKind;
+  /** Legend name of the main series; only shown with a comparison. */
+  seriesLabel?: string;
+  /** A second series, matched to the main one by position. */
+  compare?: { label: string; points: LapPoint[] };
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
   const [active, setActive] = useState<number | null>(null);
@@ -59,12 +82,14 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
 
   if (points.length < 2) return null;
 
+  const scale = SCALES[kind];
   const times = points.map((p) => p.ms);
-  const bestMs = Math.min(...times);
+  const bestMs = scale.best === "min" ? Math.min(...times) : Math.max(...times);
   const bestIndex = times.indexOf(bestMs);
-  const rawMin = bestMs;
-  const rawMax = Math.max(...times);
-  const step = tickStep(Math.max(rawMax - rawMin, 100));
+  const allTimes = [...times, ...(compare?.points.map((p) => p.ms) ?? [])];
+  const rawMin = Math.min(...allTimes);
+  const rawMax = Math.max(...allTimes);
+  const step = tickStep(Math.max(rawMax - rawMin, scale.minRange), scale.steps);
   const yMin = Math.floor(rawMin / step) * step;
   const yMax = Math.max(Math.ceil(rawMax / step) * step, yMin + step);
   const ticks: number[] = [];
@@ -73,14 +98,17 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
   const plotW = width - PAD.left - PAD.right;
   const plotH = HEIGHT - PAD.top - PAD.bottom;
   const positions = points.map((p, i) => p.position ?? i);
-  const xMin = positions[0];
-  const xSpan = Math.max(positions.at(-1)! - xMin, 1);
-  const x = (i: number) => PAD.left + ((positions[i] - xMin) / xSpan) * plotW;
+  const comparePositions = compare?.points.map((p, i) => p.position ?? i) ?? [];
+  const xMin = Math.min(positions[0], ...comparePositions);
+  const xSpan = Math.max(Math.max(positions.at(-1)!, ...comparePositions) - xMin, 1);
+  const xAt = (position: number) => PAD.left + ((position - xMin) / xSpan) * plotW;
+  const x = (i: number) => xAt(positions[i]);
   const y = (ms: number) => PAD.top + ((yMax - ms) / (yMax - yMin)) * plotH;
 
-  const path = points
-    .map((p, i) => `${i === 0 || p.breakBefore ? "M" : "L"}${x(i).toFixed(1)},${y(p.ms).toFixed(1)}`)
-    .join("");
+  const linePath = (series: LapPoint[], at: number[]) =>
+    series.map((p, i) => `${i === 0 || p.breakBefore ? "M" : "L"}${xAt(at[i]).toFixed(1)},${y(p.ms).toFixed(1)}`).join("");
+  const path = linePath(points, positions);
+  const comparePath = compare ? linePath(compare.points, comparePositions) : null;
   // Markers on every point only while they have room to breathe; the best point always gets one.
   // A point after a break has no line to its left, so it always keeps its marker.
   const showMarkers = plotW / points.length >= 14;
@@ -105,12 +133,15 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
   }
 
   const activePoint = active === null ? null : points[active];
+  const activeCompare =
+    active === null || !compare ? null : (compare.points.find((_, i) => comparePositions[i] === positions[active]) ?? null);
   const tooltipLeft = active === null ? 0 : Math.min(Math.max(x(active), 80), width - 80);
 
   return (
     <figure ref={containerRef} className="relative min-w-0 overflow-hidden">
       <figcaption id={titleId} className="sr-only">
-        {format(t.chart.summary, { label, time: formatLapTime(bestMs), title: points[bestIndex].title })}
+        {format(scale.best === "min" ? t.chart.summary : t.chart.summaryMax, { label, time: scale.format(bestMs), title: points[bestIndex].title })}
+        {compare && ` ${format(t.chart.compared, { label: compare.label })}`}
       </figcaption>
       <svg
         role="img"
@@ -136,7 +167,7 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
           <g key={t}>
             <line x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke={COLORS.grid} strokeWidth={1} />
             <text x={PAD.left - 8} y={y(t)} dy="0.32em" textAnchor="end" fontSize={11} fill={COLORS.axis} className="tabular-nums">
-              {formatLapTime(t)}
+              {scale.format(t)}
             </text>
           </g>
         ))}
@@ -150,6 +181,10 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
 
         {active !== null && (
           <line x1={x(active)} x2={x(active)} y1={PAD.top} y2={PAD.top + plotH} stroke={COLORS.axis} strokeWidth={1} />
+        )}
+
+        {comparePath && (
+          <path d={comparePath} fill="none" stroke={COLORS.compare} strokeWidth={2} strokeDasharray="5 4" strokeLinejoin="round" strokeLinecap="round" />
         )}
 
         <path d={path} fill="none" stroke={COLORS.line} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
@@ -178,9 +213,24 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
           fill={COLORS.label}
           className="tabular-nums"
         >
-          {formatLapTime(bestMs)}
+          {scale.format(bestMs)}
         </text>
       </svg>
+
+      {compare && (
+        <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-zinc-400">
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="inline-block h-0.5 w-4 rounded-full" style={{ background: COLORS.line }} />
+            {seriesLabel}
+          </li>
+          <li className="flex items-center gap-2">
+            <svg aria-hidden="true" width="16" height="2" className="block">
+              <line x1="0" x2="16" y1="1" y2="1" stroke={COLORS.compare} strokeWidth={2} strokeDasharray="5 4" />
+            </svg>
+            {compare.label}
+          </li>
+        </ul>
+      )}
 
       {activePoint && (
         <div
@@ -190,8 +240,16 @@ export function LapTimeChart({ points, label }: { points: LapPoint[]; label: str
         >
           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-50 tabular-nums">
             <span aria-hidden="true" className="inline-block h-0.5 w-3 rounded-full" style={{ background: COLORS.line }} />
-            {formatLapTime(activePoint.ms)}
+            {scale.format(activePoint.ms)}
           </p>
+          {activeCompare && (
+            <p className="flex items-center gap-2 font-medium text-zinc-300 tabular-nums">
+              <svg aria-hidden="true" width="12" height="2" className="block">
+                <line x1="0" x2="12" y1="1" y2="1" stroke={COLORS.compare} strokeWidth={2} strokeDasharray="4 3" />
+              </svg>
+              {scale.format(activeCompare.ms)}
+            </p>
+          )}
           <p className="mt-0.5 whitespace-nowrap text-zinc-400">{activePoint.title}</p>
           {activePoint.detail && <p className="whitespace-nowrap text-zinc-500 tabular-nums">{activePoint.detail}</p>}
         </div>

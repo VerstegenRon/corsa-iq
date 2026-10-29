@@ -18,12 +18,33 @@ import {
   toLocalDateTimeInput,
   type SetupValues,
 } from "@/lib/karting";
-import { formatDelta, summarizeLaps, type StoredLap } from "@/lib/lap-analysis";
+import { formatDelta, summarizeLaps, type EngineLap } from "@/lib/lap-analysis";
 
 import { SessionForm } from "../../events/[id]/session-form";
 import { deleteSession } from "../../season-actions";
+import { EngineAnalysis, SectorAnalysis, SessionComparison, StintAnalysis } from "./lap-insights";
 import { LapImportForm } from "./lap-import-form";
-import { SetupSection, type SetupSessionInfo } from "./setup-section";
+import { SetupSection, sessionLabel, type SetupSessionInfo } from "./setup-section";
+
+type LapRow = {
+  lap_number: number;
+  lap_time_ms: number;
+  is_valid: boolean;
+  is_pit_lap: boolean;
+  max_speed_kmh: number | null;
+  max_rpm: number | null;
+  lap_sectors: { sector_number: number; sector_time_ms: number }[];
+};
+
+function toLaps(rows: LapRow[]): EngineLap[] {
+  return rows.map((lap) => ({
+    ...lap,
+    max_speed_kmh: lap.max_speed_kmh === null ? null : Number(lap.max_speed_kmh),
+    sectors: [...lap.lap_sectors].sort((a, b) => a.sector_number - b.sector_number).map((s) => s.sector_time_ms),
+  }));
+}
+
+const LAP_SELECT = "lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms)";
 
 export const metadata: Metadata = {
   title: "Sessie — CorsaIQ",
@@ -58,6 +79,7 @@ function toSetupInfo(row: CompareRow): SetupSessionInfo {
     id: row.id,
     type: row.type,
     startsOn: row.events.starts_on,
+    startedAt: row.started_at,
     kartName: row.karts?.name ?? null,
     bestLapMs: row.best_lap_ms,
     conditions: (row.conditions ?? {}) as Conditions,
@@ -102,10 +124,18 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
     (sameKart.data ?? []).find((row) => row.started_at < session.started_at) ?? (sameTrack.data ?? [])[0] ?? null;
   const compareRow = (vs && candidateRows.find((row) => row.id === vs)) || defaultRow;
 
-  const laps = session.laps.map((lap) => ({
-    ...lap,
-    sectors: [...lap.lap_sectors].sort((a, b) => a.sector_number - b.sector_number).map((s) => s.sector_time_ms),
-  })) satisfies StoredLap[];
+  const laps = toLaps(session.laps);
+  const compareLaps = compareRow
+    ? await supabase
+        .from("laps")
+        .select(LAP_SELECT)
+        .eq("session_id", compareRow.id)
+        .order("lap_number")
+        .then(({ data, error }) => {
+          if (error) throw new Error(error.message);
+          return toLaps(data);
+        })
+    : null;
   const summary = summarizeLaps(laps);
   // The chart shows the laps that count; out laps and outliers would only flatten the line.
   const chartLaps = laps.filter((lap) => lap.is_valid && !lap.is_pit_lap);
@@ -249,11 +279,29 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         </section>
       )}
 
+      {laps.length > 0 && (
+        <>
+          <div className={`grid grid-cols-1 gap-4 lg:gap-6 ${sectorCount > 0 ? "lg:grid-cols-2" : ""}`}>
+            <SectorAnalysis laps={laps} />
+            <StintAnalysis laps={laps} />
+          </div>
+          <EngineAnalysis laps={laps} />
+          <SessionComparison
+            laps={laps}
+            compareLaps={compareLaps}
+            compareId={compareRow?.id ?? null}
+            compareLabel={compareRow ? sessionLabel(toSetupInfo(compareRow), t) : null}
+            candidates={candidateRows.map((row) => ({ id: row.id, label: sessionLabel(toSetupInfo(row), t) }))}
+          />
+        </>
+      )}
+
       <SetupSection
         session={toSetupInfo({ ...session, events: session.events })}
         candidates={candidateRows.map(toSetupInfo)}
         compareWith={compareRow ? toSetupInfo(compareRow) : null}
         t={t}
+        showPicker={laps.length === 0}
       />
 
       <section aria-labelledby="import-heading" className={cardClass}>
