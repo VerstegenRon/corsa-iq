@@ -320,11 +320,13 @@ export const nl = {
     faq: {
       loggers: {
         question: "Welke dataloggers worden ondersteund?",
-        answer: "Exports van AiM/MyChron, Alfano en Unipro, en daarnaast elk CSV-bestand met rondetijden. Je kunt tijden ook gewoon plakken of invullen.",
+        answer:
+          "Exports van AiM/MyChron, Alfano en Unipro, en daarnaast elk CSV-bestand met rondetijden. Je kunt tijden ook gewoon plakken of invullen.",
       },
       phone: {
         question: "Werkt het op mijn telefoon?",
-        answer: "Ja. CorsaIQ is gemaakt om in de pits te gebruiken: het menu, de formulieren en het bonnetjes inlezen werken net zo goed op je telefoon als op je laptop.",
+        answer:
+          "Ja. CorsaIQ is gemaakt om in de pits te gebruiken: het menu, de formulieren en het bonnetjes inlezen werken net zo goed op je telefoon als op je laptop.",
       },
       data: {
         question: "Waar staan mijn gegevens?",
@@ -332,7 +334,8 @@ export const nl = {
       },
       receipts: {
         question: "Hoe werkt het inlezen van bonnetjes?",
-        answer: "Je bonnetje wordt door AI gelezen en de velden worden ingevuld. Je ziet altijd eerst wat er is ingevuld voordat je opslaat, dus je houdt zelf de controle.",
+        answer:
+          "Je bonnetje wordt door AI gelezen en de velden worden ingevuld. Je ziet altijd eerst wat er is ingevuld voordat je opslaat, dus je houdt zelf de controle.",
       },
     },
     finalTitle: "Klaar voor je volgende sessie?",
@@ -341,11 +344,14 @@ export const nl = {
   },
   pricing: {
     metaTitle: "Prijzen — CorsaIQ",
-    metaDescription: "Begin gratis met één kart. Pro voor de coureur die elk weekend rijdt, Team voor teams en families met meerdere coureurs.",
+    metaDescription:
+      "Begin gratis met één kart. Driver voor wie meer wil bijhouden, Pro met telemetrie, AI en Live, Team voor teams en families met meerdere coureurs.",
     eyebrow: "Prijzen",
     title: "Begin gratis, groei mee met je seizoen",
-    intro: "Eén kart bijhouden is gratis. Rijd je vaker of wil je bonnetjes laten inlezen, dan kies je Pro. Met meerdere coureurs neem je Team.",
-    launchNote: "CorsaIQ is net gestart: tijdens de opstartfase gebruik je alle functies gratis. Je kiest pas een abonnement zodra betalen mogelijk is.",
+    intro:
+      "Eén kart bijhouden is gratis. Driver geeft je meer karts en analyse, Pro voegt telemetrie, AI-advies en Live toe, en met meerdere coureurs neem je Team.",
+    launchNote:
+      "CorsaIQ is net gestart: tijdens de opstartfase gebruik je alle functies gratis. Je kiest pas een abonnement zodra betalen mogelijk is.",
     plansLabel: "Abonnementen",
     recommended: "Aanbevolen",
     perMonth: "per maand",
@@ -357,28 +363,77 @@ export const nl = {
       free: {
         name: "Gratis",
         text: "Om te beginnen met één kart.",
-        price: "€ 0",
-        yearly: "",
-        features: ["1 kart en 1 coureur", "Rondetijden importeren of plakken", "Draaiuren en onderhoud bijhouden", "Kosten per seizoen"],
+        features: ["1 kart en 1 coureur", "Sessies, rondetijden en debrief", "Draaiuren en onderhoud bijhouden", "Kosten per seizoen"],
+      },
+      hobby: {
+        name: "Driver",
+        text: "Voor de coureur die zijn seizoen serieus bijhoudt.",
+        features: [
+          "Tot 3 karts",
+          "Progressie per circuit en setups vergelijken",
+          "Pre-start checklist op de racedag",
+          "Grenzen per component en onderhoudsplanning",
+        ],
       },
       pro: {
         name: "Pro",
         text: "Voor de coureur die elk weekend op de baan staat.",
-        price: "€ 7",
-        yearly: "€ 70",
         features: [
           "Onbeperkt karts, motoren en onderdelen",
-          "Bonnetjes en facturen automatisch inlezen",
-          "Grenzen per component en waarschuwingen",
-          "Progressie per circuit",
+          "Telemetrie: zie in welke bocht de tijd zit",
+          "AI-advies en bonnetjes automatisch inlezen",
+          "Live timing en digitaal pitbord, met je monteur",
         ],
       },
       team: {
         name: "Team",
         text: "Voor teams en families met meerdere coureurs.",
-        price: "€ 19",
-        yearly: "€ 190",
-        features: ["Alles uit Pro", "Meerdere coureurs en karts", "Gedeelde garage met teamleden (binnenkort)", "Voor ouders, monteurs en teammanagers"],
+        features: ["Alles uit Pro", "Tot 6 coureurs en 10 teamleden", "Rollen voor monteur, coureur en kijker", "Support met voorrang"],
+      },
+    },
+    compare: {
+      title: "Vergelijk de abonnementen",
+      intro: "Alles op een rij. Tijdens de opstartfase kun je elke functie gratis gebruiken.",
+      feature: "Functie",
+      pickPlan: "Kies een abonnement om te vergelijken",
+      unlimited: "Onbeperkt",
+      included: "Inbegrepen",
+      notIncluded: "Niet inbegrepen",
+      groups: {
+        sessions: "Sessies",
+        analysis: "Analyse",
+        raceDay: "Racedag",
+        material: "Materiaal",
+        costs: "Kosten",
+        team: "Team",
+        support: "Gegevens en support",
+      },
+      rows: {
+        sessions: "Sessies, afstelling en debrief",
+        lapImport: "Rondetijden importeren of plakken",
+        pitwall: "Pitwall, ook zonder bereik",
+        aiDebrief: "AI-labels bij de feedback van de coureur",
+        progress: "Progressie per circuit en ronde-analyse",
+        setupCompare: "Setups vergelijken",
+        telemetry: "Telemetrie: waar zit de tijd",
+        aiAdvice: "Setup-advies met uitleg van AI",
+        packing: "Paklijst per evenement",
+        prestart: "Pre-start checklist (Vandaag)",
+        live: "Live timing met stopwatch",
+        pitboard: "Digitaal pitbord",
+        karts: "Karts",
+        maintenance: "Draaiuren en onderhoud",
+        gear: "Uitrusting en homologatie",
+        limits: "Grenzen per component en onderhoudsplanning",
+        costs: "Kosten per seizoen",
+        receipts: "Bonnetjes en facturen automatisch inlezen",
+        drivers: "Coureurs",
+        members: "Teamleden",
+        roles: "Rollen: monteur, coureur en kijker",
+        agenda: "Agenda en agenda-abonnement",
+        export: "Je gegevens downloaden",
+        email: "Support per e-mail",
+        priority: "Support met voorrang",
       },
     },
     faqTitle: "Vragen over prijzen",
@@ -397,7 +452,8 @@ export const nl = {
       },
       team: {
         question: "Wanneer heb ik Team nodig?",
-        answer: "Als meerdere coureurs of karts in één garage horen, bijvoorbeeld een gezin met twee rijders of een team dat meerdere klanten begeleidt.",
+        answer:
+          "Als er meer dan twee coureurs in één garage horen, bijvoorbeeld een gezin met drie rijders of een team dat meerdere klanten begeleidt. Pro is genoeg voor één of twee coureurs met een monteur erbij.",
       },
     },
   },

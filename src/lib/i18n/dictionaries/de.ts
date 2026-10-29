@@ -67,7 +67,8 @@ export const de: Dictionary = {
     resetHeading: "Passwort vergessen",
     resetIntro: "Gib deine E-Mail-Adresse ein. Du bekommst einen Link, um ein neues Passwort zu wählen.",
     resetSend: "Link senden",
-    resetSent: "Wenn es zu dieser Adresse ein Konto gibt, liegt jetzt eine E-Mail mit einem Link in deinem Posteingang. Sieh auch im Spam-Ordner nach.",
+    resetSent:
+      "Wenn es zu dieser Adresse ein Konto gibt, liegt jetzt eine E-Mail mit einem Link in deinem Posteingang. Sieh auch im Spam-Ordner nach.",
     resetExpired: "Dieser Link ist abgelaufen oder wurde schon benutzt. Fordere unten einen neuen an.",
     newPasswordMetaTitle: "Neues Passwort — CorsaIQ",
     newPasswordHeading: "Neues Passwort",
@@ -303,11 +304,13 @@ export const de: Dictionary = {
     faq: {
       loggers: {
         question: "Welche Datenlogger werden unterstützt?",
-        answer: "Exporte von AiM/MyChron, Alfano und Unipro sowie jede CSV-Datei mit Rundenzeiten. Du kannst Zeiten auch einfach einfügen oder eintippen.",
+        answer:
+          "Exporte von AiM/MyChron, Alfano und Unipro sowie jede CSV-Datei mit Rundenzeiten. Du kannst Zeiten auch einfach einfügen oder eintippen.",
       },
       phone: {
         question: "Funktioniert es auf meinem Handy?",
-        answer: "Ja. CorsaIQ ist für das Fahrerlager gemacht: Menü, Formulare und das Einlesen von Belegen funktionieren auf dem Handy genauso gut wie auf dem Laptop.",
+        answer:
+          "Ja. CorsaIQ ist für das Fahrerlager gemacht: Menü, Formulare und das Einlesen von Belegen funktionieren auf dem Handy genauso gut wie auf dem Laptop.",
       },
       data: {
         question: "Wo werden meine Daten gespeichert?",
@@ -315,7 +318,8 @@ export const de: Dictionary = {
       },
       receipts: {
         question: "Wie funktioniert das Einlesen von Belegen?",
-        answer: "Dein Beleg wird von einer KI gelesen und die Felder werden ausgefüllt. Du siehst immer zuerst, was eingetragen wurde, bevor du speicherst, und behältst so die Kontrolle.",
+        answer:
+          "Dein Beleg wird von einer KI gelesen und die Felder werden ausgefüllt. Du siehst immer zuerst, was eingetragen wurde, bevor du speicherst, und behältst so die Kontrolle.",
       },
     },
     finalTitle: "Bereit für deine nächste Session?",
@@ -324,11 +328,14 @@ export const de: Dictionary = {
   },
   pricing: {
     metaTitle: "Preise — CorsaIQ",
-    metaDescription: "Starte kostenlos mit einem Kart. Pro für Fahrer, die jedes Wochenende fahren, Team für Teams und Familien mit mehreren Fahrern.",
+    metaDescription:
+      "Starte kostenlos mit einem Kart. Driver für alle, die mehr im Blick haben wollen, Pro mit Telemetrie, KI und Live, Team für Teams und Familien mit mehreren Fahrern.",
     eyebrow: "Preise",
     title: "Kostenlos starten, mit deiner Saison wachsen",
-    intro: "Ein Kart im Blick zu behalten ist kostenlos. Fährst du öfter oder sollen Belege für dich eingelesen werden, wähle Pro. Mit mehreren Fahrern nimmst du Team.",
-    launchNote: "CorsaIQ ist gerade gestartet: In der Startphase nutzt du alle Funktionen kostenlos. Ein Abo wählst du erst, wenn Bezahlen möglich ist.",
+    intro:
+      "Ein Kart im Blick zu behalten ist kostenlos. Driver bringt mehr Karts und Analyse, Pro dazu Telemetrie, KI-Beratung und Live, und mit mehreren Fahrern nimmst du Team.",
+    launchNote:
+      "CorsaIQ ist gerade gestartet: In der Startphase nutzt du alle Funktionen kostenlos. Ein Abo wählst du erst, wenn Bezahlen möglich ist.",
     plansLabel: "Abos",
     recommended: "Empfohlen",
     perMonth: "pro Monat",
@@ -340,28 +347,77 @@ export const de: Dictionary = {
       free: {
         name: "Kostenlos",
         text: "Zum Einstieg mit einem Kart.",
-        price: "0 €",
-        yearly: "",
-        features: ["1 Kart und 1 Fahrer", "Rundenzeiten importieren oder einfügen", "Laufzeit und Wartung im Blick", "Kosten pro Saison"],
+        features: ["1 Kart und 1 Fahrer", "Sessions, Rundenzeiten und Debriefing", "Laufzeit und Wartung im Blick", "Kosten pro Saison"],
+      },
+      hobby: {
+        name: "Driver",
+        text: "Für Fahrer, die ihre Saison ernsthaft festhalten.",
+        features: [
+          "Bis zu 3 Karts",
+          "Fortschritt pro Strecke und Setups vergleichen",
+          "Pre-Start-Checkliste am Renntag",
+          "Grenzen pro Bauteil und Wartungsplanung",
+        ],
       },
       pro: {
         name: "Pro",
         text: "Für Fahrer, die jedes Wochenende an der Strecke sind.",
-        price: "7 €",
-        yearly: "70 €",
         features: [
           "Unbegrenzt Karts, Motoren und Teile",
-          "Belege und Rechnungen automatisch einlesen",
-          "Grenzen pro Bauteil und Warnungen",
-          "Fortschritt pro Strecke",
+          "Telemetrie: sieh, in welcher Kurve die Zeit liegt",
+          "KI-Beratung und Belege automatisch einlesen",
+          "Live-Timing und digitale Boxentafel, mit deinem Mechaniker",
         ],
       },
       team: {
         name: "Team",
         text: "Für Teams und Familien mit mehreren Fahrern.",
-        price: "19 €",
-        yearly: "190 €",
-        features: ["Alles aus Pro", "Mehrere Fahrer und Karts", "Gemeinsame Garage mit Teammitgliedern (bald)", "Für Eltern, Mechaniker und Teammanager"],
+        features: ["Alles aus Pro", "Bis zu 6 Fahrer und 10 Teammitglieder", "Rollen für Mechaniker, Fahrer und Zuschauer", "Support mit Vorrang"],
+      },
+    },
+    compare: {
+      title: "Abos vergleichen",
+      intro: "Alles auf einen Blick. In der Startphase nutzt du jede Funktion kostenlos.",
+      feature: "Funktion",
+      pickPlan: "Wähle ein Abo zum Vergleichen",
+      unlimited: "Unbegrenzt",
+      included: "Enthalten",
+      notIncluded: "Nicht enthalten",
+      groups: {
+        sessions: "Sessions",
+        analysis: "Analyse",
+        raceDay: "Renntag",
+        material: "Material",
+        costs: "Kosten",
+        team: "Team",
+        support: "Daten und Support",
+      },
+      rows: {
+        sessions: "Sessions, Setup und Debriefing",
+        lapImport: "Rundenzeiten importieren oder einfügen",
+        pitwall: "Pitwall, auch ohne Empfang",
+        aiDebrief: "KI-Labels zum Feedback des Fahrers",
+        progress: "Fortschritt pro Strecke und Rundenanalyse",
+        setupCompare: "Setups vergleichen",
+        telemetry: "Telemetrie: wo die Zeit liegt",
+        aiAdvice: "Setup-Beratung mit KI-Erklärung",
+        packing: "Packliste pro Veranstaltung",
+        prestart: "Pre-Start-Checkliste (Heute)",
+        live: "Live-Timing mit Stoppuhr",
+        pitboard: "Digitale Boxentafel",
+        karts: "Karts",
+        maintenance: "Laufzeit und Wartung",
+        gear: "Ausrüstung und Homologation",
+        limits: "Grenzen pro Bauteil und Wartungsplanung",
+        costs: "Kosten pro Saison",
+        receipts: "Belege und Rechnungen automatisch einlesen",
+        drivers: "Fahrer",
+        members: "Teammitglieder",
+        roles: "Rollen: Mechaniker, Fahrer und Zuschauer",
+        agenda: "Kalender und Kalender-Abo",
+        export: "Deine Daten herunterladen",
+        email: "Support per E-Mail",
+        priority: "Support mit Vorrang",
       },
     },
     faqTitle: "Fragen zu den Preisen",
@@ -380,7 +436,8 @@ export const de: Dictionary = {
       },
       team: {
         question: "Wann brauche ich Team?",
-        answer: "Wenn mehrere Fahrer oder Karts in eine Garage gehören, zum Beispiel eine Familie mit zwei Fahrern oder ein Team mit mehreren Kunden.",
+        answer:
+          "Wenn mehr als zwei Fahrer in eine Garage gehören, zum Beispiel eine Familie mit drei Fahrern oder ein Team mit mehreren Kunden. Pro reicht für ein oder zwei Fahrer mit einem Mechaniker.",
       },
     },
   },

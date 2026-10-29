@@ -303,11 +303,13 @@ export const fr: Dictionary = {
     faq: {
       loggers: {
         question: "Quelles acquisitions de données sont prises en charge ?",
-        answer: "Les exports AiM/MyChron, Alfano et Unipro, ainsi que tout fichier CSV avec des temps au tour. Tu peux aussi simplement coller ou saisir tes temps.",
+        answer:
+          "Les exports AiM/MyChron, Alfano et Unipro, ainsi que tout fichier CSV avec des temps au tour. Tu peux aussi simplement coller ou saisir tes temps.",
       },
       phone: {
         question: "Est-ce que ça marche sur mon téléphone ?",
-        answer: "Oui. CorsaIQ est fait pour le paddock : le menu, les formulaires et la lecture des tickets fonctionnent aussi bien sur ton téléphone que sur ton ordinateur.",
+        answer:
+          "Oui. CorsaIQ est fait pour le paddock : le menu, les formulaires et la lecture des tickets fonctionnent aussi bien sur ton téléphone que sur ton ordinateur.",
       },
       data: {
         question: "Où sont stockées mes données ?",
@@ -315,7 +317,8 @@ export const fr: Dictionary = {
       },
       receipts: {
         question: "Comment fonctionne la lecture des tickets ?",
-        answer: "Ton ticket est lu par une IA et les champs sont remplis. Tu vois toujours ce qui a été rempli avant d'enregistrer, tu gardes donc le contrôle.",
+        answer:
+          "Ton ticket est lu par une IA et les champs sont remplis. Tu vois toujours ce qui a été rempli avant d'enregistrer, tu gardes donc le contrôle.",
       },
     },
     finalTitle: "Prêt pour ta prochaine session ?",
@@ -324,11 +327,14 @@ export const fr: Dictionary = {
   },
   pricing: {
     metaTitle: "Tarifs — CorsaIQ",
-    metaDescription: "Commence gratuitement avec un kart. Pro pour le pilote qui roule chaque week-end, Team pour les équipes et les familles avec plusieurs pilotes.",
+    metaDescription:
+      "Commence gratuitement avec un kart. Driver pour suivre davantage, Pro avec télémétrie, IA et Live, Team pour les équipes et les familles avec plusieurs pilotes.",
     eyebrow: "Tarifs",
     title: "Commence gratuitement, évolue avec ta saison",
-    intro: "Suivre un kart est gratuit. Si tu roules plus souvent ou veux que tes tickets soient lus pour toi, choisis Pro. Avec plusieurs pilotes, prends Team.",
-    launchNote: "CorsaIQ vient d'être lancé : pendant la phase de lancement, toutes les fonctions sont gratuites. Tu choisis un abonnement seulement quand le paiement sera disponible.",
+    intro:
+      "Suivre un kart est gratuit. Driver t'apporte plus de karts et d'analyse, Pro ajoute la télémétrie, les conseils IA et le Live, et avec plusieurs pilotes tu prends Team.",
+    launchNote:
+      "CorsaIQ vient d'être lancé : pendant la phase de lancement, toutes les fonctions sont gratuites. Tu choisis un abonnement seulement quand le paiement sera disponible.",
     plansLabel: "Abonnements",
     recommended: "Recommandé",
     perMonth: "par mois",
@@ -340,35 +346,85 @@ export const fr: Dictionary = {
       free: {
         name: "Gratuit",
         text: "Pour commencer avec un kart.",
-        price: "0 €",
-        yearly: "",
-        features: ["1 kart et 1 pilote", "Importer ou coller les temps au tour", "Suivre le temps de roulage et l'entretien", "Dépenses par saison"],
+        features: ["1 kart et 1 pilote", "Sessions, temps au tour et débriefing", "Suivre le temps de roulage et l'entretien", "Dépenses par saison"],
+      },
+      hobby: {
+        name: "Driver",
+        text: "Pour le pilote qui suit sa saison sérieusement.",
+        features: [
+          "Jusqu'à 3 karts",
+          "Progression par circuit et comparaison des réglages",
+          "Check-list pré-départ le jour de course",
+          "Limites par composant et planning d'entretien",
+        ],
       },
       pro: {
         name: "Pro",
         text: "Pour le pilote qui est sur la piste chaque week-end.",
-        price: "7 €",
-        yearly: "70 €",
         features: [
           "Karts, moteurs et pièces illimités",
-          "Tickets et factures lus automatiquement",
-          "Limites par composant et alertes",
-          "Progression par circuit",
+          "Télémétrie : vois dans quel virage tu perds du temps",
+          "Conseils IA et tickets lus automatiquement",
+          "Chrono live et panneau de stand numérique, avec ton mécanicien",
         ],
       },
       team: {
         name: "Team",
         text: "Pour les équipes et les familles avec plusieurs pilotes.",
-        price: "19 €",
-        yearly: "190 €",
-        features: ["Tout ce qu'offre Pro", "Plusieurs pilotes et karts", "Garage partagé avec l'équipe (bientôt)", "Pour les parents, mécaniciens et team managers"],
+        features: ["Tout ce qu'offre Pro", "Jusqu'à 6 pilotes et 10 membres", "Rôles pour mécanicien, pilote et observateur", "Support prioritaire"],
+      },
+    },
+    compare: {
+      title: "Compare les abonnements",
+      intro: "Tout côte à côte. Pendant la phase de lancement, toutes les fonctions sont gratuites.",
+      feature: "Fonction",
+      pickPlan: "Choisis un abonnement à comparer",
+      unlimited: "Illimité",
+      included: "Inclus",
+      notIncluded: "Non inclus",
+      groups: {
+        sessions: "Sessions",
+        analysis: "Analyse",
+        raceDay: "Jour de course",
+        material: "Matériel",
+        costs: "Dépenses",
+        team: "Équipe",
+        support: "Données et support",
+      },
+      rows: {
+        sessions: "Sessions, réglages et débriefing",
+        lapImport: "Importer ou coller les temps au tour",
+        pitwall: "Pitwall, même sans réseau",
+        aiDebrief: "Étiquettes IA sur le retour du pilote",
+        progress: "Progression par circuit et analyse des tours",
+        setupCompare: "Comparer les réglages",
+        telemetry: "Télémétrie : où se perd le temps",
+        aiAdvice: "Conseils de réglage expliqués par l'IA",
+        packing: "Liste de colisage par événement",
+        prestart: "Check-list pré-départ (Aujourd'hui)",
+        live: "Chrono live avec chronomètre",
+        pitboard: "Panneau de stand numérique",
+        karts: "Karts",
+        maintenance: "Temps de roulage et entretien",
+        gear: "Équipement et homologation",
+        limits: "Limites par composant et planning d'entretien",
+        costs: "Dépenses par saison",
+        receipts: "Tickets et factures lus automatiquement",
+        drivers: "Pilotes",
+        members: "Membres de l'équipe",
+        roles: "Rôles : mécanicien, pilote et observateur",
+        agenda: "Agenda et abonnement d'agenda",
+        export: "Télécharger tes données",
+        email: "Support par e-mail",
+        priority: "Support prioritaire",
       },
     },
     faqTitle: "Questions sur les tarifs",
     faq: {
       now: {
         question: "Combien coûte CorsaIQ aujourd'hui ?",
-        answer: "Rien. Pendant la phase de lancement, toutes les fonctions sont gratuites. Tu seras prévenu à l'avance quand les abonnements commenceront.",
+        answer:
+          "Rien. Pendant la phase de lancement, toutes les fonctions sont gratuites. Tu seras prévenu à l'avance quand les abonnements commenceront.",
       },
       switch: {
         question: "Puis-je changer d'abonnement plus tard ?",
@@ -380,7 +436,8 @@ export const fr: Dictionary = {
       },
       team: {
         question: "Quand ai-je besoin de Team ?",
-        answer: "Quand plusieurs pilotes ou karts appartiennent au même garage, par exemple une famille avec deux pilotes ou une équipe qui suit plusieurs clients.",
+        answer:
+          "Quand plus de deux pilotes appartiennent au même garage, par exemple une famille avec trois pilotes ou une équipe qui suit plusieurs clients. Pro suffit pour un ou deux pilotes avec un mécanicien.",
       },
     },
   },
