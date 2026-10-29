@@ -63,7 +63,7 @@ function Dutch() {
         <ul>
           <li>Om de dienst te leveren die je gebruikt: inloggen, je team, je gegevens bewaren en tonen (uitvoering van de overeenkomst).</li>
           <li>Om e-mails te sturen die bij je account horen, zoals bevestiging en een nieuw wachtwoord (uitvoering van de overeenkomst).</li>
-          <li>Om de dienst veilig te houden en fouten op te lossen (gerechtvaardigd belang).</li>
+          <li>Om de dienst veilig te houden en fouten op te lossen, onder meer met foutmeldingen zonder persoonsgegevens (gerechtvaardigd belang).</li>
           <li>Voor de slimme functies die je zelf start, zoals uitleg bij setup-advies of het uitlezen van een bonnetje (uitvoering van de overeenkomst).</li>
         </ul>
         <p>We verkopen geen gegevens, tonen geen advertenties en gebruiken je gegevens niet om AI-modellen te trainen.</p>
@@ -190,7 +190,7 @@ function English() {
         <ul>
           <li>To provide the service you use: signing in, your team, storing and showing your data (performance of the contract).</li>
           <li>To send e-mails that belong to your account, such as confirmation and a new password (performance of the contract).</li>
-          <li>To keep the service secure and fix errors (legitimate interest).</li>
+          <li>To keep the service secure and fix errors, among other things with error reports without personal data (legitimate interest).</li>
           <li>For the smart features you start yourself, such as explaining setup advice or reading a receipt (performance of the contract).</li>
         </ul>
         <p>We do not sell data, show no advertising and do not use your data to train AI models.</p>

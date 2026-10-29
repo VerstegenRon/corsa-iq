@@ -24,6 +24,11 @@ export const MIN_ACCOUNT_AGE = 16;
 export const PROCESSORS = [
   { name: "Supabase", role: { nl: "database, inloggen en bestandsopslag", en: "database, sign-in and file storage" }, where: { nl: "EU (Frankfurt)", en: "EU (Frankfurt)" } },
   { name: "Vercel", role: { nl: "hosting van de app", en: "hosting of the app" }, where: { nl: "EU en VS", en: "EU and US" } },
+  {
+    name: "Sentry",
+    role: { nl: "foutmeldingen, zonder naam, e-mailadres of IP-adres", en: "error reports, without name, e-mail address or IP address" },
+    where: { nl: "EU (Frankfurt)", en: "EU (Frankfurt)" },
+  },
   { name: "Resend", role: { nl: "versturen van e-mails (bevestiging, nieuw wachtwoord)", en: "sending e-mails (confirmation, new password)" }, where: { nl: "EU (Ierland)", en: "EU (Ireland)" } },
   {
     name: "Anthropic (Claude)",
