@@ -429,7 +429,7 @@ export const en: Dictionary = {
       title: "Add more",
       text: "Need just a little more? Extend your plan, cancel monthly.",
       perMonth: "{price} per month",
-      driver: { name: "Extra driver", text: "With Pro and Team" },
+      driver: { name: "Extra driver", text: "For each driver beyond what your plan includes" },
       kart: { name: "Extra kart", text: "With Pro; Team has unlimited karts" },
     },
     faqTitle: "Questions about pricing",
@@ -449,7 +449,7 @@ export const en: Dictionary = {
       team: {
         question: "When do I need Team?",
         answer:
-          "Pro has 3 karts and 2 drivers; you can add an extra kart or driver for {price} per month. From four drivers, or with many karts, Team is better value: 5 drivers and unlimited karts.",
+          "Pro has 3 karts and 2 drivers; an extra driver costs {driverPrice} and an extra kart {kartPrice} per month. From four drivers, or with many karts, Team is better value: 5 drivers and unlimited karts.",
       },
     },
   },

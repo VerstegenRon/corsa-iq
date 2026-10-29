@@ -448,7 +448,7 @@ export const nl = {
       title: "Uitbreiden",
       text: "Net iets meer nodig? Breid je abonnement uit, per maand opzegbaar.",
       perMonth: "{price} per maand",
-      driver: { name: "Extra coureur", text: "Bij Pro en Team" },
+      driver: { name: "Extra coureur", text: "Voor elke coureur boven wat je abonnement bevat" },
       kart: { name: "Extra kart", text: "Bij Pro; Team heeft onbeperkt karts" },
     },
     faqTitle: "Vragen over prijzen",
@@ -468,7 +468,7 @@ export const nl = {
       team: {
         question: "Wanneer heb ik Team nodig?",
         answer:
-          "Pro heeft 3 karts en 2 coureurs; je kunt een extra kart of coureur toevoegen voor {price} per maand. Vanaf vier coureurs, of met veel karts, is Team voordeliger: 5 coureurs en onbeperkt karts.",
+          "Pro heeft 3 karts en 2 coureurs; een extra coureur kost {driverPrice} en een extra kart {kartPrice} per maand. Vanaf vier coureurs, of met veel karts, is Team voordeliger: 5 coureurs en onbeperkt karts.",
       },
     },
   },

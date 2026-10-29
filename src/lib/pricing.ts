@@ -14,12 +14,20 @@ export const FEATURED_PLAN: PlanKey = "pro";
 export const MONTHLY_CENTS: Record<PlanKey, number> = { free: 0, hobby: 499, pro: 799, team: 1799 };
 export const MONTHS_PAID_PER_YEAR = 10;
 
-/** Extras on top of a plan, per month in cents, and the plans that can add them. */
+/** Extras on top of a plan: price per month in cents for each plan that can add them. */
 export const ADDONS = {
-  driver: { cents: 499, plans: ["pro", "team"] },
-  kart: { cents: 499, plans: ["pro"] },
-} as const satisfies Record<string, { cents: number; plans: readonly PlanKey[] }>;
+  driver: { pro: 599, team: 399 },
+  kart: { pro: 499 },
+} as const satisfies Record<string, Partial<Record<PlanKey, number>>>;
 export type AddonKey = keyof typeof ADDONS;
+
+/** The plans that can add this extra, with their price. */
+export function addonPrices(key: AddonKey) {
+  return PLAN_KEYS.flatMap((plan) => {
+    const cents = (ADDONS[key] as Partial<Record<PlanKey, number>>)[plan];
+    return cents === undefined ? [] : [{ plan, cents }];
+  });
+}
 
 /** A cell of the comparison: included or not, a number, no limit, or available as a paid extra. */
 export type PlanValue = boolean | number | "unlimited" | "addon";

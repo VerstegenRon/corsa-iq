@@ -11,8 +11,8 @@ type Plan = { key: PlanKey; name: string; price: string };
 type Group = {
   key: string;
   label: string;
-  /** `addon`: the price of the extra, shown where a plan can buy it. */
-  rows: { key: string; label: string; values: Record<PlanKey, PlanValue>; addon?: string }[];
+  /** `addon`: the price of the extra per plan, shown where that plan can buy it. */
+  rows: { key: string; label: string; values: Record<PlanKey, PlanValue>; addon?: Partial<Record<PlanKey, string>> }[];
 };
 
 /**
@@ -109,7 +109,7 @@ export function ComparisonTable({
                   </th>
                   {plans.map((plan) => (
                     <td key={plan.key} className={`px-2 py-3 text-center ${column(plan.key)}`}>
-                      {cell(row.values[plan.key], row.addon)}
+                      {cell(row.values[plan.key], row.addon?.[plan.key])}
                     </td>
                   ))}
                 </tr>

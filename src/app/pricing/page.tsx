@@ -5,7 +5,18 @@ import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
-import { ADDONS, COMPARISON, FEATURED_PLAN, formatEuro, MONTHLY_CENTS, MONTHS_PAID_PER_YEAR, PLAN_KEYS, type AddonKey } from "@/lib/pricing";
+import {
+  addonPrices,
+  ADDONS,
+  COMPARISON,
+  FEATURED_PLAN,
+  formatEuro,
+  MONTHLY_CENTS,
+  MONTHS_PAID_PER_YEAR,
+  PLAN_KEYS,
+  type AddonKey,
+  type PlanKey,
+} from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 
 import { ComparisonTable } from "./comparison-table";
@@ -27,7 +38,7 @@ export default async function PricingPage() {
   const p = t.pricing;
   const cta = signedIn ? { href: "/dashboard", label: t.home.toDashboard } : { href: "/login", label: p.cta };
   const price = (key: (typeof PLAN_KEYS)[number]) => formatEuro(MONTHLY_CENTS[key], locale);
-  const addonPrice = (key: AddonKey) => formatEuro(ADDONS[key].cents, locale);
+  const addonPrice = (key: AddonKey, plan: PlanKey) => formatEuro(addonPrices(key).find((a) => a.plan === plan)?.cents ?? 0, locale);
   // Comparison rows that are a paid extra, and which extra.
   const rowAddon: Partial<Record<string, AddonKey>> = { extraDriver: "driver", extraKart: "kart" };
 
@@ -107,13 +118,18 @@ export default async function PricingPage() {
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:min-w-[28rem]">
                 {(Object.keys(ADDONS) as AddonKey[]).map((key) => (
                   <li key={key} className="rounded-2xl border border-zinc-800 px-4 py-3">
-                    <p className="flex flex-wrap items-baseline justify-between gap-x-3">
-                      <span className="font-medium text-zinc-100">{p.addons[key].name}</span>
-                      <span className="text-sm whitespace-nowrap text-zinc-300 tabular-nums">
-                        {format(p.addons.perMonth, { price: addonPrice(key) })}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 text-xs text-zinc-500">{p.addons[key].text}</p>
+                    <p className="font-medium text-zinc-100">{p.addons[key].name}</p>
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {addonPrices(key).map(({ plan, cents }) => (
+                        <li key={plan} className="flex items-baseline justify-between gap-3 text-sm">
+                          <span className="text-zinc-400">{p.plans[plan].name}</span>
+                          <span className="whitespace-nowrap text-zinc-200 tabular-nums">
+                            {format(p.addons.perMonth, { price: formatEuro(cents, locale) })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-xs text-zinc-500">{p.addons[key].text}</p>
                   </li>
                 ))}
               </ul>
@@ -138,7 +154,11 @@ export default async function PricingPage() {
                   key: row.key,
                   label: p.compare.rows[row.key],
                   values: row.values,
-                  addon: addon && format(p.compare.addon, { price: addonPrice(addon) }),
+                  addon:
+                    addon &&
+                    Object.fromEntries(
+                      addonPrices(addon).map(({ plan, cents }) => [plan, format(p.compare.addon, { price: formatEuro(cents, locale) })]),
+                    ),
                 };
               }),
             }))}
@@ -168,7 +188,9 @@ export default async function PricingPage() {
                     +
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{format(p.faq[key].answer, { price: addonPrice("driver") })}</p>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">
+                  {format(p.faq[key].answer, { driverPrice: addonPrice("driver", "pro"), kartPrice: addonPrice("kart", "pro") })}
+                </p>
               </details>
             ))}
           </div>

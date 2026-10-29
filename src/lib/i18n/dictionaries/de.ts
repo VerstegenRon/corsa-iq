@@ -432,7 +432,7 @@ export const de: Dictionary = {
       title: "Erweitern",
       text: "Brauchst du etwas mehr? Erweitere dein Abo, monatlich kündbar.",
       perMonth: "{price} pro Monat",
-      driver: { name: "Zusätzlicher Fahrer", text: "Bei Pro und Team" },
+      driver: { name: "Zusätzlicher Fahrer", text: "Für jeden Fahrer über dein Abo hinaus" },
       kart: { name: "Zusätzliches Kart", text: "Bei Pro; Team hat unbegrenzt Karts" },
     },
     faqTitle: "Fragen zu den Preisen",
@@ -452,7 +452,7 @@ export const de: Dictionary = {
       team: {
         question: "Wann brauche ich Team?",
         answer:
-          "Pro hat 3 Karts und 2 Fahrer; ein zusätzliches Kart oder einen Fahrer kannst du für {price} pro Monat hinzufügen. Ab vier Fahrern oder mit vielen Karts ist Team günstiger: 5 Fahrer und unbegrenzt Karts.",
+          "Pro hat 3 Karts und 2 Fahrer; ein zusätzlicher Fahrer kostet {driverPrice} und ein zusätzliches Kart {kartPrice} pro Monat. Ab vier Fahrern oder mit vielen Karts ist Team günstiger: 5 Fahrer und unbegrenzt Karts.",
       },
     },
   },

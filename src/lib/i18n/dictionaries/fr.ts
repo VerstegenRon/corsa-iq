@@ -431,7 +431,7 @@ export const fr: Dictionary = {
       title: "Ajouter",
       text: "Besoin d'un peu plus ? Étends ton abonnement, résiliable chaque mois.",
       perMonth: "{price} par mois",
-      driver: { name: "Pilote supplémentaire", text: "Avec Pro et Team" },
+      driver: { name: "Pilote supplémentaire", text: "Pour chaque pilote au-delà de ton abonnement" },
       kart: { name: "Kart supplémentaire", text: "Avec Pro ; Team a des karts illimités" },
     },
     faqTitle: "Questions sur les tarifs",
@@ -452,7 +452,7 @@ export const fr: Dictionary = {
       team: {
         question: "Quand ai-je besoin de Team ?",
         answer:
-          "Pro comprend 3 karts et 2 pilotes ; tu peux ajouter un kart ou un pilote pour {price} par mois. À partir de quatre pilotes, ou avec beaucoup de karts, Team est plus avantageux : 5 pilotes et karts illimités.",
+          "Pro comprend 3 karts et 2 pilotes ; un pilote supplémentaire coûte {driverPrice} et un kart supplémentaire {kartPrice} par mois. À partir de quatre pilotes, ou avec beaucoup de karts, Team est plus avantageux : 5 pilotes et karts illimités.",
       },
     },
   },
