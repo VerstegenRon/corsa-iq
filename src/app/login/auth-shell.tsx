@@ -12,9 +12,9 @@ export async function AuthShell({ heading, intro, children }: { heading: string;
       <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 sm:px-6">
         <Link
           href="/"
-          className="text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+          className="font-display text-lg font-black tracking-tight text-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
         >
-          CorsaIQ
+          CORSA<span className="text-brand-400">/</span>IQ
         </Link>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ThemeSwitcher />
