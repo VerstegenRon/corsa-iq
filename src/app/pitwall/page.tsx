@@ -33,7 +33,7 @@ export default async function PitwallPage() {
       .eq("events.garage_id", garage.id)
       .order("started_at", { ascending: false })
       .limit(50),
-    supabase.from("tracks").select("id, name, city, country").or(ownOrOfficial(garage.id)),
+    supabase.from("tracks").select("id, name, city, country, latitude, longitude").or(ownOrOfficial(garage.id)),
   ]);
   if (eventsResult.error) throw new Error(eventsResult.error.message);
 
@@ -66,7 +66,7 @@ export default async function PitwallPage() {
       drivers={sortByLabel((driversResult.data ?? []).map((driver) => ({ id: driver.id, label: driver.name })))}
       defaults={defaults}
       lastType={lastType}
-      tracks={sortByLabel((tracksResult.data ?? []).map((track) => ({ id: track.id, label: trackLabel(track), name: track.name })))}
+      tracks={sortByLabel((tracksResult.data ?? []).map((track) => ({ id: track.id, label: trackLabel(track), name: track.name, latitude: track.latitude, longitude: track.longitude })))}
       lastTrackId={eventsResult.data[0]?.track_id ?? null}
       today={today}
     />
