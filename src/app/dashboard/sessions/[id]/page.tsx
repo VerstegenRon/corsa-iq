@@ -8,7 +8,8 @@ import { FeedbackTags } from "@/components/feedback-tags";
 import { LapTimeChart, type LapPoint } from "@/components/lap-time-chart";
 import { cardClass, linkClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import {
   formatDate,
   formatLapTime,
@@ -21,7 +22,7 @@ import {
 } from "@/lib/karting";
 import { parseFeedbackTags } from "@/lib/feedback";
 import { formatDelta, summarizeLaps, type EngineLap } from "@/lib/lap-analysis";
-import { AUTO_FIELD_LABELS, weatherText, type SessionConditions } from "@/lib/weather";
+import { weatherText, type SessionConditions } from "@/lib/weather";
 
 import { SessionForm } from "../../events/[id]/session-form";
 import { deleteSession } from "../../season-actions";
@@ -50,9 +51,9 @@ function toLaps(rows: LapRow[]): EngineLap[] {
 
 const LAP_SELECT = "lap_number, lap_time_ms, is_valid, is_pit_lap, max_speed_kmh, max_rpm, lap_sectors(sector_number, sector_time_ms)";
 
-export const metadata: Metadata = {
-  title: "Sessie — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).session.metaTitle };
+}
 
 type Conditions = SessionConditions;
 
@@ -62,7 +63,6 @@ const SOURCE_LABELS: Record<string, string> = {
   unipro: "Unipro",
   mychron_cloud: "MyChron cloud",
   csv: "CSV",
-  manual: "handmatig",
 };
 
 const COMPARE_SELECT =
@@ -96,7 +96,8 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const vs = typeof query.vs === "string" ? query.vs : null;
   const { supabase, garage, canEdit } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  const ts = t.session;
 
   const [sessionResult, driversResult] = await Promise.all([
     supabase
@@ -169,11 +170,11 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
       ms: lap.lap_time_ms,
       position: previous ? previous.position! + (breakBefore ? 1.1 : 1) : 0,
       breakBefore,
-      title: `Ronde ${lap.lap_number}`,
+      title: format(ts.lap, { lap: lap.lap_number }),
       detail:
         summary.bestMs !== null && lap.lap_time_ms !== summary.bestMs
-          ? `${formatDelta(lap.lap_time_ms - summary.bestMs)} t.o.v. snelste`
-          : "snelste ronde",
+          ? format(ts.vsFastest, { delta: formatDelta(lap.lap_time_ms - summary.bestMs) })
+          : ts.fastestLap,
     });
   }
   const hiddenLaps = laps.length - chartLaps.length;
@@ -186,25 +187,30 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
     .eq("laps.session_id", session.id);
   const hasTelemetry = (telemetryCount ?? 0) > 0;
   const conditions = session.conditions as Conditions;
+  const decimal = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   const weatherLine = [
-    conditions.air_temp_c !== undefined && `lucht ${String(conditions.air_temp_c).replace(".", ",")} °C`,
-    conditions.track_temp_c !== undefined && `baan ${String(conditions.track_temp_c).replace(".", ",")} °C`,
-    conditions.humidity_pct !== undefined && `${conditions.humidity_pct}% luchtvochtigheid`,
-    conditions.precipitation_mm !== undefined && `${String(conditions.precipitation_mm).replace(".", ",")} mm regen`,
+    conditions.air_temp_c !== undefined && format(ts.air, { temp: decimal.format(conditions.air_temp_c) }),
+    conditions.track_temp_c !== undefined && format(ts.track, { temp: decimal.format(conditions.track_temp_c) }),
+    conditions.humidity_pct !== undefined && format(ts.humidity, { pct: conditions.humidity_pct }),
+    conditions.precipitation_mm !== undefined && format(ts.rain, { mm: decimal.format(conditions.precipitation_mm) }),
   ].filter((part): part is string => Boolean(part));
   const setup = summarizeSetup((session.setups?.values ?? {}) as SetupValues);
 
   const stats = [
-    { label: "Snelste ronde", value: formatLapTime(summary.bestMs), note: summary.bestLapNumber !== null ? `ronde ${summary.bestLapNumber}` : null },
-    { label: "Gemiddelde", value: formatLapTime(summary.averageMs), note: summary.validCount > 0 ? `${summary.validCount} geldige ronden` : null },
-    { label: "Spreiding", value: summary.spreadMs === null ? "—" : `±${(summary.spreadMs / 1000).toFixed(3)}`, note: "lager is constanter" },
     {
-      label: "Ideale ronde",
+      label: ts.best,
+      value: formatLapTime(summary.bestMs),
+      note: summary.bestLapNumber !== null ? format(ts.bestNote, { lap: summary.bestLapNumber }) : null,
+    },
+    { label: ts.average, value: formatLapTime(summary.averageMs), note: summary.validCount > 0 ? plural(summary.validCount, ts.validLaps) : null },
+    { label: ts.spread, value: summary.spreadMs === null ? "—" : `±${(summary.spreadMs / 1000).toFixed(3)}`, note: ts.spreadNote },
+    {
+      label: ts.ideal,
       value: formatLapTime(summary.theoreticalBestMs),
       note:
         summary.theoreticalBestMs !== null && summary.bestMs !== null
-          ? `${formatDelta(summary.theoreticalBestMs - summary.bestMs)} t.o.v. snelste`
-          : "beste sectoren samen",
+          ? format(ts.vsFastest, { delta: formatDelta(summary.theoreticalBestMs - summary.bestMs) })
+          : ts.idealNote,
     },
   ];
 
@@ -216,7 +222,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{labelFor(t.options.sessionTypes, session.type)}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {formatDate(session.events.starts_on)} · {formatTime(session.started_at)} · {session.karts?.name} · {session.drivers?.name} ·{" "}
+          {formatDate(session.events.starts_on, locale)} ·{formatTime(session.started_at)} · {session.karts?.name} · {session.drivers?.name} ·{" "}
           {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
           {conditions.weather && ` · ${weatherText(conditions, t.options.weather)}`}
           {session.position !== null && ` · P${session.position}`}
@@ -226,13 +232,13 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             {weatherLine.join(" · ")}
             {conditions.auto &&
               conditions.auto.length > 0 &&
-              ` · automatisch via Open-Meteo: ${conditions.auto.map((f) => AUTO_FIELD_LABELS[f] ?? f).join(", ")}`}
+              ` · ${format(ts.autoWeather, { fields: conditions.auto.map((f) => ts.autoFields[f as keyof typeof ts.autoFields] ?? f).join(", ") })}`}
           </p>
         )}
         {setup.length > 0 && <p className="mt-1 text-xs text-zinc-500">{setup.join(" · ")}</p>}
       </section>
 
-      <section aria-label="Analyse" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <section aria-label={ts.statsLabel} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
           <div key={stat.label} className={cardClass}>
             <p className="text-sm text-zinc-400">{stat.label}</p>
@@ -243,14 +249,10 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
       </section>
 
       {(hasTelemetry || canEdit) && (
-        <section aria-label="Telemetrie" className="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 px-5 py-4">
-          <p className="text-sm text-zinc-300">
-            {hasTelemetry
-              ? "Leg elke ronde naast een referentie: snelheid, tijdverschil en verlies per bocht."
-              : "Importeer de telemetrie van je logger om te zien in welke bocht de tijd zit."}
-          </p>
+        <section aria-label={ts.telemetry} className="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 px-5 py-4">
+          <p className="text-sm text-zinc-300">{hasTelemetry ? ts.telemetryHas : ts.telemetryNone}</p>
           <Link href={`/dashboard/sessions/${session.id}/analyse`} className={hasTelemetry ? primaryButtonClass : secondaryButtonClass}>
-            {hasTelemetry ? "Waar zit de tijd?" : "Telemetrie importeren"}
+            {hasTelemetry ? ts.telemetryOpen : ts.telemetryImport}
           </Link>
         </section>
       )}
@@ -259,46 +261,50 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         sessionId={session.id}
         feedback={session.driver_feedback}
         quick={parseFeedbackTags(session.feedback_tags)?.quick ?? []}
-        tags={<FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} className="mt-4" />}
+        tags={<FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} t={t} className="mt-4" />}
       />
 
       {laps.length > 0 && (
         <section aria-labelledby="laps-heading" className={cardClass}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="laps-heading" className="text-lg font-semibold">
-              Ronden
+              {ts.laps}
             </h2>
             {session.data_imports && (
               <p className="text-xs text-zinc-500">
-                Geïmporteerd ({SOURCE_LABELS[session.data_imports.source] ?? session.data_imports.source}) op{" "}
-                {formatDate(session.data_imports.created_at)}
+                {format(ts.imported, {
+                  source:
+                    session.data_imports.source === "manual"
+                      ? ts.manual
+                      : (SOURCE_LABELS[session.data_imports.source] ?? session.data_imports.source),
+                  date: formatDate(session.data_imports.created_at, locale),
+                })}
               </p>
             )}
           </div>
           {chartPoints.length >= 2 && (
             <div className="mt-6">
               <p className="mb-2 text-xs text-zinc-500">
-                Rondetijd per ronde · lager is sneller
-                {hiddenLaps > 0 &&
-                  ` · ${hiddenLaps} ${hiddenLaps === 1 ? "ronde telt" : "ronden tellen"} niet mee en ${hiddenLaps === 1 ? "staat" : "staan"} alleen in de tabel`}
+                {ts.chartCaption}
+                {hiddenLaps > 0 && ` · ${plural(hiddenLaps, ts.hiddenLaps)}`}
               </p>
-              <LapTimeChart points={chartPoints} label="Rondetijd per ronde" />
+              <LapTimeChart points={chartPoints} label={ts.chartLabel} />
             </div>
           )}
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm tabular-nums">
               <thead className="text-left text-xs text-zinc-400">
                 <tr className="border-b border-zinc-800">
-                  <th className="py-2 pr-4 font-medium">Ronde</th>
-                  <th className="py-2 pr-4 font-medium">Tijd</th>
-                  <th className="py-2 pr-4 font-medium">Verschil</th>
+                  <th className="py-2 pr-4 font-medium">{ts.colLap}</th>
+                  <th className="py-2 pr-4 font-medium">{ts.colTime}</th>
+                  <th className="py-2 pr-4 font-medium">{ts.colDelta}</th>
                   {Array.from({ length: sectorCount }, (_, i) => (
                     <th key={i} className="py-2 pr-4 font-medium">
                       S{i + 1}
                     </th>
                   ))}
-                  {hasSpeed && <th className="py-2 pr-4 font-medium">Top km/u</th>}
-                  {hasRpm && <th className="py-2 pr-4 font-medium">Max toeren</th>}
+                  {hasSpeed && <th className="py-2 pr-4 font-medium">{ts.colTopSpeed}</th>}
+                  {hasRpm && <th className="py-2 pr-4 font-medium">{ts.colMaxRpm}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/80">
@@ -310,7 +316,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
                       <td className="py-2 pr-4">{lap.lap_number}</td>
                       <td className={`py-2 pr-4 font-medium ${isBest ? "text-brand-300" : ""}`}>
                         {formatLapTime(lap.lap_time_ms)}
-                        {!counts && <span className="ml-2 text-xs font-normal">telt niet mee</span>}
+                        {!counts && <span className="ml-2 text-xs font-normal">{ts.notCounted}</span>}
                       </td>
                       <td className="py-2 pr-4 text-zinc-400">
                         {summary.bestMs !== null && !isBest && counts ? formatDelta(lap.lap_time_ms - summary.bestMs) : ""}
@@ -332,23 +338,24 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               </tbody>
             </table>
           </div>
-          {sectorCount > 0 && <p className="mt-3 text-xs text-zinc-500">Snelste ronde en snelste sectoren zijn uitgelicht.</p>}
+          {sectorCount > 0 && <p className="mt-3 text-xs text-zinc-500">{ts.highlighted}</p>}
         </section>
       )}
 
       {laps.length > 0 && (
         <>
           <div className={`grid grid-cols-1 gap-4 lg:gap-6 ${sectorCount > 0 ? "lg:grid-cols-2" : ""}`}>
-            <SectorAnalysis laps={laps} />
-            <StintAnalysis laps={laps} />
+            <SectorAnalysis laps={laps} t={t} />
+            <StintAnalysis laps={laps} t={t} />
           </div>
-          <EngineAnalysis laps={laps} />
+          <EngineAnalysis laps={laps} t={t} locale={locale} />
           <SessionComparison
+            t={t}
             laps={laps}
             compareLaps={compareLaps}
             compareId={compareRow?.id ?? null}
-            compareLabel={compareRow ? sessionLabel(toSetupInfo(compareRow), t) : null}
-            candidates={candidateRows.map((row) => ({ id: row.id, label: sessionLabel(toSetupInfo(row), t) }))}
+            compareLabel={compareRow ? sessionLabel(toSetupInfo(compareRow), t, locale) : null}
+            candidates={candidateRows.map((row) => ({ id: row.id, label: sessionLabel(toSetupInfo(row), t, locale) }))}
           />
         </>
       )}
@@ -358,29 +365,27 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         candidates={candidateRows.map(toSetupInfo)}
         compareWith={compareRow ? toSetupInfo(compareRow) : null}
         t={t}
+        locale={locale}
         showPicker={laps.length === 0}
       />
 
       {canEdit && (
         <section aria-labelledby="import-heading" className={cardClass}>
           <h2 id="import-heading" className="text-lg font-semibold">
-            {laps.length > 0 ? "Ronden opnieuw importeren" : "Rondetijden toevoegen"}
+            {laps.length > 0 ? ts.reimport : ts.addLaps}
           </h2>
-          <p className="mt-2 mb-6 text-sm text-zinc-400">
-            Upload een CSV-export van je datalogger (AiM Race Studio, Alfano, Unipro) of een uitslag van de baan, of plak de tijden. Je ziet eerst een
-            voorvertoning.
-          </p>
+          <p className="mt-2 mb-6 text-sm text-zinc-400">{ts.importIntro}</p>
           <LapImportForm sessionId={session.id} garageId={garage.id} hasLaps={laps.length > 0} />
         </section>
       )}
 
       <EditSection
-        title="Sessie bewerken"
+        title={ts.edit}
         danger={
           <DeleteButton
             action={deleteSession.bind(null, session.id)}
-            label="Sessie verwijderen"
-            confirmText={`Deze sessie verwijderen?${laps.length > 0 ? ` De ${laps.length} ronden gaan ook weg.` : ""} Draaiuren van de onderdelen tellen daarna niet meer mee.`}
+            label={ts.delete}
+            confirmText={[ts.deleteConfirm, laps.length > 0 && plural(laps.length, ts.deleteLaps), ts.deleteHours].filter(Boolean).join(" ")}
           />
         }
       >

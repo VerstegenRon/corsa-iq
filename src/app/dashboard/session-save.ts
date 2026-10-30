@@ -6,9 +6,11 @@ import { revalidatePath } from "next/cache";
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
 import { EMPTY_TAGS, parseFeedbackTags, type QuickTag } from "@/lib/feedback";
-import { dbError } from "@/lib/db-error";
+import { dbError, dbErrorText } from "@/lib/db-error";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import type { getCurrentGarage } from "@/lib/garage";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, getSetupValue, inputSetupValue, setSetupValue } from "@/lib/setup";
 import { fetchWeather, mergeConditions, type SessionConditions } from "@/lib/weather";
@@ -225,10 +227,11 @@ export async function saveDebrief(
     .eq("id", sessionId)
     .eq("events.garage_id", garageId)
     .maybeSingle();
-  if (!current) return { error: "Deze sessie bestaat niet meer." };
+  const t = await getDictionary();
+  if (!current) return { error: t.session.gone };
   const stored = parseFeedbackTags(current.feedback_tags);
   const sameQuick = (stored?.quick ?? []).join() === quick.join();
-  if (feedback === current.driver_feedback && sameQuick) return { success: "Niets veranderd." };
+  if (feedback === current.driver_feedback && sameQuick) return { success: t.feedback.unchanged };
 
   const auto = feedback === current.driver_feedback ? stored : await tagFeedback(feedback);
   const tags = auto || quick.length > 0 ? { ...(auto ?? EMPTY_TAGS), quick } : null;
@@ -236,8 +239,8 @@ export async function saveDebrief(
     .from("sessions")
     .update({ driver_feedback: feedback, feedback_tags: tags as Json })
     .eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: format(t.session.saveFailed, { error: await dbErrorText(error) }) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: feedback || quick.length > 0 ? (auto ? "Debrief opgeslagen en gelabeld." : "Debrief opgeslagen.") : "Debrief verwijderd." };
+  return { success: feedback || quick.length > 0 ? (auto ? t.feedback.savedTagged : t.feedback.saved) : t.feedback.removed };
 }

@@ -24,14 +24,6 @@ export type FetchedWeather = {
   weather: keyof typeof WEATHER;
 };
 
-/** How each fetched field is named in "automatisch via Open-Meteo: …". */
-export const AUTO_FIELD_LABELS: Record<string, string> = {
-  weather: "weer",
-  air_temp_c: "luchttemperatuur",
-  humidity_pct: "luchtvochtigheid",
-  precipitation_mm: "regen",
-};
-
 /** Fields the app can fill in; the rest of the conditions are always the team's. */
 export const AUTO_FIELDS = ["weather", "air_temp_c", "humidity_pct", "precipitation_mm"] as const;
 

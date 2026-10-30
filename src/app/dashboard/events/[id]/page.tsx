@@ -209,7 +209,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                     </p>
                     {setup.length > 0 && <p className="mt-1 text-xs text-zinc-400">{setup.join(" · ")}</p>}
                     {session.driver_feedback && <p className="mt-2 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>}
-                    <FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} className="mt-2" />
+                    <FeedbackTags tags={parseFeedbackTags(session.feedback_tags)} t={t} className="mt-2" />
                   </div>
                   <div className="text-left sm:text-right">
                     <p className={`text-lg font-semibold tabular-nums ${isBest ? "text-brand-300" : "text-zinc-100"}`}>

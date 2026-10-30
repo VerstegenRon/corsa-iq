@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
-import { dbError } from "@/lib/db-error";
+import { dbError, dbErrorText } from "@/lib/db-error";
 import { readQuickTags } from "@/lib/feedback";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { EVENT_TYPES, parseLapTime } from "@/lib/karting";
 import { LOGGER_BUCKET } from "@/lib/storage";
 import type { SessionConditions } from "@/lib/weather";
@@ -304,10 +306,11 @@ export async function deleteSession(sessionId: string): Promise<FormState> {
     .eq("id", sessionId)
     .eq("events.garage_id", garage.id)
     .maybeSingle();
-  if (!session) return { error: "Deze sessie bestaat niet meer." };
+  const t = await getDictionary();
+  if (!session) return { error: t.session.gone };
 
   const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: format(t.session.deleteFailed, { error: await dbErrorText(error) }) };
   await removeSessionLeftovers(supabase, [session]);
 
   revalidatePath("/dashboard", "layout");

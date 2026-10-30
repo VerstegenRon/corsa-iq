@@ -4,17 +4,11 @@
 import { LapTimeChart, type ChartKind, type LapPoint } from "@/components/lap-time-chart";
 import { Icon } from "@/components/icons";
 import { cardClass, inputClass, secondaryButtonClass } from "@/components/ui";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format, plural, type Locale } from "@/lib/i18n/locales";
+import { richFormat } from "@/lib/i18n/rich";
 import { formatLapTime } from "@/lib/karting";
-import {
-  analyzeEngine,
-  analyzeSectors,
-  countingLaps,
-  formatDelta,
-  splitStints,
-  summarizeLaps,
-  type EngineLap,
-  type Stint,
-} from "@/lib/lap-analysis";
+import { analyzeEngine, analyzeSectors, countingLaps, formatDelta, splitStints, summarizeLaps, type EngineLap, type Stint } from "@/lib/lap-analysis";
 
 /** Below this a stint's trend is noise, not tyre wear or a driver finding pace. */
 const STEADY_TREND_MS = 20;
@@ -35,7 +29,8 @@ function SectionHeading({ id, icon, title, intro }: { id: string; icon: Paramete
   );
 }
 
-export function SectorAnalysis({ laps }: { laps: EngineLap[] }) {
+export function SectorAnalysis({ laps, t }: { laps: EngineLap[]; t: Dictionary }) {
+  const ts = t.session;
   const sectors = analyzeSectors(laps);
   if (sectors.length === 0) return null;
   const maxLoss = Math.max(...sectors.map((s) => s.lossMs), 1);
@@ -43,12 +38,7 @@ export function SectorAnalysis({ laps }: { laps: EngineLap[] }) {
 
   return (
     <section aria-labelledby="sectors-heading" className={cardClass}>
-      <SectionHeading
-        id="sectors-heading"
-        icon="target"
-        title="Waar zit de tijd?"
-        intro="Per sector hoeveel je gemiddeld verliest op je eigen beste tijd daar. De langste balk is de sector om aan te werken."
-      />
+      <SectionHeading id="sectors-heading" icon="target" title={ts.sectorsTitle} intro={ts.sectorsIntro} />
       <ul className="mt-5 flex flex-col gap-3">
         {sectors.map((sector) => {
           const isWorst = sector === worst && sector.lossMs > 0;
@@ -69,20 +59,32 @@ export function SectorAnalysis({ laps }: { laps: EngineLap[] }) {
         })}
       </ul>
       <table className="mt-6 w-full text-sm tabular-nums">
-        <caption className="sr-only">Sectortijden: beste, gemiddeld, verlies en spreiding</caption>
+        <caption className="sr-only">{ts.sectorsCaption}</caption>
         <thead className="text-left text-xs text-zinc-400">
           <tr className="border-b border-zinc-800">
-            <th scope="col" className="py-2 pr-3 font-medium">Sector</th>
-            <th scope="col" className="py-2 pr-3 font-medium">Beste</th>
-            <th scope="col" className="py-2 pr-3 font-medium">Gemiddeld</th>
-            <th scope="col" className="py-2 pr-3 font-medium">Verlies</th>
-            <th scope="col" className="py-2 font-medium">Spreiding</th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {ts.colSector}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {ts.colBest}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {ts.colAverage}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-medium">
+              {ts.colLoss}
+            </th>
+            <th scope="col" className="py-2 font-medium">
+              {ts.colSpread}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-800/80">
           {sectors.map((sector) => (
             <tr key={sector.sector}>
-              <th scope="row" className="py-2 pr-3 text-left font-medium">S{sector.sector}</th>
+              <th scope="row" className="py-2 pr-3 text-left font-medium">
+                S{sector.sector}
+              </th>
               <td className="py-2 pr-3">{formatLapTime(sector.bestMs)}</td>
               <td className="py-2 pr-3">{formatLapTime(sector.averageMs)}</td>
               <td className="py-2 pr-3">{formatDelta(sector.lossMs)}</td>
@@ -93,71 +95,67 @@ export function SectorAnalysis({ laps }: { laps: EngineLap[] }) {
       </table>
       {worst.lossMs > 0 && (
         <p className="mt-4 text-sm text-zinc-300">
-          In <span className="font-semibold text-zinc-100">sector {worst.sector}</span> laat je gemiddeld{" "}
-          <span className="font-semibold text-zinc-100 tabular-nums">{seconds(worst.lossMs)} s</span> per ronde liggen.
+          {richFormat(ts.worstSector, {
+            sector: <span className="font-semibold text-zinc-100">{format(ts.sectorName, { n: worst.sector })}</span>,
+            loss: <span className="font-semibold text-zinc-100 tabular-nums">{seconds(worst.lossMs)} s</span>,
+          })}
         </p>
       )}
     </section>
   );
 }
 
-function trendText(stint: Stint) {
-  if (stint.trendMsPerLap === null) return { text: "te kort", tone: "text-zinc-500" };
-  if (Math.abs(stint.trendMsPerLap) < STEADY_TREND_MS) return { text: "stabiel", tone: "text-zinc-300" };
-  const amount = `${seconds(Math.abs(stint.trendMsPerLap))} s/ronde`;
+function trendText(stint: Stint, ts: Dictionary["session"]) {
+  if (stint.trendMsPerLap === null) return { text: ts.trendShort, tone: "text-zinc-500" };
+  if (Math.abs(stint.trendMsPerLap) < STEADY_TREND_MS) return { text: ts.trendSteady, tone: "text-zinc-300" };
+  const amount = seconds(Math.abs(stint.trendMsPerLap));
   return stint.trendMsPerLap > 0
-    ? { text: `▲ ${amount} trager`, tone: "text-amber-300" }
-    : { text: `▼ ${amount} sneller`, tone: "text-zinc-100" };
+    ? { text: format(ts.trendSlower, { amount }), tone: "text-amber-300" }
+    : { text: format(ts.trendFaster, { amount }), tone: "text-zinc-100" };
 }
 
-export function StintAnalysis({ laps }: { laps: EngineLap[] }) {
+export function StintAnalysis({ laps, t }: { laps: EngineLap[]; t: Dictionary }) {
+  const ts = t.session;
   const stints = splitStints(laps).filter((stint) => stint.validCount > 0);
   if (stints.length === 0) return null;
+  const single = stints.length === 1;
 
   return (
     <section aria-labelledby="stints-heading" className={cardClass}>
       <SectionHeading
         id="stints-heading"
         icon="flag"
-        title={stints.length === 1 ? "Verloop van de sessie" : "Stints"}
-        intro={
-          stints.length === 1
-            ? "Hoe constant je reed en of de tijden in de loop van de sessie opliepen of zakten."
-            : "Een stint loopt van pitstop tot pitstop. Per stint je constantheid en of de tijden opliepen (bandenslijtage) of zakten."
-        }
+        title={single ? ts.stintsOneTitle : ts.stintsTitle}
+        intro={single ? ts.stintsOneIntro : ts.stintsIntro}
       />
       <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {stints.map((stint) => {
-          const trend = trendText(stint);
+          const trend = trendText(stint, ts);
           return (
             <li key={stint.index} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
               <div className="flex items-baseline justify-between gap-2">
-                <h3 className="font-semibold">{stints.length === 1 ? "Hele sessie" : `Stint ${stint.index}`}</h3>
-                <span className="text-xs text-zinc-500 tabular-nums">
-                  ronde {stint.firstLap}–{stint.lastLap}
-                </span>
+                <h3 className="font-semibold">{single ? ts.wholeSession : format(ts.stint, { n: stint.index })}</h3>
+                <span className="text-xs text-zinc-500 tabular-nums">{format(ts.lapRange, { from: stint.firstLap, to: stint.lastLap })}</span>
               </div>
               <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
-                  <dt className="text-xs text-zinc-500">Snelste</dt>
+                  <dt className="text-xs text-zinc-500">{ts.fastest}</dt>
                   <dd className="font-semibold tabular-nums">{formatLapTime(stint.bestMs)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-zinc-500">Gemiddeld</dt>
+                  <dt className="text-xs text-zinc-500">{ts.colAverage}</dt>
                   <dd className="tabular-nums">{formatLapTime(stint.averageMs)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-zinc-500">Spreiding</dt>
+                  <dt className="text-xs text-zinc-500">{ts.colSpread}</dt>
                   <dd className="tabular-nums">{stint.spreadMs === null ? "—" : `±${seconds(stint.spreadMs)}`}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-zinc-500">Trend</dt>
+                  <dt className="text-xs text-zinc-500">{ts.trend}</dt>
                   <dd className={`tabular-nums ${trend.tone}`}>{trend.text}</dd>
                 </div>
               </dl>
-              <p className="mt-3 text-xs text-zinc-500">
-                {stint.validCount} {stint.validCount === 1 ? "geldige ronde" : "geldige ronden"}
-              </p>
+              <p className="mt-3 text-xs text-zinc-500">{plural(stint.validCount, ts.validLaps)}</p>
             </li>
           );
         })}
@@ -166,7 +164,7 @@ export function StintAnalysis({ laps }: { laps: EngineLap[] }) {
   );
 }
 
-function lapPoints(laps: EngineLap[], value: (lap: EngineLap) => number | null, unit: string): LapPoint[] {
+function lapPoints(laps: EngineLap[], value: (lap: EngineLap) => number | null, unit: string, ts: Dictionary["session"]): LapPoint[] {
   return countingLaps(laps)
     .filter((lap) => value(lap) !== null)
     .map((lap, i, all) => ({
@@ -175,48 +173,47 @@ function lapPoints(laps: EngineLap[], value: (lap: EngineLap) => number | null, 
       ms: value(lap)!,
       position: lap.lap_number,
       breakBefore: i > 0 && lap.lap_number !== all[i - 1].lap_number + 1,
-      title: `Ronde ${lap.lap_number}`,
-      detail: `${formatLapTime(lap.lap_time_ms)} rondetijd${unit ? ` · ${unit}` : ""}`,
+      title: format(ts.lap, { lap: lap.lap_number }),
+      detail: `${format(ts.lapTimeDetail, { time: formatLapTime(lap.lap_time_ms) })}${unit ? ` · ${unit}` : ""}`,
     }));
 }
 
-const rpmFormat = new Intl.NumberFormat("nl-NL");
-
-export function EngineAnalysis({ laps }: { laps: EngineLap[] }) {
+export function EngineAnalysis({ laps, t, locale }: { laps: EngineLap[]; t: Dictionary; locale: Locale }) {
+  const ts = t.session;
   const stats = analyzeEngine(laps);
   if (stats.topSpeedKmh === null && stats.maxRpm === null) return null;
-  const speedPoints = lapPoints(laps, (lap) => (lap.max_speed_kmh === null ? null : Number(lap.max_speed_kmh)), "km/u");
-  const rpmPoints = lapPoints(laps, (lap) => lap.max_rpm, "toeren");
+  const number = new Intl.NumberFormat(locale);
+  const speedPoints = lapPoints(laps, (lap) => (lap.max_speed_kmh === null ? null : Number(lap.max_speed_kmh)), ts.kmh, ts);
+  const rpmPoints = lapPoints(laps, (lap) => lap.max_rpm, ts.rpm, ts);
 
   const tiles: { label: string; value: string; note: string }[] = [];
   if (stats.topSpeedKmh !== null) {
-    tiles.push({ label: "Topsnelheid", value: `${stats.topSpeedKmh} km/u`, note: `gemiddeld ${stats.averageTopSpeedKmh} km/u per ronde` });
+    tiles.push({
+      label: ts.topSpeed,
+      value: `${number.format(stats.topSpeedKmh)} ${ts.kmh}`,
+      note: format(ts.topSpeedNote, { speed: number.format(stats.averageTopSpeedKmh!) }),
+    });
     if (stats.bestLapSpeedKmh !== null) {
       const gap = Math.round((stats.topSpeedKmh - stats.bestLapSpeedKmh) * 10) / 10;
       tiles.push({
-        label: "In je snelste ronde",
-        value: `${stats.bestLapSpeedKmh} km/u`,
-        note: gap === 0 ? "ook je topsnelheid" : `${gap} km/u onder je top`,
+        label: ts.inBestLap,
+        value: `${number.format(stats.bestLapSpeedKmh)} ${ts.kmh}`,
+        note: gap === 0 ? ts.alsoTop : format(ts.belowTop, { gap: number.format(gap) }),
       });
     }
   }
   if (stats.maxRpm !== null) {
-    tiles.push({ label: "Max toeren", value: rpmFormat.format(stats.maxRpm), note: `gemiddeld ${rpmFormat.format(stats.averageMaxRpm!)} per ronde` });
+    tiles.push({ label: ts.maxRpm, value: number.format(stats.maxRpm), note: format(ts.maxRpmNote, { rpm: number.format(stats.averageMaxRpm!) }) });
   }
 
   const charts: { kind: ChartKind; title: string; points: LapPoint[] }[] = [
-    { kind: "speed", title: "Topsnelheid per ronde (km/u)", points: speedPoints },
-    { kind: "rpm", title: "Max toeren per ronde", points: rpmPoints },
+    { kind: "speed", title: ts.speedChart, points: speedPoints },
+    { kind: "rpm", title: ts.rpmChart, points: rpmPoints },
   ];
 
   return (
     <section aria-labelledby="engine-heading" className={cardClass}>
-      <SectionHeading
-        id="engine-heading"
-        icon="gauge"
-        title="Snelheid en toeren"
-        intro="Uit je datalogger. Een lagere topsnelheid in je snelste ronde betekent dat je de tijd in de bochten wint, niet op het rechte stuk."
-      />
+      <SectionHeading id="engine-heading" icon="gauge" title={ts.engineTitle} intro={ts.engineIntro} />
       <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
         {tiles.map((tile) => (
           <div key={tile.label} className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
@@ -231,7 +228,9 @@ export function EngineAnalysis({ laps }: { laps: EngineLap[] }) {
           .filter((chart) => chart.points.length >= 2)
           .map((chart) => (
             <div key={chart.kind} className="min-w-0">
-              <p className="mb-2 text-xs text-zinc-500">{chart.title} · hoger is meer</p>
+              <p className="mb-2 text-xs text-zinc-500">
+                {chart.title} · {ts.higherMore}
+              </p>
               <LapTimeChart points={chart.points} label={chart.title} kind={chart.kind} />
             </div>
           ))}
@@ -243,12 +242,14 @@ export function EngineAnalysis({ laps }: { laps: EngineLap[] }) {
 export type CompareCandidate = { id: string; label: string };
 
 export function SessionComparison({
+  t,
   laps,
   compareLaps,
   compareId,
   compareLabel,
   candidates,
 }: {
+  t: Dictionary;
   laps: EngineLap[];
   compareLaps: EngineLap[] | null;
   compareId: string | null;
@@ -256,18 +257,24 @@ export function SessionComparison({
   candidates: CompareCandidate[];
 }) {
   if (candidates.length === 0) return null;
+  const ts = t.session;
   const mine = summarizeLaps(laps);
   const theirs = compareLaps ? summarizeLaps(compareLaps) : null;
   const hasComparison = theirs !== null && theirs.validCount > 0 && mine.validCount > 0;
 
   const rows = hasComparison
     ? [
-        { label: "Snelste ronde", mine: mine.bestMs, theirs: theirs.bestMs, format: formatLapTime },
-        { label: "Gemiddelde", mine: mine.averageMs, theirs: theirs.averageMs, format: formatLapTime },
-        { label: "Spreiding", mine: mine.spreadMs, theirs: theirs.spreadMs, format: (ms: number | null) => (ms === null ? "—" : `±${seconds(ms)}`) },
-        { label: "Ideale ronde", mine: mine.theoreticalBestMs, theirs: theirs.theoreticalBestMs, format: formatLapTime },
+        { label: ts.best, mine: mine.bestMs, theirs: theirs.bestMs, format: formatLapTime },
+        { label: ts.average, mine: mine.averageMs, theirs: theirs.averageMs, format: formatLapTime },
+        { label: ts.spread, mine: mine.spreadMs, theirs: theirs.spreadMs, format: (ms: number | null) => (ms === null ? "—" : `±${seconds(ms)}`) },
+        { label: ts.ideal, mine: mine.theoreticalBestMs, theirs: theirs.theoreticalBestMs, format: formatLapTime },
         ...(mine.bestSectors.length > 0 && mine.bestSectors.length === theirs.bestSectors.length
-          ? mine.bestSectors.map((ms, i) => ({ label: `Beste S${i + 1}`, mine: ms, theirs: theirs.bestSectors[i], format: formatLapTime }))
+          ? mine.bestSectors.map((ms, i) => ({
+              label: format(ts.bestSector, { n: i + 1 }),
+              mine: ms,
+              theirs: theirs.bestSectors[i],
+              format: formatLapTime,
+            }))
           : []),
       ]
     : [];
@@ -280,22 +287,17 @@ export function SessionComparison({
       ms: lap.lap_time_ms,
       position: lap.lap_number,
       breakBefore: i > 0 && lap.lap_number !== all[i - 1].lap_number + 1,
-      title: `Ronde ${lap.lap_number}`,
+      title: format(ts.lap, { lap: lap.lap_number }),
     }));
   const points = toPoints(laps, "a");
   const comparePoints = compareLaps ? toPoints(compareLaps, "b") : [];
 
   return (
     <section aria-labelledby="compare-heading" className={cardClass}>
-      <SectionHeading
-        id="compare-heading"
-        icon="compare"
-        title="Vergelijk met een andere sessie"
-        intro="Dezelfde kart of hetzelfde circuit. De keuze geldt ook voor de afstelling hieronder."
-      />
+      <SectionHeading id="compare-heading" icon="compare" title={ts.compareTitle} intro={ts.compareIntro} />
       <form method="get" className="mt-4 flex flex-col gap-2 sm:flex-row">
         <label className="flex-1">
-          <span className="sr-only">Vergelijk met sessie</span>
+          <span className="sr-only">{ts.compareWith}</span>
           <select name="vs" defaultValue={compareId ?? undefined} className={inputClass}>
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>
@@ -305,29 +307,33 @@ export function SessionComparison({
           </select>
         </label>
         <button type="submit" className={`${secondaryButtonClass} h-11`}>
-          Vergelijk
+          {ts.compare}
         </button>
       </form>
 
       {compareLaps !== null && !hasComparison && (
-        <p className="mt-4 text-sm text-zinc-400">
-          {mine.validCount === 0 ? "Deze sessie heeft nog geen geldige ronden." : "Die sessie heeft geen geldige ronden om mee te vergelijken."}
-        </p>
+        <p className="mt-4 text-sm text-zinc-400">{mine.validCount === 0 ? ts.noValidHere : ts.noValidThere}</p>
       )}
 
       {hasComparison && (
         <>
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm tabular-nums">
-              <caption className="sr-only">Deze sessie tegen {compareLabel}</caption>
+              <caption className="sr-only">{format(ts.compareCaption, { label: compareLabel ?? "" })}</caption>
               <thead className="text-left text-xs text-zinc-400">
                 <tr className="border-b border-zinc-800">
                   <th scope="col" className="py-2 pr-4 font-medium">
-                    <span className="sr-only">Waarde</span>
+                    <span className="sr-only">{ts.value}</span>
                   </th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Deze sessie</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Toen</th>
-                  <th scope="col" className="py-2 font-medium">Verschil</th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {ts.thisSession}
+                  </th>
+                  <th scope="col" className="py-2 pr-4 font-medium">
+                    {ts.then}
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    {ts.colDelta}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/80">
@@ -335,13 +341,19 @@ export function SessionComparison({
                   const delta = row.mine !== null && row.theirs !== null ? row.mine - row.theirs : null;
                   return (
                     <tr key={row.label}>
-                      <th scope="row" className="py-2 pr-4 text-left font-normal text-zinc-400">{row.label}</th>
+                      <th scope="row" className="py-2 pr-4 text-left font-normal text-zinc-400">
+                        {row.label}
+                      </th>
                       <td className="py-2 pr-4 font-semibold text-zinc-100">{row.format(row.mine)}</td>
                       <td className="py-2 pr-4 text-zinc-400">{row.format(row.theirs)}</td>
                       <td className={`py-2 ${delta !== null && delta < 0 ? "font-semibold text-zinc-100" : "text-zinc-400"}`}>
-                        {delta === null ? "—" : (
+                        {delta === null ? (
+                          "—"
+                        ) : (
                           <>
-                            <span aria-hidden="true" className="mr-1 text-xs">{delta < 0 ? "▼" : delta > 0 ? "▲" : "="}</span>
+                            <span aria-hidden="true" className="mr-1 text-xs">
+                              {delta < 0 ? "▼" : delta > 0 ? "▲" : "="}
+                            </span>
                             {formatDelta(delta)}
                           </>
                         )}
@@ -352,15 +364,15 @@ export function SessionComparison({
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-zinc-500">▼ is sneller of constanter dan toen, ▲ trager.</p>
+          <p className="mt-2 text-xs text-zinc-500">{ts.compareLegend}</p>
           {points.length >= 2 && comparePoints.length >= 1 && (
             <div className="mt-6">
-              <p className="mb-2 text-xs text-zinc-500">Rondetijd per ronde · lager is sneller</p>
+              <p className="mb-2 text-xs text-zinc-500">{ts.chartCaption}</p>
               <LapTimeChart
                 points={points}
-                label="Rondetijden van beide sessies"
-                seriesLabel="Deze sessie"
-                compare={{ label: compareLabel ?? "Andere sessie", points: comparePoints }}
+                label={ts.bothSessions}
+                seriesLabel={ts.thisSession}
+                compare={{ label: compareLabel ?? ts.otherSession, points: comparePoints }}
               />
             </div>
           )}
