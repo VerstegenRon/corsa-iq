@@ -1375,7 +1375,7 @@ export const nl = {
     intro:
       "Eén kart bijhouden is gratis. Driver geeft je meer karts en analyse, Pro voegt telemetrie, AI-advies en Live toe, en met meerdere coureurs neem je Team.",
     launchNote:
-      "CorsaIQ is net gestart: tijdens de opstartfase gebruik je alle functies gratis. Je kiest pas een abonnement zodra betalen mogelijk is.",
+      "CorsaIQ is net gestart: tijdens de opstartfase gebruik je alle functies gratis. Een abonnement nemen kan al, maar is nog niet nodig.",
     plansLabel: "Abonnementen",
     recommended: "Aanbevolen",
     perMonth: "per maand",
@@ -1479,7 +1479,7 @@ export const nl = {
     faq: {
       now: {
         question: "Wat kost CorsaIQ nu?",
-        answer: "Niets. Tijdens de opstartfase zijn alle functies gratis. Je hoort het vooraf wanneer de abonnementen ingaan.",
+        answer: "Niets, tenzij je zelf een abonnement neemt. Tijdens de opstartfase zijn alle functies gratis. Je hoort het vooraf wanneer de grenzen per abonnement ingaan.",
       },
       switch: {
         question: "Kan ik later van abonnement wisselen?",

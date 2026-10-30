@@ -36,8 +36,9 @@ function Dutch() {
             . Zolang CorsaIQ in de opstartfase is, kun je alle functies gratis gebruiken; dat staat dan ook op de prijzenpagina.
           </li>
           <li>
-            Een betaald abonnement sluit de eigenaar van de garage af, per maand of per jaar, en betaal je vooruit. Je koopt het via Stripe, dat de
-            betaling en de factuur verzorgt als verkoper; daarvoor gelden ook de voorwaarden van Stripe.
+            Een betaald abonnement sluit de eigenaar van de garage af, per maand of per jaar, en betaal je vooruit. Je koopt het via Stripe, dat met
+            zijn dienst Link de betaling en de factuur verzorgt als verkoper. Daarom staat Link op je bon en factuur; daarvoor gelden ook de voorwaarden
+            van Stripe en Link.
           </li>
           <li>
             Het abonnement wordt telkens met dezelfde periode verlengd. Je kunt het altijd opzeggen via Instellingen → Abonnement; het loopt dan door
@@ -226,8 +227,9 @@ function English() {
             . As long as CorsaIQ is in its launch phase, you can use every feature for free; the pricing page then says so too.
           </li>
           <li>
-            A paid plan is taken out by the owner of the garage, per month or per year, and paid in advance. You buy it through Stripe, which handles
-            the payment and the invoice as the seller; Stripe’s terms apply to that as well.
+            A paid plan is taken out by the owner of the garage, per month or per year, and paid in advance. You buy it through Stripe, which, with
+            its Link service, handles the payment and the invoice as the seller. That is why Link appears on your receipt and invoice; the terms of Stripe
+            and Link apply to that as well.
           </li>
           <li>
             The plan renews for the same period each time. You can cancel at any time in Settings → Subscription; it then runs until the end of the

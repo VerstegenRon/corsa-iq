@@ -1,6 +1,6 @@
 // The four plans and what each one includes, for the pricing page. The keys match `garages.plan`
-// in the database ("hobby" is shown as Driver). Payment is not built yet: nothing here limits the
-// app, everything is free during the launch phase.
+// in the database ("hobby" is shown as Driver). Payment runs through Stripe (lib/billing.ts); the
+// limits only apply once plan_limits_active is on, until then everything is free (the launch phase).
 
 import type { Locale } from "@/lib/i18n/locales";
 

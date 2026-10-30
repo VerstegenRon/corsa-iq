@@ -1370,7 +1370,7 @@ export const de: Dictionary = {
     intro:
       "Ein Kart im Blick zu behalten ist kostenlos. Driver bringt mehr Karts und Analyse, Pro dazu Telemetrie, KI-Beratung und Live, und mit mehreren Fahrern nimmst du Team.",
     launchNote:
-      "CorsaIQ ist gerade gestartet: In der Startphase nutzt du alle Funktionen kostenlos. Ein Abo wählst du erst, wenn Bezahlen möglich ist.",
+      "CorsaIQ ist gerade gestartet: In der Startphase nutzt du alle Funktionen kostenlos. Ein Abo kannst du schon abschließen, nötig ist es aber noch nicht.",
     plansLabel: "Abos",
     recommended: "Empfohlen",
     perMonth: "pro Monat",
@@ -1474,7 +1474,7 @@ export const de: Dictionary = {
     faq: {
       now: {
         question: "Was kostet CorsaIQ jetzt?",
-        answer: "Nichts. In der Startphase sind alle Funktionen kostenlos. Du erfährst es vorher, wenn die Abos starten.",
+        answer: "Nichts, solange du kein Abo abschließt. In der Startphase sind alle Funktionen kostenlos. Du erfährst es vorher, wenn die Grenzen pro Abo gelten.",
       },
       switch: {
         question: "Kann ich später das Abo wechseln?",
