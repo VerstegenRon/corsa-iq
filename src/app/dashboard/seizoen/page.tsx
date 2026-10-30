@@ -4,7 +4,8 @@ import Link from "next/link";
 import { LIFE_STATE, LifeBar, lifeState } from "@/components/life-bar";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import {
   CHASSIS_COMPONENTS,
   ENGINE_COMPONENTS,
@@ -16,25 +17,26 @@ import {
 } from "@/lib/karting";
 import { computeUsage } from "@/lib/part-usage";
 
-export const metadata: Metadata = {
-  title: "Seizoen & materiaal — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).nav.seasonMaterial} — CorsaIQ` };
+}
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
-const dayMonth = new Intl.DateTimeFormat("nl-NL", { day: "2-digit", month: "short", timeZone: "UTC" });
-const shortDate = (date: string) =>
-  dayMonth
-    .format(new Date(`${date}T12:00:00Z`))
-    .replace(".", "")
-    .toUpperCase();
-
 /** The track atlas: longitude −10…24 and latitude 36…64 on a 680×560 plane. */
 const project = (lat: number, lng: number) => ({ x: (lng + 10) * 20, y: (64 - lat) * 20 });
 const inAtlas = ({ x, y }: { x: number; y: number }) => x >= 0 && x <= 680 && y >= 0 && y <= 560;
 
 export default async function SeasonPage({ searchParams }: PageProps<"/dashboard/seizoen">) {
   const query = await searchParams;
-  const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit }, t, locale] = await Promise.all([getCurrentGarage(), getDictionary(), getLocale()]);
+  const ts = t.seasonOverview;
+  const hours = (minutes: number) => formatHoursMinutes(minutes, ts.hourShort);
+  const dayMonth = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", timeZone: "UTC" });
+  const shortDate = (date: string) =>
+    dayMonth
+      .format(new Date(`${date}T12:00:00Z`))
+      .replace(".", "")
+      .toUpperCase();
   const today = todayInAmsterdam();
 
   const { data: seasons } = await supabase.from("seasons").select("id, name, year").eq("garage_id", garage.id).order("year", { ascending: false });
@@ -119,7 +121,7 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
         key: `kart-${k.id}`,
         href: `/dashboard/karts/${k.id}`,
         name: k.name,
-        sub: [k.class, "chassis, frame en lagers"].filter(Boolean).join(" · "),
+        sub: [k.class, ts.chassisSub].filter(Boolean).join(" · "),
         used: computeUsage(k.sessions, k.maintenance_records, chassisKeys).sinceResetMinutes,
         limit: k.usage_limit_minutes!,
       })),
@@ -130,7 +132,7 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
         key: `part-${p.id}`,
         href: `/dashboard/parts/${p.id}`,
         name: [p.brand === "TEST" ? null : p.brand, p.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, p.category),
-        sub: [labelFor(t.options.partCategories, p.category), fitted ?? (p.status === "in_stock" ? "reserve" : null)].filter(Boolean).join(" · "),
+        sub: [labelFor(t.options.partCategories, p.category), fitted ?? (p.status === "in_stock" ? ts.spare : null)].filter(Boolean).join(" · "),
         used: computeUsage(sessions, p.maintenance_records, p.category === "engine" ? engineKeys : []).sinceResetMinutes,
         limit: p.usage_limit_minutes!,
       };
@@ -138,19 +140,19 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
   ].sort((a, b) => b.used / b.limit - a.used / a.limit);
 
   const figures = [
-    { label: "Races", value: String(races.length), highlight: false },
-    { label: "Beste", value: positions.length > 0 ? `P${Math.min(...positions)}` : "—", highlight: positions.length > 0 },
-    { label: "Gem. op pole", value: gaps.length > 0 ? formatGapSeconds(gaps.reduce((a, b) => a + b, 0) / gaps.length) : "—", highlight: false },
-    { label: "Gereden", value: formatHoursMinutes(minutes), highlight: false },
+    { label: ts.races, value: String(races.length), highlight: false },
+    { label: ts.best, value: positions.length > 0 ? `P${Math.min(...positions)}` : "—", highlight: positions.length > 0 },
+    { label: ts.averageToPole, value: gaps.length > 0 ? formatGapSeconds(gaps.reduce((a, b) => a + b, 0) / gaps.length) : "—", highlight: false },
+    { label: ts.driven, value: hours(minutes), highlight: false },
   ];
 
   return (
     <>
       <section className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="channel-label mb-2">Seizoen &amp; materiaal{season ? ` · ${season.name}` : ""}</p>
+          <p className="channel-label mb-2">{t.nav.seasonMaterial}{season ? ` · ${season.name}` : ""}</p>
           <h1 className="text-4xl sm:text-6xl">
-            Seizoen
+            {ts.title}
             <br />
             {season?.year ?? today.slice(0, 4)}
             <span className="text-brand-400">.</span>
@@ -167,7 +169,7 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
       </section>
 
       {seasons && seasons.length > 1 && (
-        <nav aria-label="Seizoen" className="flex flex-wrap gap-1">
+        <nav aria-label={ts.seasonNav} className="flex flex-wrap gap-1">
           {seasons.map((s) => (
             <Link
               key={s.id}
@@ -185,10 +187,10 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
 
       {!season ? (
         <section className={cardClass}>
-          <p className="text-zinc-300">Nog geen seizoen.{canEdit && " Maak er een aan om je kalender en uitslagen hier te zien."}</p>
+          <p className="text-zinc-300">{ts.noSeason}{canEdit && ` ${ts.noSeasonHint}`}</p>
           {canEdit && (
             <Link href="/dashboard/seasons#add-season" className={`${linkClass} mt-3 inline-block text-sm`}>
-              Seizoen toevoegen
+              {ts.addSeason}
             </Link>
           )}
         </section>
@@ -196,14 +198,14 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
         <div className="flex flex-wrap items-stretch gap-5">
           <section aria-labelledby="atlas-heading" className="crop min-w-0 flex-[1_1_560px] border border-zinc-800 p-4 sm:p-5">
             <div className="channel-label flex flex-wrap justify-between gap-2">
-              <h2 id="atlas-heading">Banenatlas · {tracks.length} banen in de database</h2>
+              <h2 id="atlas-heading">{format(ts.atlas, { count: tracks.length })}</h2>
               <span>
-                <span className="text-brand-400">●</span> dit seizoen · ○ nog niet
+                <span className="text-brand-400">●</span> {ts.thisSeason} · ○ {ts.notYet}
               </span>
             </div>
             <svg
               role="img"
-              aria-label={`Kaart met ${tracks.length} kartbanen in Europa, waarvan ${visited.size} dit seizoen bezocht${nextTrack ? ` en ${nextTrack.name} gepland` : ""}`}
+              aria-label={`${format(ts.mapLabel, { count: tracks.length, visited: visited.size })}${nextTrack ? format(ts.mapPlanned, { name: nextTrack.name }) : ""}`}
               viewBox="0 0 680 560"
               className="mt-3 block h-auto w-full"
             >
@@ -226,10 +228,10 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
                   40°N
                 </text>
                 <text x="304" y="554">
-                  5°O
+                  5°{ts.eastShort}
                 </text>
                 <text x="504" y="554">
-                  15°O
+                  15°{ts.eastShort}
                 </text>
               </g>
               {route.length > 1 && (
@@ -278,12 +280,12 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
 
           <section aria-labelledby="calendar-heading" className="flex min-w-0 flex-[1_1_440px] flex-col border border-zinc-800">
             <div className="channel-label flex justify-between border-b border-zinc-800 px-4 py-3">
-              <h2 id="calendar-heading">Kalender &amp; uitslag</h2>
-              <span>Op pole</span>
+              <h2 id="calendar-heading">{ts.calendar}</h2>
+              <span>{ts.toPole}</span>
             </div>
             <div className="overflow-x-auto">
               {events.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-zinc-400">Nog geen evenementen in dit seizoen.</p>
+                <p className="px-4 py-4 text-sm text-zinc-400">{ts.noEvents}</p>
               ) : (
                 <ul className="min-w-[380px]">
                   {events.map((e) => {
@@ -299,7 +301,7 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
                             <span className="block truncate font-semibold">{e.tracks?.name ?? e.name}</span>
                             <span className="block text-xs text-zinc-500">
                               {labelFor(t.options.eventTypes, e.type)}
-                              {!e.driven && " · gepland"}
+                              {!e.driven && ` · ${ts.planned}`}
                             </span>
                           </span>
                           <span
@@ -310,7 +312,7 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
                             {pos !== null ? `P${pos}` : "—"}
                           </span>
                           <span className={`text-right font-mono text-[13px] ${e.gap !== null && e.gap <= 0 ? "text-brand-300" : "text-zinc-400"}`}>
-                            {e.gap === null ? "—" : e.gap <= 0 ? "pole" : formatGapSeconds(e.gap)}
+                            {e.gap === null ? "—" : e.gap <= 0 ? ts.pole : formatGapSeconds(e.gap)}
                           </span>
                         </Link>
                       </li>
@@ -325,14 +327,14 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
 
       <section aria-labelledby="material-heading" className="border border-zinc-800">
         <div className="channel-label flex flex-wrap justify-between gap-2 border-b border-zinc-800 px-4 py-3">
-          <h2 id="material-heading">Materiaal · uren tegen limiet</h2>
-          <span>Balk = gebruikt · streep = limiet</span>
+          <h2 id="material-heading">{ts.material}</h2>
+          <span>{ts.materialLegend}</span>
         </div>
         {material.length === 0 ? (
           <p className="px-4 py-4 text-sm text-zinc-400">
-            Stel bij je karts en onderdelen een limiet in om hier te zien hoeveel ze nog mee kunnen.{" "}
+            {ts.noMaterial}{" "}
             <Link href="/dashboard/parts" className={linkClass}>
-              Naar onderdelen
+              {ts.toParts}
             </Link>
           </p>
         ) : (
@@ -351,13 +353,13 @@ export default async function SeasonPage({ searchParams }: PageProps<"/dashboard
                         <span className="block truncate font-semibold">{m.name}</span>
                         <span className="block truncate text-xs text-zinc-500">{m.sub}</span>
                       </span>
-                      <LifeBar share={share} label={m.name} />
+                      <LifeBar share={share} label={m.name} valueText={format(ts.ofLimit, { percent: Math.round(share * 100), state: ts[LIFE_STATE[state].label] })} />
                       <span className="text-right font-mono text-sm">
-                        {formatHoursMinutes(m.used)} / {formatHoursMinutes(m.limit)}
+                        {hours(m.used)} / {hours(m.limit)}
                       </span>
                       <span className="text-right text-[13px] font-bold" style={{ color: LIFE_STATE[state].color }}>
                         {state !== "ok" && <span aria-hidden="true">{state === "over" ? "! " : "▲ "}</span>}
-                        {LIFE_STATE[state].label}
+                        {ts[LIFE_STATE[state].label]}
                       </span>
                     </Link>
                   </li>

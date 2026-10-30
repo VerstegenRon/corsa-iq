@@ -211,11 +211,11 @@ export function formatGapSeconds(ms: number): string {
 }
 
 /** Run time as hours and minutes the way a mechanic writes it: 4u48, 41u, 0u22. */
-export function formatHoursMinutes(minutes: number): string {
+export function formatHoursMinutes(minutes: number, hourUnit = "u"): string {
   const total = Math.max(0, Math.round(minutes));
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return m === 0 && h >= 10 ? `${h}u` : `${h}u${String(m).padStart(2, "0")}`;
+  return m === 0 && h >= 10 ? `${h}${hourUnit}` : `${h}${hourUnit}${String(m).padStart(2, "0")}`;
 }
 
 /** Accepts "52.345", "52,345" or "1:02.345"; returns milliseconds or null when invalid. */
