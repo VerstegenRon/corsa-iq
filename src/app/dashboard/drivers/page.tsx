@@ -5,6 +5,7 @@ import { AddSection, EditSection } from "@/components/edit-section";
 import { Icon } from "@/components/icons";
 import { Chip } from "@/components/meter";
 import { PageHeader } from "@/components/page-header";
+import { atLimit, LimitReached } from "@/components/plan-lock";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { formatMinutes, sortByLabel } from "@/lib/karting";
@@ -31,12 +32,7 @@ export default async function DriversPage() {
 
   return (
     <>
-      <PageHeader
-        icon="user"
-        title="Coureurs"
-        subtitle={`${drivers.length} ${drivers.length === 1 ? "coureur" : "coureurs"}`}
-        add="Coureur"
-      />
+      <PageHeader icon="user" title="Coureurs" subtitle={`${drivers.length} ${drivers.length === 1 ? "coureur" : "coureurs"}`} add="Coureur" />
 
       {drivers.map((driver) => {
         const minutes = Math.round(driver.sessions.reduce((sum, s) => sum + (s.duration_s ?? 0), 0) / 60);
@@ -86,9 +82,7 @@ export default async function DriversPage() {
                     />
                     {(driver.sessions.length > 0 || onlyOne) && (
                       <p className="mt-2 text-xs text-zinc-500">
-                        {driver.sessions.length > 0
-                          ? "Coureurs met gereden sessies blijven bewaard."
-                          : "Je garage heeft minimaal één coureur nodig."}
+                        {driver.sessions.length > 0 ? "Coureurs met gereden sessies blijven bewaard." : "Je garage heeft minimaal één coureur nodig."}
                       </p>
                     )}
                   </>
@@ -102,7 +96,7 @@ export default async function DriversPage() {
       })}
 
       <AddSection title="Coureur toevoegen" defaultOpen={drivers.length === 0}>
-        <DriverForm />
+        {(await atLimit("drivers", drivers.length)) ? <LimitReached counted="drivers" used={drivers.length} /> : <DriverForm />}
       </AddSection>
     </>
   );

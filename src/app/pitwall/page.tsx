@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import { getCurrentGarage } from "@/lib/garage";
 import { formatDate, ownOrOfficial, sortByLabel, todayInAmsterdam, trackLabel, type SetupValues } from "@/lib/karting";
+import { PlanLockScreen } from "@/components/plan-lock";
+import { getPlanAccess } from "@/lib/plan-access";
 
 import { Pitwall, type KartDefaults, type PitwallEvent, type PitwallSession } from "./pitwall";
 
@@ -16,6 +18,7 @@ export const metadata: Metadata = {
  */
 export default async function PitwallPage() {
   const { supabase, garage, canEdit } = await getCurrentGarage();
+  if (!(await getPlanAccess()).has("pitwall")) return <PlanLockScreen feature="pitwall" />;
   // Logging only: a viewer has nothing to do here, Live shows the same sessions.
   if (!canEdit) redirect("/dashboard/live");
   const today = todayInAmsterdam();

@@ -9,6 +9,7 @@ import { getCurrentGarage } from "@/lib/garage";
 import { isExpenseCategory } from "@/lib/karting";
 import { isReadableReceiptType, readReceipt, type ReceiptFields } from "@/lib/receipt-reader";
 import { RECEIPT_BUCKET } from "@/lib/storage";
+import { lockedError } from "@/lib/plan-access";
 
 import { optionalNumber, text } from "./form-data";
 
@@ -75,6 +76,8 @@ export type ReadReceiptResult = { fields: ReceiptFields } | { error: string };
 
 /** Reads an uploaded receipt (already in this garage's storage folder) into expense fields. */
 export async function readUploadedReceipt(receiptPath: string): Promise<ReadReceiptResult> {
+  const locked = await lockedError("receipts");
+  if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
   if (!new RegExp(`^${garage.id}/[\\w-]+\\.[a-z]+$`).test(receiptPath)) return { error: "Onbekend bonnetje." };
 

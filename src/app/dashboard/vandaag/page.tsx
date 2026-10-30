@@ -11,6 +11,8 @@ import { diffSetups, getSetupValue } from "@/lib/setup";
 import { describeChanges } from "@/lib/setup-tree";
 import { loadSetupTree } from "@/lib/setup-tree-data";
 import { fetchWeather } from "@/lib/weather";
+import { PlanLock } from "@/components/plan-lock";
+import { getPlanAccess } from "@/lib/plan-access";
 
 import { PrestartBoard, type BoardRow, type BoardTyre } from "./prestart-board";
 
@@ -29,6 +31,7 @@ const clock = new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-dig
 export default async function TodayPage({ searchParams }: PageProps<"/dashboard/vandaag">) {
   const query = await searchParams;
   const [{ supabase, garage, canEdit, canManageTeam }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  if (!(await getPlanAccess()).has("prestart")) return <PlanLock feature="prestart" />;
   const today = todayInAmsterdam();
 
   // Today's event, else the next one.

@@ -9,6 +9,7 @@ import { getCurrentGarage } from "@/lib/garage";
 import type { LapSource } from "@/lib/lap-import";
 import { TELEMETRY_BUCKET } from "@/lib/storage";
 import { CHANNELS, type Corner } from "@/lib/telemetry";
+import { lockedError } from "@/lib/plan-access";
 
 // ---------------------------------------------------------------------------
 // Telemetry: the browser resamples the export and uploads one channel file per lap; this links them.
@@ -51,6 +52,8 @@ function validUpload(input: TelemetryUpload, prefix: string): boolean {
 }
 
 export async function saveTelemetry(sessionId: string, input: TelemetryUpload): Promise<FormState> {
+  const locked = await lockedError("telemetry");
+  if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
   const prefix = `${garage.id}/${sessionId}/`;
   if (!validUpload(input, prefix)) return { error: "De telemetrie kon niet gekoppeld worden. Probeer het opnieuw." };
@@ -139,6 +142,8 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
 
 /** The lap this session is compared against by default. */
 export async function setReferenceLap(sessionId: string, lapId: number | null): Promise<FormState> {
+  const locked = await lockedError("telemetry");
+  if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
   if (lapId !== null) {
     const { data: lap } = await supabase.from("lap_channels").select("lap_id").eq("lap_id", lapId).eq("garage_id", garage.id).maybeSingle();
@@ -152,6 +157,8 @@ export async function setReferenceLap(sessionId: string, lapId: number | null): 
 
 /** Stores the corners found in the reference lap for the session's layout, so names and positions stay. */
 export async function saveCorners(sessionId: string, layoutId: string, corners: Corner[]): Promise<FormState> {
+  const locked = await lockedError("telemetry");
+  if (locked) return { error: locked };
   if (!Array.isArray(corners) || corners.length === 0 || corners.length > 40) return { error: "Geen bochten om op te slaan." };
   const valid = corners.every(
     (c) =>

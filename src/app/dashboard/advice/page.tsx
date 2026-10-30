@@ -3,7 +3,9 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { cardClass, linkClass } from "@/components/ui";
+import { PlanLock } from "@/components/plan-lock";
 import { getCurrentGarage } from "@/lib/garage";
+import { getPlanAccess } from "@/lib/plan-access";
 import { sortByLabel } from "@/lib/karting";
 import { findInsights, type Insight } from "@/lib/setup-advisor";
 
@@ -60,9 +62,9 @@ export default async function AdvicePage({ searchParams }: PageProps<"/dashboard
           <Stat label="Sterk of redelijk" value={shown.filter((i) => i.confidence !== "weak").length} />
         </div>
         <p className="text-xs text-zinc-500">
-          Methode: sessies worden alleen vergeleken op hetzelfde circuit, met dezelfde kart en bij hetzelfde weer. Elke instelling moet in
-          minstens twee sessies gereden zijn. De betrouwbaarheid hangt af van het aantal sessies en de spreiding in rondetijden. Gebruik
-          de verbanden als testrichting, niet als garantie.
+          Methode: sessies worden alleen vergeleken op hetzelfde circuit, met dezelfde kart en bij hetzelfde weer. Elke instelling moet in minstens
+          twee sessies gereden zijn. De betrouwbaarheid hangt af van het aantal sessies en de spreiding in rondetijden. Gebruik de verbanden als
+          testrichting, niet als garantie.
         </p>
       </section>
 
@@ -100,7 +102,11 @@ export default async function AdvicePage({ searchParams }: PageProps<"/dashboard
             <p className="mt-1 mb-4 text-sm text-zinc-400">
               Een samenvatting van de belangrijkste verbanden, met een voorstel voor je volgende testsessie.
             </p>
-            <ExplainButton key={trackId ?? "all"} trackId={trackId} />
+            {(await getPlanAccess()).has("aiAdvice") ? (
+              <ExplainButton key={trackId ?? "all"} trackId={trackId} />
+            ) : (
+              <PlanLock feature="aiAdvice" compact />
+            )}
           </section>
           {perTrack.map(([id, list]) => (
             <section key={id} aria-labelledby={`track-${id}`} className={cardClass}>

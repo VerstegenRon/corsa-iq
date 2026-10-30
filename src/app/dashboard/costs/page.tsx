@@ -6,6 +6,7 @@ import { EXPENSE_ICONS, Icon, iconFor } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { lockedError } from "@/lib/plan-access";
 import { getDictionary } from "@/lib/i18n/server";
 import { formatCents, labelFor, todayInAmsterdam } from "@/lib/karting";
 
@@ -35,16 +36,8 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
   const t = await getDictionary();
 
   const [seasonsResult, eventsResult] = await Promise.all([
-    supabase
-      .from("seasons")
-      .select("id, name, budget_cents")
-      .eq("garage_id", garage.id)
-      .order("year", { ascending: false }),
-    supabase
-      .from("events")
-      .select("id, name, starts_on")
-      .eq("garage_id", garage.id)
-      .order("starts_on", { ascending: false }),
+    supabase.from("seasons").select("id, name, budget_cents").eq("garage_id", garage.id).order("year", { ascending: false }),
+    supabase.from("events").select("id, name, starts_on").eq("garage_id", garage.id).order("starts_on", { ascending: false }),
   ]);
   if (seasonsResult.error) throw new Error(seasonsResult.error.message);
   const seasons = seasonsResult.data;
@@ -66,7 +59,11 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
   const expenses = expensesResult.data;
 
   const total = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
-  const byCategory = sumBy(expenses, (e) => e.category, (e) => e.amount_cents);
+  const byCategory = sumBy(
+    expenses,
+    (e) => e.category,
+    (e) => e.amount_cents,
+  );
   const byEvent = sumBy(
     expenses.filter((e) => e.events),
     (e) => e.events!.id,
@@ -92,9 +89,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               href={`/dashboard/costs?season=${f.value}`}
               aria-current={filter === f.value ? "page" : undefined}
               className={`rounded-full border px-4 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 ${
-                filter === f.value
-                  ? "border-zinc-600 bg-zinc-800 text-white"
-                  : "border-zinc-800 text-zinc-400 hover:text-white"
+                filter === f.value ? "border-zinc-600 bg-zinc-800 text-white" : "border-zinc-800 text-zinc-400 hover:text-white"
               }`}
             >
               {f.label}
@@ -110,9 +105,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         </div>
         <div className={cardClass}>
           <p className="text-sm text-zinc-400">{budget !== null && total > budget ? "Over budget" : "Budget over"}</p>
-          <p
-            className={`mt-2 text-2xl font-semibold tabular-nums sm:text-3xl ${budget !== null && total > budget ? "text-red-300" : ""}`}
-          >
+          <p className={`mt-2 text-2xl font-semibold tabular-nums sm:text-3xl ${budget !== null && total > budget ? "text-red-300" : ""}`}>
             {budget === null ? "—" : formatCents(Math.abs(budget - total))}
           </p>
           {budget !== null && (
@@ -124,10 +117,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               aria-valuenow={Math.round(usedShare * 100)}
               className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-800"
             >
-              <div
-                className={`h-full rounded-full ${total > budget ? "bg-red-400" : "bg-zinc-300"}`}
-                style={{ width: `${usedShare * 100}%` }}
-              />
+              <div className={`h-full rounded-full ${total > budget ? "bg-red-400" : "bg-zinc-300"}`} style={{ width: `${usedShare * 100}%` }} />
             </div>
           )}
           {season && budget === null && <p className="mt-2 text-xs text-zinc-500">Geen budget ingesteld voor dit seizoen.</p>}
@@ -196,6 +186,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
 
       <AddSection title="Uitgave toevoegen" defaultOpen={expenses.length === 0}>
         <ExpenseForm
+          readLocked={await lockedError("receipts")}
           key={filter}
           garageId={garage.id}
           defaultDate={todayInAmsterdam()}

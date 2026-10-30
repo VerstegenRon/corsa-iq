@@ -4,6 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import { CORNER_PHASES, FEEDBACK_MOODS, FEEDBACK_TOPICS, HANDLING, parseFeedbackTags, type FeedbackTags } from "@/lib/feedback";
+import { getPlanAccess } from "@/lib/plan-access";
 
 const schema = {
   type: "object",
@@ -12,7 +13,7 @@ const schema = {
     corners: {
       type: "array",
       items: { type: "string" },
-      description: "Corners the driver mentions: just the number (\"3\") or a short Dutch name (\"haarspeld\").",
+      description: 'Corners the driver mentions: just the number ("3") or a short Dutch name ("haarspeld").',
     },
     phases: { type: "array", items: { type: "string", enum: Object.keys(CORNER_PHASES) } },
     topics: { type: "array", items: { type: "string", enum: Object.keys(FEEDBACK_TOPICS) } },
@@ -26,7 +27,9 @@ const instructions = `Dit is de feedback van een kartcoureur na een sessie, vaak
 - handling: understeer (onderstuur, de kart duwt over de voorwielen), oversteer (overstuur, de achterkant breekt uit), balanced (de coureur noemt de balans goed). Alleen wat de coureur echt zegt.
 - corners: de bochten die genoemd worden.
 - phases: waar in de bocht het speelt: braking (remmen), entry (insturen), apex, exit (uitkomen, accelereren), straight (rechte stuk, topsnelheid).
-- topics: waar het over gaat: ${Object.entries(FEEDBACK_TOPICS).map(([key, label]) => `${key} (${label})`).join(", ")}.
+- topics: waar het over gaat: ${Object.entries(FEEDBACK_TOPICS)
+  .map(([key, label]) => `${key} (${label})`)
+  .join(", ")}.
 - mood: hoe tevreden de coureur klinkt over de sessie.
 Verzin niets: is iets niet genoemd, laat de lijst dan leeg.`;
 
@@ -35,6 +38,8 @@ let client: Anthropic | null = null;
 /** Null when there is nothing to tag or Claude could not help; saving the feedback never waits on success. */
 export async function tagFeedback(feedback: string | null): Promise<FeedbackTags | null> {
   if (!feedback?.trim() || !process.env.ANTHROPIC_API_KEY) return null;
+  // AI labels come with Pro; without them the feedback is saved as written.
+  if (!(await getPlanAccess()).has("aiDebrief")) return null;
   client ??= new Anthropic();
   try {
     const response = await client.beta.messages.create({

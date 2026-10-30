@@ -10,6 +10,7 @@ import { getCurrentGarage } from "@/lib/garage";
 import { countingLiveLaps, ENGINE_RANGES, type EngineChannel, type LiveLap } from "@/lib/live";
 import { sessionLabel } from "@/lib/prestart";
 import { SETUP_FIELDS } from "@/lib/setup";
+import { lockedError } from "@/lib/plan-access";
 
 import { text } from "./form-data";
 import { insertSession, saveDebrief } from "./session-save";
@@ -41,6 +42,8 @@ export async function startLive(input: {
   plannedLaps: number | null;
   referenceLapId: number | null;
 }): Promise<FormState & { id?: string }> {
+  const locked = await lockedError("live");
+  if (locked) return { error: locked };
   if (!SESSION_TYPES.includes(input.type)) return { error: "Kies het soort sessie." };
   if (input.plannedLaps !== null && (!Number.isInteger(input.plannedLaps) || input.plannedLaps < 1 || input.plannedLaps > 200)) {
     return { error: "Het aantal ronden is een heel getal tussen 1 en 200." };
@@ -106,6 +109,8 @@ export async function recordLap(
   liveId: string,
   lap: { lap_number: number; lap_time_ms: number; sectors_ms: number[] },
 ): Promise<FormState & { id?: number }> {
+  const locked = await lockedError("live");
+  if (locked) return { error: locked };
   if (!Number.isInteger(lap.lap_number) || lap.lap_number < 0 || lap.lap_number > 500) return { error: "Onbekende ronde." };
   if (!Number.isInteger(lap.lap_time_ms) || lap.lap_time_ms < 5_000 || lap.lap_time_ms > 30 * 60_000)
     return { error: "Die rondetijd kan niet kloppen." };
@@ -138,6 +143,8 @@ export async function updateLap(
   lapNumber: number,
   patch: Partial<Pick<LiveLap, "position" | "gap_to_p1_ms" | "max_speed_kmh" | EngineChannel | "is_pit_lap">>,
 ): Promise<FormState> {
+  const locked = await lockedError("live");
+  if (locked) return { error: locked };
   const clean: Partial<Record<(typeof NUMBER_FIELDS)[number], number | null> & { is_pit_lap: boolean }> = {};
   for (const key of NUMBER_FIELDS) {
     if (!(key in patch)) continue;
@@ -171,6 +178,8 @@ export async function deleteLap(liveId: string, lapNumber: number): Promise<Form
 // ---------------------------------------------------------------------------
 
 export async function sendPitMessage(liveId: string | null, message: string): Promise<FormState> {
+  const locked = await lockedError("pitboard");
+  if (locked) return { error: locked };
   const value = message.trim().replace(/\s+/g, " ");
   if (value.length === 0) return { error: "Typ een bericht." };
   if (value.length > 80) return { error: "Houd het kort: hooguit 80 tekens, het moet in één blik te lezen zijn." };
@@ -184,6 +193,8 @@ export async function sendPitMessage(liveId: string | null, message: string): Pr
 }
 
 export async function clearPitMessages(): Promise<FormState> {
+  const locked = await lockedError("pitboard");
+  if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase
     .from("pit_messages")

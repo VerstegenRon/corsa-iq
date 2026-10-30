@@ -7,6 +7,7 @@ import { EditOnly } from "@/components/edit-access";
 import { EditSection } from "@/components/edit-section";
 import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { getPlanAccess } from "@/lib/plan-access";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { getDictionary } from "@/lib/i18n/server";
 import { CHASSIS_COMPONENTS, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
@@ -160,7 +161,14 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
 
       <UsageCards kind="kart" usage={usage} limit={kart.usage_limit_minutes} />
 
-      <ComponentsSection target={target} componentSet="chassis" usage={usage} limits={componentLimits} t={t} />
+      <ComponentsSection
+        target={target}
+        canSetLimits={(await getPlanAccess()).has("limits")}
+        componentSet="chassis"
+        usage={usage}
+        limits={componentLimits}
+        t={t}
+      />
 
       <MaintenanceSection target={target} componentSet="chassis" records={kart.maintenance_records} today={todayInAmsterdam()} t={t} />
 

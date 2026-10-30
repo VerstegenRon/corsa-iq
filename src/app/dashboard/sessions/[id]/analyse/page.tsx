@@ -8,6 +8,8 @@ import { getDictionary } from "@/lib/i18n/server";
 import { formatGapSeconds, formatLapTime, labelFor } from "@/lib/karting";
 import { DAY_ORDER, sessionLabel } from "@/lib/prestart";
 import { TELEMETRY_BUCKET } from "@/lib/storage";
+import { PlanLock } from "@/components/plan-lock";
+import { getPlanAccess } from "@/lib/plan-access";
 import {
   CHANNELS,
   CHART_CHANNELS,
@@ -121,6 +123,7 @@ async function readFile(supabase: Awaited<ReturnType<typeof getCurrentGarage>>["
 export default async function SessionAnalysePage({ params, searchParams }: PageProps<"/dashboard/sessions/[id]/analyse">) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  if (!(await getPlanAccess()).has("telemetry")) return <PlanLock feature="telemetry" />;
 
   const { data: session } = await supabase
     .from("sessions")

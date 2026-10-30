@@ -208,6 +208,22 @@ export const nl = {
     payYearly: "Liever per jaar betalen",
     yourPlan: "Je huidige abonnement",
   },
+  plan: {
+    lockedTitle: "Zit in {plan}",
+    lockedText: "{feature} hoort bij {plan} en hoger. Je garage heeft nu {current}.",
+    lockedError: "{feature} hoort bij {plan} en hoger. Bekijk de abonnementen om te upgraden.",
+    upgrade: "Upgrade naar {plan}",
+    upgradeMore: "Abonnementen bekijken",
+    askOwner: "Vraag de eigenaar van de garage om te upgraden.",
+    limitTitle: "Abonnement vol",
+    limitReached: "Met {plan} heb je ruimte voor {things}.",
+    kartsNote: "Verkochte en afgeschreven karts tellen niet mee.",
+    things: {
+      karts: { one: "{count} kart", other: "{count} karts" },
+      drivers: { one: "{count} coureur", other: "{count} coureurs" },
+      members: { one: "{count} teamlid", other: "{count} teamleden" },
+    },
+  },
   home: {
     metaTitle: "CorsaIQ — je kartseizoen in één pitbox",
     metaDescription:

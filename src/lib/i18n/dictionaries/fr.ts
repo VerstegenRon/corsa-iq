@@ -191,6 +191,22 @@ export const fr: Dictionary = {
     payYearly: "Plutôt payer à l'année",
     yourPlan: "Ton abonnement actuel",
   },
+  plan: {
+    lockedTitle: "Inclus dans {plan}",
+    lockedText: "{feature} est inclus à partir de {plan}. Ton garage est actuellement en {current}.",
+    lockedError: "{feature} est inclus à partir de {plan}. Consulte les abonnements pour passer au niveau supérieur.",
+    upgrade: "Passer à {plan}",
+    upgradeMore: "Voir les abonnements",
+    askOwner: "Demande au propriétaire du garage de changer d'abonnement.",
+    limitTitle: "Abonnement complet",
+    limitReached: "Avec {plan}, tu as de la place pour {things}.",
+    kartsNote: "Les karts vendus ou retirés ne comptent pas.",
+    things: {
+      karts: { one: "{count} kart", other: "{count} karts" },
+      drivers: { one: "{count} pilote", other: "{count} pilotes" },
+      members: { one: "{count} membre", other: "{count} membres" },
+    },
+  },
   home: {
     metaTitle: "CorsaIQ — toute ta saison de karting dans un seul stand",
     metaDescription:

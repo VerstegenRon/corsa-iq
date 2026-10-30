@@ -3,6 +3,7 @@
 
 import { DeleteButton } from "@/components/delete-button";
 import { EditOnly } from "@/components/edit-access";
+import { PlanLock } from "@/components/plan-lock";
 import { cardClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { formatCents, formatDate, formatMinutes, labelFor, sortedEntries } from "@/lib/karting";
@@ -84,12 +85,15 @@ export function ComponentsSection({
   componentSet,
   usage,
   limits,
+  canSetLimits,
   t,
 }: {
   target: MaintenanceTarget;
   componentSet: ComponentSet;
   usage: Usage;
   limits: ComponentLimits;
+  /** Limits per component come with Driver; without it the form gives way to the lock card. */
+  canSetLimits: boolean;
   t: Dictionary;
 }) {
   const subject = target.kind === "kart" ? "onderdeel van het chassis" : "component";
@@ -168,7 +172,7 @@ export function ComponentsSection({
             Na hoeveel draaiuren een {subject} weer aan de beurt is. Vanaf 90% verschijnt het onder “Onderhoud nodig” op je overzicht. Laat een veld
             leeg voor geen grens.
           </p>
-          <LimitsForm target={target} componentSet={componentSet} limits={limits} />
+          {canSetLimits ? <LimitsForm target={target} componentSet={componentSet} limits={limits} /> : <PlanLock feature="limits" compact />}
         </details>
       </EditOnly>
     </section>

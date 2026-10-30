@@ -8,6 +8,8 @@ import { getDictionary } from "@/lib/i18n/server";
 import { formatDate, formatGapSeconds, labelFor } from "@/lib/karting";
 import { compareRows, type Version } from "@/lib/setup-tree";
 import { loadSetupTree } from "@/lib/setup-tree-data";
+import { PlanLock } from "@/components/plan-lock";
+import { getPlanAccess } from "@/lib/plan-access";
 
 import { SetupGraph } from "./setup-graph";
 
@@ -21,7 +23,9 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 function DeltaChip({ v }: { v: Version }) {
   if (v.wet) return <span className="border border-ref px-1.5 py-0.5 font-mono text-[13px] font-bold text-ref">NAT</span>;
   if (v.deltaMs === null)
-    return <span className="bg-zinc-800 px-1.5 py-0.5 font-mono text-[13px] font-bold text-zinc-50">{v.isCurrent && v.bestMs === null ? "NU" : "—"}</span>;
+    return (
+      <span className="bg-zinc-800 px-1.5 py-0.5 font-mono text-[13px] font-bold text-zinc-50">{v.isCurrent && v.bestMs === null ? "NU" : "—"}</span>
+    );
   const gain = v.deltaMs < 0;
   return (
     <span className={`px-1.5 py-0.5 font-mono text-[13px] font-bold ${gain ? "bg-brand-500 text-on-brand" : "bg-red-400 text-zinc-950"}`}>
@@ -33,6 +37,7 @@ function DeltaChip({ v }: { v: Version }) {
 export default async function SetupsPage({ searchParams }: PageProps<"/dashboard/setups">) {
   const query = await searchParams;
   const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  if (!(await getPlanAccess()).has("setupCompare")) return <PlanLock feature="setupCompare" />;
 
   const { karts, kartId, versions, trackName: track } = await loadSetupTree(supabase, garage.id, typeof query.kart === "string" ? query.kart : null);
   const newestFirst = [...versions].reverse();
@@ -54,7 +59,11 @@ export default async function SetupsPage({ searchParams }: PageProps<"/dashboard
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <PageHeader icon="compare" title="Wat maakte je sneller?" subtitle={`Setup-stamboom · ${versions.length} ${versions.length === 1 ? "versie" : "versies"}`} />
+        <PageHeader
+          icon="compare"
+          title="Wat maakte je sneller?"
+          subtitle={`Setup-stamboom · ${versions.length} ${versions.length === 1 ? "versie" : "versies"}`}
+        />
         {kartName && (
           <span className="border border-zinc-800 px-2.5 py-2 font-mono text-xs tracking-wider uppercase">
             {kartName}
@@ -98,7 +107,9 @@ export default async function SetupsPage({ searchParams }: PageProps<"/dashboard
               <div key={v.id} className="flex flex-col gap-2 bg-zinc-950 px-4 py-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="flex min-w-0 items-baseline gap-2.5">
-                    <span className={`font-mono text-[15px] font-bold ${v.isFastest ? "text-brand-300" : v.wet ? "text-ref" : "text-zinc-50"}`}>{v.label}</span>
+                    <span className={`font-mono text-[15px] font-bold ${v.isFastest ? "text-brand-300" : v.wet ? "text-ref" : "text-zinc-50"}`}>
+                      {v.label}
+                    </span>
                     <span className="truncate text-[13px] text-zinc-500">{meta(v)}</span>
                   </span>
                   <DeltaChip v={v} />
