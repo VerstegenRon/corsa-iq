@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format, type Locale } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatGapSeconds, formatLapTime, labelFor } from "@/lib/karting";
 import { DAY_ORDER, sessionLabel } from "@/lib/prestart";
 import { TELEMETRY_BUCKET } from "@/lib/storage";
@@ -18,6 +20,7 @@ import {
   detectCorners,
   isTelemetryFile,
   oneThing,
+  type Advice,
   type Channel,
   type Corner,
   type CornerResult,
@@ -28,18 +31,21 @@ import { PitboardButton, ReferenceButton, SaveCornersButton } from "./analyse-bu
 import { TelemetryImportForm } from "./telemetry-import-form";
 import { TraceChart } from "./trace-chart";
 
-export const metadata: Metadata = {
-  title: "Analyse — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).analysis.metaTitle };
+}
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
-const REF_KINDS = {
-  own: "Eigen beste",
-  team: "Teamgenoot",
-  setup: "Vorige setup",
-} as const;
-type RefKind = keyof typeof REF_KINDS | "pinned";
+const REF_KINDS = ["own", "team", "setup"] as const;
+type RefKind = (typeof REF_KINDS)[number] | "pinned";
+
+/** The advice for the worst corner, in the reader's language. */
+function adviceText(corner: string, advice: Advice, tt: Dictionary["telemetry"], locale: Locale) {
+  if (advice.kind === "throttle") return format(tt.throttle, { corner });
+  if (advice.kind === "apexSpeed") return format(tt.apexSpeed, { corner, kmh: new Intl.NumberFormat(locale).format(advice.kmh) });
+  return format(advice.kind === "brakeLater" ? tt.brakeLater : tt.brakeEarlier, { corner, metres: advice.metres });
+}
 
 const CHANNEL_CODES: Record<string, string> = { speed: "CH.01", rpm: "CH.03", lat_g: "CH.04" };
 
@@ -56,7 +62,8 @@ type Candidate = {
 };
 
 /** Per corner a diverging bar around the middle: a gain to the left in volt, a loss to the right in red. */
-function CornerBar({ corner, scale }: { corner: CornerResult; scale: number }) {
+function CornerBar({ corner, scale, t, locale }: { corner: CornerResult; scale: number; t: Dictionary; locale: Locale }) {
+  const speed = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   const share = Math.min(1, Math.abs(corner.lossS) / scale);
   const loss = corner.lossS > 0.0005;
   const gain = corner.lossS < -0.0005;
@@ -71,8 +78,8 @@ function CornerBar({ corner, scale }: { corner: CornerResult; scale: number }) {
           )}
         </span>
         <span className="truncate font-mono text-[11px] text-zinc-500">
-          rem {corner.brakeDiffM === 0 ? "=" : `${corner.brakeDiffM < 0 ? "−" : "+"}${Math.abs(corner.brakeDiffM)} m`} ·{" "}
-          {String(corner.apexYouKmh).replace(".", ",")}/{String(corner.apexRefKmh).replace(".", ",")} km/u
+          {t.telemetry.brake} {corner.brakeDiffM === 0 ? "=" : `${corner.brakeDiffM < 0 ? "−" : "+"}${Math.abs(corner.brakeDiffM)} m`} ·{" "}
+          {speed.format(corner.apexYouKmh)}/{speed.format(corner.apexRefKmh)} {t.session.kmh}
         </span>
       </span>
       <span className={`text-right font-mono text-sm font-bold tabular-nums ${loss ? "text-red-300" : gain ? "text-brand-300" : "text-zinc-400"}`}>
@@ -122,7 +129,8 @@ async function readFile(supabase: Awaited<ReturnType<typeof getCurrentGarage>>["
 
 export default async function SessionAnalysePage({ params, searchParams }: PageProps<"/dashboard/sessions/[id]/analyse">) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit }, t, locale] = await Promise.all([getCurrentGarage(), getDictionary(), getLocale()]);
+  const tt = t.telemetry;
   if (!(await getPlanAccess()).has("telemetry")) return <PlanLock feature="telemetry" />;
 
   const { data: session } = await supabase
@@ -143,15 +151,16 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <p className="channel-label mb-2 truncate">
-          Analyse · {title}
+          {format(tt.eyebrow, { title })}
           {session.drivers && ` · ${session.drivers.name}`}
         </p>
         <h1 className="text-3xl sm:text-4xl">
-          Waar zit de tijd<span className="text-brand-400">?</span>
+          {tt.headingStart}
+          <span className="text-brand-400">?</span>
         </h1>
       </div>
       <Link href={`/dashboard/sessions/${session.id}`} className={`${linkClass} text-sm`}>
-        Naar de sessie
+        {tt.toSession}
       </Link>
     </div>
   );
@@ -160,14 +169,9 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
   const importCard = (open: boolean) =>
     canEdit && (
       <details open={open} className={cardClass}>
-        <summary className={`cursor-pointer font-semibold text-zinc-50 ${focusRing}`}>
-          {open ? "Telemetrie importeren" : "Nieuwe telemetrie importeren"}
-        </summary>
+        <summary className={`cursor-pointer font-semibold text-zinc-50 ${focusRing}`}>{open ? tt.importOpen : tt.importNew}</summary>
         <div className="mt-4 flex flex-col gap-4">
-          <p className="text-sm text-zinc-400">
-            Exporteer de sessie als CSV uit je loggersoftware (AiM Race Studio, Alfano, Unipro of MyChron) met de kanalen tijd, afstand en snelheid,
-            en waar mogelijk toeren en G-krachten. Elke ronde wordt op vaste afstand (2,5 m) bewaard.
-          </p>
+          <p className="text-sm text-zinc-400">{tt.importIntro}</p>
           <TelemetryImportForm sessionId={session.id} garageId={garage.id} hasLaps={session.laps.length > 0} />
         </div>
       </details>
@@ -178,9 +182,7 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
       <>
         {header}
         <section className={cardClass}>
-          <p className="text-zinc-300">
-            Deze sessie heeft nog geen telemetrie.{canEdit && " Importeer het logger-bestand om elke ronde naast een referentie te leggen."}
-          </p>
+          <p className="text-zinc-300">{canEdit ? `${tt.none} ${tt.noneImport}` : tt.none}</p>
         </section>
         {importCard(true)}
       </>
@@ -243,7 +245,7 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
 
   const [youFile, refFile] = await Promise.all([readFile(supabase, you.lap_channels!.storage_path), ref ? readFile(supabase, ref.path) : null]);
 
-  // ---- Next session of the day, for "Eén ding voor Q2".
+  // ---- Next session of the day, for "One thing for Q2".
   const nextType = DAY_ORDER[DAY_ORDER.indexOf(session.type as (typeof DAY_ORDER)[number]) + 1];
   const nextLabel = nextType
     ? sessionLabel(nextType, event.sessions.filter((s) => s.type === nextType && s.kart_id === session.kart_id).length)
@@ -301,29 +303,37 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
   const focus = analysis ? oneThing(analysis.results) : null;
   const scale = analysis ? Math.max(0.02, ...analysis.results.map((r) => Math.abs(r.lossS))) : 1;
   const refNote = ref
-    ? `${kind === "pinned" ? "Vastgezet" : REF_KINDS[kind as keyof typeof REF_KINDS]} · ${ref.driverName ?? ""} · ronde ${ref.lapNumber}${
-        ref.sessionId === session.id ? "" : ` · ${labelFor(t.options.sessionTypes, ref.sessionType).toLowerCase()}`
-      }`
-    : "Geen andere ronde met telemetrie";
+    ? [
+        kind === "pinned" ? tt.pinned : tt.refKinds[kind as (typeof REF_KINDS)[number]],
+        ref.driverName ?? "",
+        format(t.session.bestNote, { lap: ref.lapNumber }),
+        ...(ref.sessionId === session.id ? [] : [labelFor(t.options.sessionTypes, ref.sessionType).toLowerCase()]),
+      ].join(" · ")
+    : tt.noRef;
+  const advice = focus ? adviceText(focus.corner.name, focus.advice, tt, locale) : null;
 
   return (
     <>
       {header}
 
-      <section aria-label="Rondetijden" className="grid grid-cols-3 gap-px border border-zinc-800 bg-zinc-800">
-        <Stat label="Jij" value={formatLapTime(you.lap_time_ms)} note={`Ronde ${you.lap_number}${session.karts ? ` · ${session.karts.name}` : ""}`} />
-        <Stat label="Ref" value={ref ? formatLapTime(ref.lapTimeMs) : "—"} note={refNote} tone="ref" />
+      <section aria-label={tt.statsLabel} className="grid grid-cols-3 gap-px border border-zinc-800 bg-zinc-800">
         <Stat
-          label="Verschil"
+          label={tt.you}
+          value={formatLapTime(you.lap_time_ms)}
+          note={`${format(t.session.lap, { lap: you.lap_number })}${session.karts ? ` · ${session.karts.name}` : ""}`}
+        />
+        <Stat label={tt.ref} value={ref ? formatLapTime(ref.lapTimeMs) : "—"} note={refNote} tone="ref" />
+        <Stat
+          label={tt.diff}
           value={diffMs === null ? "—" : formatGapSeconds(diffMs)}
-          note={diffMs === null ? undefined : diffMs > 0 ? "Trager dan de referentie" : diffMs < 0 ? "Sneller dan de referentie" : "Even snel"}
+          note={diffMs === null ? undefined : diffMs > 0 ? tt.slower : diffMs < 0 ? tt.faster : tt.same}
           tone={diffMs === null ? undefined : diffMs > 0 ? "loss" : "gain"}
         />
       </section>
 
-      <section aria-label="Keuze" className="flex flex-col gap-3">
+      <section aria-label={tt.pickLabel} className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-1">
-          <span className="channel-label mr-2 w-20 shrink-0">Ronde</span>
+          <span className="channel-label mr-2 w-20 shrink-0">{tt.lap}</span>
           {withChannels.map((l) => (
             <Chip key={l.id} href={params_({ lap: l.lap_number })} active={l.id === you.id}>
               <span className="font-mono tabular-nums">
@@ -333,15 +343,15 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-1">
-          <span className="channel-label mr-2 w-20 shrink-0">Referentie</span>
-          {(Object.keys(REF_KINDS) as (keyof typeof REF_KINDS)[]).map((k) => (
+          <span className="channel-label mr-2 w-20 shrink-0">{tt.reference}</span>
+          {REF_KINDS.map((k) => (
             <Chip key={k} href={params_({ ref: k })} active={kind === k} disabled={!byKind[k]}>
-              {REF_KINDS[k]}
+              {tt.refKinds[k]}
             </Chip>
           ))}
           {byKind.pinned && (
             <Chip href={params_({ ref: "pinned" })} active={kind === "pinned"}>
-              Vastgezet
+              {tt.pinned}
             </Chip>
           )}
         </div>
@@ -349,23 +359,20 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
 
       {!ref ? (
         <section className={cardClass}>
-          <p className="text-zinc-300">
-            Er is nog geen andere ronde met telemetrie op {event.tracks?.name ?? "dit circuit"} om mee te vergelijken. Importeer een sessie van een
-            teamgenoot of een eerdere training.
-          </p>
+          <p className="text-zinc-300">{format(tt.noOtherLap, { track: event.tracks?.name ?? tt.thisTrack })}</p>
         </section>
       ) : !analysis ? (
         <section className={cardClass}>
-          <p className="text-zinc-300">De telemetrie van deze ronden kon niet gelezen worden. Importeer het bestand opnieuw.</p>
+          <p className="text-zinc-300">{tt.unreadable}</p>
         </section>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-          <section aria-label="Grafiek" className={`${cardClass} flex min-w-0 flex-col gap-4`}>
+          <section aria-label={tt.chartLabel} className={`${cardClass} flex min-w-0 flex-col gap-4`}>
             <div className="flex flex-wrap items-center gap-1">
-              <span className="channel-label mr-2">Kanaal</span>
+              <span className="channel-label mr-2">{tt.channel}</span>
               {CHART_CHANNELS.map((c) => (
                 <Chip key={c} href={params_({ ch: c })} active={c === channel} disabled={!analysis.channels.includes(c)}>
-                  {CHANNELS[c].label}
+                  {tt.channels[c]}
                 </Chip>
               ))}
             </div>
@@ -377,8 +384,8 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
               corners={analysis.corners.map((c) => ({ name: c.name, apex_m: c.apex_m }))}
               channel={{
                 code: CHANNEL_CODES[channel],
-                label: CHANNELS[channel].label.toUpperCase(),
-                unit: CHANNELS[channel].unit,
+                label: tt.channels[channel].toUpperCase(),
+                unit: channel === "speed" ? t.session.kmh : CHANNELS[channel].unit,
                 digits: CHANNELS[channel].digits,
               }}
             />
@@ -388,7 +395,7 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
                 <SaveCornersButton
                   sessionId={session.id}
                   layoutId={session.track_layout_id}
-                  layoutName={session.track_layouts?.name ?? "deze lay-out"}
+                  layoutName={session.track_layouts?.name ?? tt.thisLayout}
                   corners={analysis.corners}
                 />
               )}
@@ -396,33 +403,33 @@ export default async function SessionAnalysePage({ params, searchParams }: PageP
           </section>
 
           <div className="flex min-w-0 flex-col gap-6">
-            {focus && (
-              <section aria-label="Eén ding" className="crop bg-brand-500 p-5 text-on-brand sm:p-6">
+            {focus && advice && (
+              <section aria-label={tt.oneThingLabel} className="crop bg-brand-500 p-5 text-on-brand sm:p-6">
                 <p className="font-mono text-[11px] font-bold tracking-[0.1em] uppercase opacity-70">
-                  Eén ding voor {nextLabel ?? "de volgende sessie"}
+                  {format(tt.oneThingFor, { session: nextLabel ?? tt.nextSession })}
                 </p>
-                <p className="mt-2 font-display text-2xl leading-tight font-black uppercase">{focus.advice}.</p>
+                <p className="mt-2 font-display text-2xl leading-tight font-black uppercase">{advice}.</p>
                 <p className="mt-2 text-sm font-medium">
-                  {focus.corner.name} kost {formatGapSeconds(Math.round(focus.corner.lossS * 1000)).replace("+", "")} s, het meeste van de ronde.
+                  {format(tt.cornerCost, {
+                    corner: focus.corner.name,
+                    loss: formatGapSeconds(Math.round(focus.corner.lossS * 1000)).replace("+", ""),
+                  })}
                 </p>
-                <PitboardButton liveId={liveId} text={focus.advice.toUpperCase()} />
+                <PitboardButton liveId={liveId} text={advice.toUpperCase()} />
               </section>
             )}
 
-            <section aria-label="Per bocht" className={cardClass}>
-              <div className="channel-label mb-1 flex justify-between">
-                <span>Per bocht{analysis.stored ? "" : " · uit de referentie"}</span>
-                <span>Jij − ref</span>
+            <section aria-label={tt.perCorner} className={cardClass}>
+              <div className="channel-label mb-1 flex justify-between gap-3">
+                <span>{analysis.stored ? tt.perCorner : `${tt.perCorner} · ${tt.fromReference}`}</span>
+                <span className="shrink-0">{tt.youMinusRef}</span>
               </div>
               <ul className="divide-y divide-zinc-800/70">
                 {analysis.results.map((r) => (
-                  <CornerBar key={r.number} corner={r} scale={scale} />
+                  <CornerBar key={r.number} corner={r} scale={scale} t={t} locale={locale} />
                 ))}
               </ul>
-              <p className="mt-3 text-xs text-zinc-500">
-                Links (volt) win je, rechts (rood) verlies je. Rem: rempunt t.o.v. de referentie (− is eerder geremd). Daarna de minimumsnelheid
-                jij/ref.
-              </p>
+              <p className="mt-3 text-xs text-zinc-500">{tt.cornerLegend}</p>
             </section>
           </div>
         </div>
