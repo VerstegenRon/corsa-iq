@@ -45,6 +45,7 @@ export async function syncSubscription(subscriptionId: string) {
   const lookupKey = item?.price.lookup_key ?? null;
   const paidPlan = planFromLookupKey(lookupKey);
   const plan = paidPlan && KEEPS_PLAN.includes(subscription.status) ? paidPlan : "free";
+  const periodEnd = subscription.cancel_at ?? item?.current_period_end;
 
   const { error: billingError } = await admin.from("garage_billing").upsert({
     garage_id: garageId,
@@ -52,8 +53,9 @@ export async function syncSubscription(subscriptionId: string) {
     stripe_subscription_id: subscription.id,
     status: subscription.status,
     price_lookup_key: lookupKey,
-    current_period_end: item ? new Date(item.current_period_end * 1000).toISOString() : null,
-    cancel_at_period_end: subscription.cancel_at_period_end,
+    // A cancelled subscription has an end date (`cancel_at`, the portal's way) or the older flag.
+    current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+    cancel_at_period_end: subscription.cancel_at_period_end || subscription.cancel_at !== null,
     updated_at: new Date().toISOString(),
   });
   if (billingError) throw new Error(`Saving billing failed: ${billingError.message}`);
