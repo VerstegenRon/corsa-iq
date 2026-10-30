@@ -1360,7 +1360,7 @@ export const en: Dictionary = {
     intro:
       "Tracking one kart is free. Driver gives you more karts and analysis, Pro adds telemetry, AI advice and Live, and with several drivers you take Team.",
     launchNote:
-      "CorsaIQ has just launched: during the launch phase you can use every feature for free. You only choose a plan once payment is available.",
+      "CorsaIQ has just launched: during the launch phase you can use every feature for free. You can already take a plan, but you do not need one yet.",
     plansLabel: "Plans",
     recommended: "Recommended",
     perMonth: "per month",
@@ -1464,7 +1464,7 @@ export const en: Dictionary = {
     faq: {
       now: {
         question: "What does CorsaIQ cost right now?",
-        answer: "Nothing. During the launch phase every feature is free. You will hear in advance when plans start.",
+        answer: "Nothing, unless you take a plan yourself. During the launch phase every feature is free. You will hear in advance when the limits per plan start.",
       },
       switch: {
         question: "Can I change plans later?",

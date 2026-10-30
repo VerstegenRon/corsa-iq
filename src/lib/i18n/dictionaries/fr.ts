@@ -1366,7 +1366,7 @@ export const fr: Dictionary = {
     intro:
       "Suivre un kart est gratuit. Driver t'apporte plus de karts et d'analyse, Pro ajoute la télémétrie, les conseils IA et le Live, et avec plusieurs pilotes tu prends Team.",
     launchNote:
-      "CorsaIQ vient d'être lancé : pendant la phase de lancement, toutes les fonctions sont gratuites. Tu choisis un abonnement seulement quand le paiement sera disponible.",
+      "CorsaIQ vient d'être lancé : pendant la phase de lancement, toutes les fonctions sont gratuites. Tu peux déjà prendre un abonnement, mais ce n'est pas encore nécessaire.",
     plansLabel: "Abonnements",
     recommended: "Recommandé",
     perMonth: "par mois",
@@ -1471,7 +1471,7 @@ export const fr: Dictionary = {
       now: {
         question: "Combien coûte CorsaIQ aujourd'hui ?",
         answer:
-          "Rien. Pendant la phase de lancement, toutes les fonctions sont gratuites. Tu seras prévenu à l'avance quand les abonnements commenceront.",
+          "Rien, sauf si tu prends un abonnement. Pendant la phase de lancement, toutes les fonctions sont gratuites. Tu seras prévenu à l'avance quand les limites par abonnement s'appliqueront.",
       },
       switch: {
         question: "Puis-je changer d'abonnement plus tard ?",
