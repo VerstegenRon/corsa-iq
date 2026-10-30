@@ -174,6 +174,11 @@ export default async function PricingPage() {
                   {p.addons.title}
                 </h2>
                 <p className="mt-1 text-sm text-zinc-400">{p.addons.text}</p>
+                {subscribed && buyer && (Object.keys(ADDONS) as AddonKey[]).some((key) => addonPrices(key).some((a) => a.plan === buyer.garage.plan)) && (
+                  <Link href="/dashboard/settings#extras" className={`mt-2 inline-block text-sm text-brand-300 hover:underline ${focusRing}`}>
+                    {p.addons.buy}
+                  </Link>
+                )}
               </div>
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:min-w-[28rem]">
                 {(Object.keys(ADDONS) as AddonKey[]).map((key) => (

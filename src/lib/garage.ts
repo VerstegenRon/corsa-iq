@@ -35,7 +35,7 @@ export const getCurrentGarage = cache(async () => {
   const [{ data: memberships, error }, cookieStore] = await Promise.all([
     supabase
       .from("garage_members")
-      .select("role, created_at, garages(id, name, plan, currency)")
+      .select("role, created_at, garages(id, name, plan, currency, extra_drivers, extra_karts)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     cookies(),

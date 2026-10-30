@@ -4,9 +4,11 @@
 import Link from "next/link";
 
 import { cardClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { billingEnabled } from "@/lib/billing";
 import { format, plural } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { getPlanAccess, lowestPlanWith, type Counted, type Feature } from "@/lib/plan-access";
+import { addonPrices, type AddonKey } from "@/lib/pricing";
 
 function Upgrade({ isOwner, label, askOwner, compact }: { isOwner: boolean; label: string; askOwner: string; compact: boolean }) {
   if (!isOwner) return <p className="mt-3 text-sm text-zinc-500">{askOwner}</p>;
@@ -53,6 +55,8 @@ export async function LimitReached({ counted, used }: { counted: Counted; used: 
   const [t, access] = await Promise.all([getDictionary(), getPlanAccess()]);
   const allowed = access.limit(counted);
   if (allowed === null || used < allowed) return null;
+  const extra: AddonKey | null = counted === "drivers" ? "driver" : counted === "karts" ? "kart" : null;
+  const canBuyExtra = extra !== null && access.isOwner && billingEnabled() && addonPrices(extra).some((a) => a.plan === access.plan);
 
   return (
     <section aria-label={t.plan.limitTitle} className="border border-zinc-800 bg-zinc-900/60 p-4">
@@ -61,6 +65,11 @@ export async function LimitReached({ counted, used }: { counted: Counted; used: 
         {format(t.plan.limitReached, { plan: t.pricing.plans[access.plan].name, things: plural(allowed, t.plan.things[counted]) })}
       </p>
       {counted === "karts" && <p className="mt-1 text-xs text-zinc-500">{t.plan.kartsNote}</p>}
+      {canBuyExtra && (
+        <Link href="/dashboard/settings#extras" className={`mt-4 mr-2 ${primaryButtonClass}`}>
+          {t.plan.buyExtra}
+        </Link>
+      )}
       <Upgrade isOwner={access.isOwner} label={t.plan.upgradeMore} askOwner={t.plan.askOwner} compact />
     </section>
   );

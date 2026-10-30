@@ -99,7 +99,16 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
       </section>
 
       {billingEnabled() && (
-        <BillingCard t={t} locale={locale} plan={garage.plan} billing={billing} isOwner={canManageTeam} justPaid={query.billing === "success"} />
+        <BillingCard
+          t={t}
+          locale={locale}
+          plan={garage.plan}
+          billing={billing}
+          isOwner={canManageTeam}
+          justPaid={query.billing === "success"}
+          justBoughtExtra={query.billing === "extra"}
+          extras={{ driver: garage.extra_drivers, kart: garage.extra_karts }}
+        />
       )}
 
       <section aria-labelledby="data-heading" className={cardClass}>
