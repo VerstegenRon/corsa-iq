@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 
 import { startLive } from "../live-actions";
 
@@ -33,6 +34,7 @@ export function StartLiveForm({
   /** Fastest laps per circuit, fastest first. */
   references: Record<string, ReferenceOption[]>;
 }) {
+  const tl = useT().raceDay.live;
   const router = useRouter();
   const [eventId, setEventId] = useState(events[0]?.id ?? "");
   const [kartId, setKartId] = useState(karts[0]?.id ?? "");
@@ -58,7 +60,7 @@ export function StartLiveForm({
   return (
     <form action={start} className="flex flex-col gap-5">
       <label className={labelClass}>
-        Evenement
+        {tl.event}
         <select value={eventId} onChange={(e) => (setEventId(e.target.value), setRefChoice(null))} className={inputClass}>
           {events.map((e) => (
             <option key={e.id} value={e.id}>
@@ -69,7 +71,7 @@ export function StartLiveForm({
       </label>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className={labelClass}>
-          Kart
+          {tl.kart}
           <select
             value={kartId}
             onChange={(e) => {
@@ -86,7 +88,7 @@ export function StartLiveForm({
           </select>
         </label>
         <label className={labelClass}>
-          Coureur
+          {tl.driver}
           <select value={driverId} onChange={(e) => setDriverId(e.target.value)} className={inputClass}>
             {drivers.map((d) => (
               <option key={d.id} value={d.id}>
@@ -97,7 +99,7 @@ export function StartLiveForm({
         </label>
       </div>
       <fieldset>
-        <legend className="channel-label mb-2">Sessie</legend>
+        <legend className="channel-label mb-2">{tl.session}</legend>
         <div className="flex flex-wrap gap-1">
           {types.map(([value, name]) => (
             <label
@@ -114,24 +116,24 @@ export function StartLiveForm({
       </fieldset>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
         <label className={labelClass}>
-          Aantal ronden
-          <input value={planned} onChange={(e) => setPlanned(e.target.value)} inputMode="numeric" placeholder="bijv. 12" className={`${inputClass} font-mono`} />
+          {tl.plannedLaps}
+          <input value={planned} onChange={(e) => setPlanned(e.target.value)} inputMode="numeric" placeholder={tl.plannedPlaceholder} className={`${inputClass} font-mono`} />
         </label>
         <label className={labelClass}>
-          Referentie
+          {tl.reference}
           <select value={referenceLapId === null ? "" : String(referenceLapId)} onChange={(e) => setRefChoice(e.target.value)} className={inputClass}>
             {refs.map((r) => (
               <option key={r.lapId} value={r.lapId}>
                 {r.label}
               </option>
             ))}
-            <option value="">Geen referentie</option>
+            <option value="">{tl.noReference}</option>
           </select>
         </label>
       </div>
       <FormMessage state={state} />
       <button type="submit" disabled={isPending || !eventId || !kartId || !driverId} className={`${primaryButtonClass} ${focusRing} self-start`}>
-        {isPending ? "Starten…" : "Start live"}
+        {isPending ? tl.starting : tl.start}
       </button>
     </form>
   );

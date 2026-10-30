@@ -18,9 +18,9 @@ export type LiveReference = { lapTimeMs: number; sectorsMs: number[]; label: str
 
 /** Target ranges for the engine channels; outside them the board warns. */
 export const ENGINE_RANGES = {
-  max_water_temp_c: { label: "Watertemp", unit: "°C", min: 45, max: 60 },
-  max_egt_c: { label: "EGT", unit: "°C", min: 560, max: 680 },
-  max_rpm: { label: "Toeren", unit: "rpm", min: 12000, max: 16500 },
+  max_water_temp_c: { unit: "°C", min: 45, max: 60 },
+  max_egt_c: { unit: "°C", min: 560, max: 680 },
+  max_rpm: { unit: "rpm", min: 12000, max: 16500 },
 } as const;
 export type EngineChannel = keyof typeof ENGINE_RANGES;
 

@@ -10,6 +10,8 @@ import { useState, useTransition } from "react";
 
 import { useCanEdit } from "@/components/edit-access";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
 import { TYRE_TOLERANCE_BAR, tally, tyreAdvice, type CheckStatus, type Corner } from "@/lib/prestart";
 
 import { lockSetup, saveTyreReading, setCheck, unlockSetup, type PrestartContext } from "../prestart-actions";
@@ -20,15 +22,15 @@ export type BoardRow = { key: string; name: string; spec: string; value: string;
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 const bar = (v: number, digits = 3) => v.toFixed(digits).replace(".", ",");
 
-const MARK: Record<CheckStatus, { sign: string; box: string; value: string; label: string }> = {
-  ok: { sign: "✓", box: "border-brand-400 bg-brand-500 text-on-brand", value: "text-zinc-50", label: "in orde" },
-  warn: { sign: "!", box: "border-amber-400 bg-amber-400 text-zinc-950", value: "text-amber-300", label: "let op" },
-  fail: { sign: "!", box: "border-red-400 bg-red-400 text-zinc-950", value: "text-red-300", label: "buiten tolerantie" },
-  open: { sign: "", box: "border-zinc-600", value: "text-zinc-500", label: "open" },
+const MARK: Record<CheckStatus, { sign: string; box: string; value: string; label: "statusOk" | "statusWarn" | "statusFail" | "statusOpen" }> = {
+  ok: { sign: "✓", box: "border-brand-400 bg-brand-500 text-on-brand", value: "text-zinc-50", label: "statusOk" },
+  warn: { sign: "!", box: "border-amber-400 bg-amber-400 text-zinc-950", value: "text-amber-300", label: "statusWarn" },
+  fail: { sign: "!", box: "border-red-400 bg-red-400 text-zinc-950", value: "text-red-300", label: "statusFail" },
+  open: { sign: "", box: "border-zinc-600", value: "text-zinc-500", label: "statusOpen" },
 };
 
-function ToleranceMeter({ value, target }: { value: number | null; target: number | null }) {
-  if (target === null) return <div className="mt-1.5 h-[18px] text-[11px] text-zinc-500">geen doel in de setup</div>;
+function ToleranceMeter({ value, target, noTarget }: { value: number | null; target: number | null; noTarget: string }) {
+  if (target === null) return <div className="mt-1.5 h-[18px] text-[11px] text-zinc-500">{noTarget}</div>;
   const range = TYRE_TOLERANCE_BAR * 3;
   const pct = value === null ? null : Math.max(0, Math.min(99, ((value - (target - range)) / (range * 2)) * 100));
   const ok = value !== null && Math.abs(value - target) <= TYRE_TOLERANCE_BAR + 1e-9;
@@ -64,6 +66,9 @@ export function PrestartBoard({
   setupLabel: string | null;
   compare: { title: string; changes: string[] } | null;
 }) {
+  const t = useT();
+  const tt = t.raceDay.today;
+  const corners = t.raceDay.corners;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -105,12 +110,12 @@ export function PrestartBoard({
       <section aria-labelledby="ready-heading">
         <div className="flex items-end justify-between gap-4">
           <h1 id="ready-heading" className="text-[34px] leading-[0.95] sm:text-5xl">
-            Klaar
+            {tt.readyLine1}
             <br />
-            voor {label}
+            {format(tt.readyLine2, { label })}
             <span className="text-brand-400">?</span>
           </h1>
-          <p className="font-mono text-5xl leading-[0.85] font-bold sm:text-6xl" aria-label={`${count.ok} van ${count.total} in orde`}>
+          <p className="font-mono text-5xl leading-[0.85] font-bold sm:text-6xl" aria-label={format(tt.countLabel, { ok: count.ok, total: count.total })}>
             {count.ok}
             <span className="text-zinc-600">/{count.total}</span>
           </p>
@@ -122,19 +127,19 @@ export function PrestartBoard({
         </div>
         <p className="mt-2 flex flex-wrap gap-x-3.5 text-xs text-zinc-500">
           <span>
-            <span className="text-brand-400">■</span> {count.ok} in orde
+            <span className="text-brand-400">■</span> {format(tt.okCount, { count: count.ok })}
           </span>
           <span>
-            <span className="text-red-400">■</span> {count.fail} buiten tolerantie
+            <span className="text-red-400">■</span> {format(tt.failCount, { count: count.fail })}
           </span>
-          <span>□ {count.open} open</span>
+          <span>□ {format(tt.openCount, { count: count.open })}</span>
         </p>
-        {upcoming && <p className="mt-2 text-sm text-zinc-400">Voor je volgende evenement: {eventName}.</p>}
+        {upcoming && <p className="mt-2 text-sm text-zinc-400">{format(tt.upcoming, { name: eventName })}</p>}
       </section>
 
       <section aria-labelledby="tyres-heading" className="crop border border-zinc-800 p-3.5">
         <div className="channel-label flex justify-between">
-          <h2 id="tyres-heading">Bandendruk · koud · bar</h2>
+          <h2 id="tyres-heading">{tt.tyresHeading}</h2>
           {temperature && <span>{temperature}</span>}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-px bg-zinc-800">
@@ -147,19 +152,22 @@ export function PrestartBoard({
                 onClick={() => startEdit(tyre)}
                 disabled={!canEdit}
                 aria-pressed={editing === tyre.corner}
-                aria-label={`${tyre.corner}: ${tyre.value === null ? "nog niet gemeten" : `${bar(tyre.value)} bar, ${mark.label}`}. Meten.`}
+                aria-label={format(tt.measureAria, {
+                  corner: corners[tyre.corner],
+                  state: tyre.value === null ? tt.notMeasured : format(tt.measuredState, { value: bar(tyre.value), status: tt[mark.label] }),
+                })}
                 className={`bg-zinc-950 p-3 text-left transition-colors enabled:hover:bg-zinc-900 ${focusRing} ${editing === tyre.corner ? "outline-2 -outline-offset-2 outline-brand-400" : ""}`}
               >
                 <span className="flex justify-between font-mono text-[11px] text-zinc-500">
-                  <span>{tyre.corner}</span>
+                  <span>{corners[tyre.corner]}</span>
                   <span>{tyre.target !== null ? `${bar(tyre.target, 2)} ±${bar(TYRE_TOLERANCE_BAR, 2)}` : "—"}</span>
                 </span>
                 <span
                   className={`mt-1 block font-mono text-[26px] font-bold ${tyre.status === "fail" ? "text-red-300" : tyre.value === null ? "text-zinc-600" : "text-zinc-50"}`}
                 >
-                  {tyre.value === null ? "meet" : bar(tyre.value)}
+                  {tyre.value === null ? tt.measure : bar(tyre.value)}
                 </span>
-                <ToleranceMeter value={tyre.value} target={tyre.target} />
+                <ToleranceMeter value={tyre.value} target={tyre.target} noTarget={tt.noTarget} />
               </button>
             );
           })}
@@ -178,10 +186,10 @@ export function PrestartBoard({
             }}
           >
             <label className="channel-label" htmlFor="tyre-input">
-              Meting {editing} · koud
+              {format(tt.readingLabel, { corner: corners[editing] })}
             </label>
             <div className="flex gap-2">
-              <button type="button" onClick={() => step(-0.01)} aria-label="0,01 lager" className={`${secondaryButtonClass} min-h-14 w-14 text-xl`}>
+              <button type="button" onClick={() => step(-0.01)} aria-label={tt.lower} className={`${secondaryButtonClass} min-h-14 w-14 text-xl`}>
                 −
               </button>
               <input
@@ -192,16 +200,16 @@ export function PrestartBoard({
                 onChange={(e) => setDraft(e.target.value)}
                 className={`h-14 min-w-0 flex-1 border border-zinc-700 bg-zinc-950 text-center font-mono text-2xl font-bold text-zinc-50 ${focusRing}`}
               />
-              <button type="button" onClick={() => step(0.01)} aria-label="0,01 hoger" className={`${secondaryButtonClass} min-h-14 w-14 text-xl`}>
+              <button type="button" onClick={() => step(0.01)} aria-label={tt.higher} className={`${secondaryButtonClass} min-h-14 w-14 text-xl`}>
                 +
               </button>
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={pending} className={`${primaryButtonClass} flex-1`}>
-                {pending ? "Opslaan…" : "Bevestig meting"}
+                {pending ? tt.saving : tt.confirmReading}
               </button>
               <button type="button" onClick={() => setEditing(null)} className={`${secondaryButtonClass} min-h-14`}>
-                Annuleren
+                {t.common.cancel}
               </button>
             </div>
           </form>
@@ -209,15 +217,15 @@ export function PrestartBoard({
 
         {failed.map((tyre) => (
           <p key={tyre.corner} className="mt-3 flex items-center gap-2.5 border border-red-400 bg-red-500/10 px-3 py-2.5 text-sm">
-            <span className="font-mono text-xs font-bold text-red-300">{tyre.corner}</span>
-            {tyreAdvice(tyre.value!, tyre.target!)}
+            <span className="font-mono text-xs font-bold text-red-300">{corners[tyre.corner]}</span>
+            {tyreAdvice(tyre.value!, tyre.target!, tt)}
           </p>
         ))}
       </section>
 
       <section aria-labelledby="engine-heading" className="border border-zinc-800">
         <h2 id="engine-heading" className="channel-label border-b border-zinc-800 px-3.5 py-3">
-          Motor &amp; aandrijving
+          {tt.engineHeading}
         </h2>
         <ul>
           {rows.map((row) => {
@@ -232,7 +240,7 @@ export function PrestartBoard({
                   <span className="block text-xs text-zinc-500">{row.spec}</span>
                 </span>
                 <span className={`font-mono text-[15px] font-bold ${mark.value}`}>{row.value}</span>
-                <span className="sr-only">, {mark.label}</span>
+                <span className="sr-only">, {tt[mark.label]}</span>
               </>
             );
             const base = `flex min-h-14 w-full items-center gap-3 px-3.5`;
@@ -272,7 +280,7 @@ export function PrestartBoard({
                         }}
                       >
                         <label className="sr-only" htmlFor="chain-input">
-                          Speling in mm
+                          {tt.slackLabel}
                         </label>
                         <input
                           id="chain-input"
@@ -284,7 +292,7 @@ export function PrestartBoard({
                           className={`h-14 min-w-0 flex-1 border border-zinc-700 bg-zinc-950 px-3 font-mono text-xl text-zinc-50 ${focusRing}`}
                         />
                         <button type="submit" disabled={pending} className={primaryButtonClass}>
-                          Opslaan
+                          {tt.save}
                         </button>
                       </form>
                     )}
@@ -302,7 +310,7 @@ export function PrestartBoard({
         <Link href="/dashboard/setups" className={`block border border-ref p-3.5 ${focusRing}`}>
           <span className="flex justify-between font-mono text-[11px] tracking-[0.08em] uppercase">
             <span className="text-ref">{compare.title}</span>
-            <span className="text-zinc-500">Bekijk →</span>
+            <span className="text-zinc-500">{tt.view}</span>
           </span>
           {compare.changes.length > 0 && (
             <span className="mt-2.5 flex flex-wrap gap-1.5">
@@ -325,18 +333,18 @@ export function PrestartBoard({
       {locked ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border border-brand-400 px-4 py-3">
           <span className="font-semibold">
-            <span className="text-brand-300">✓</span> Setup {setupLabel} vergrendeld voor {label}
+            <span className="text-brand-300">✓</span> {format(tt.lockedFor, { setup: setupLabel ?? "", label })}
           </span>
           {canEdit && (
             <button type="button" disabled={pending} onClick={() => run(() => unlockSetup(ctx))} className={secondaryButtonClass}>
-              Ontgrendel
+              {tt.unlock}
             </button>
           )}
         </div>
       ) : !canEdit ? null : confirmLock ? (
         <div className="flex flex-col gap-2 border border-amber-400 p-3">
           <p className="text-sm">
-            Nog {todo} te doen. Toch vergrendelen voor {label}?
+            {format(tt.lockConfirm, { count: todo, label })}
           </p>
           <div className="flex gap-2">
             <button
@@ -350,10 +358,10 @@ export function PrestartBoard({
               }
               className={`${primaryButtonClass} flex-1`}
             >
-              Ja, vergrendelen
+              {tt.yesLock}
             </button>
             <button type="button" onClick={() => setConfirmLock(false)} className={`${secondaryButtonClass} min-h-14`}>
-              Annuleren
+              {t.common.cancel}
             </button>
           </div>
         </div>
@@ -364,8 +372,8 @@ export function PrestartBoard({
           onClick={() => (todo > 0 ? setConfirmLock(true) : run(() => lockSetup(ctx)))}
           className={`${primaryButtonClass} min-h-[60px] justify-between text-[17px]`}
         >
-          <span>{ctx.setupId ? `Vergrendel setup voor ${label}` : "Nog geen setup om te vergrendelen"}</span>
-          {todo > 0 && <span className="font-mono text-[13px]">{todo} TE DOEN</span>}
+          <span>{ctx.setupId ? format(tt.lockFor, { label }) : tt.noSetup}</span>
+          {todo > 0 && <span className="font-mono text-[13px]">{format(tt.todoBadge, { count: todo })}</span>}
         </button>
       )}
     </>

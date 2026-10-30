@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
-import { dbError } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { readQuickTags } from "@/lib/feedback";
 import { getCurrentGarage } from "@/lib/garage";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { countingLiveLaps, ENGINE_RANGES, type EngineChannel, type LiveLap } from "@/lib/live";
 import { sessionLabel } from "@/lib/prestart";
 import { SETUP_FIELDS } from "@/lib/setup";
@@ -22,6 +24,9 @@ import { insertSession, saveDebrief } from "./session-save";
 const SESSION_TYPES = ["practice", "qualifying", "heat", "prefinal", "final", "test"];
 /** Closing keeps the kart's setup as it was: Live does not change it. */
 const KEEP_ALL_SETUP = [...SETUP_FIELDS.map((f) => f.name), "setup_notes"];
+
+const texts = async () => (await getDictionary()).raceDay.live.errors;
+const failed = async (template: string, error: { message: string; code?: string }) => format(template, { error: await dbErrorText(error) });
 
 async function ownLive(id: string) {
   const { supabase, garage, user } = await getCurrentGarage();
@@ -44,9 +49,10 @@ export async function startLive(input: {
 }): Promise<FormState & { id?: string }> {
   const locked = await lockedError("live");
   if (locked) return { error: locked };
-  if (!SESSION_TYPES.includes(input.type)) return { error: "Kies het soort sessie." };
+  const te = await texts();
+  if (!SESSION_TYPES.includes(input.type)) return { error: te.chooseType };
   if (input.plannedLaps !== null && (!Number.isInteger(input.plannedLaps) || input.plannedLaps < 1 || input.plannedLaps > 200)) {
-    return { error: "Het aantal ronden is een heel getal tussen 1 en 200." };
+    return { error: te.plannedRange };
   }
   const { supabase, garage } = await getCurrentGarage();
 
@@ -57,7 +63,7 @@ export async function startLive(input: {
     .eq("kart_id", input.kartId)
     .is("ended_at", null)
     .maybeSingle();
-  if (running) return { error: "Voor deze kart loopt al een live-sessie.", id: running.id };
+  if (running) return { error: te.alreadyRunning, id: running.id };
 
   // "Q2" when one qualifying was already driven or followed live today.
   const [{ count: driven }, { count: followed }] = await Promise.all([
@@ -82,7 +88,7 @@ export async function startLive(input: {
       .eq("id", input.referenceLapId)
       .eq("sessions.events.garage_id", garage.id)
       .maybeSingle();
-    if (!lap) return { error: "Die referentieronde bestaat niet." };
+    if (!lap) return { error: te.noReferenceLap };
   }
 
   const { data, error } = await supabase
@@ -99,9 +105,9 @@ export async function startLive(input: {
     })
     .select("id")
     .single();
-  if (error) return { error: `Live starten mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.startFailed, error) };
   revalidatePath("/dashboard/live");
-  return { success: "Live gestart.", id: data.id };
+  return { success: te.started, id: data.id };
 }
 
 /** One passage of the pit stopwatch. Sending the same lap twice (after a lost connection) saves it once. */
@@ -111,14 +117,15 @@ export async function recordLap(
 ): Promise<FormState & { id?: number }> {
   const locked = await lockedError("live");
   if (locked) return { error: locked };
-  if (!Number.isInteger(lap.lap_number) || lap.lap_number < 0 || lap.lap_number > 500) return { error: "Onbekende ronde." };
+  const te = await texts();
+  if (!Number.isInteger(lap.lap_number) || lap.lap_number < 0 || lap.lap_number > 500) return { error: te.unknownLap };
   if (!Number.isInteger(lap.lap_time_ms) || lap.lap_time_ms < 5_000 || lap.lap_time_ms > 30 * 60_000)
-    return { error: "Die rondetijd kan niet kloppen." };
+    return { error: te.impossibleLap };
   if (!Array.isArray(lap.sectors_ms) || lap.sectors_ms.length > 6 || !lap.sectors_ms.every((s) => Number.isInteger(s) && s > 0)) {
-    return { error: "De sectortijden kloppen niet." };
+    return { error: te.badSectors };
   }
   const { supabase, garage, live } = await ownLive(liveId);
-  if (!live || live.ended_at) return { error: "Deze live-sessie is afgesloten." };
+  if (!live || live.ended_at) return { error: te.closed };
   const { data, error } = await supabase
     .from("live_laps")
     .upsert(
@@ -126,7 +133,7 @@ export async function recordLap(
       { onConflict: "live_session_id,lap_number", ignoreDuplicates: true },
     )
     .select("id");
-  if (error) return { error: `Ronde opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.lapFailed, error) };
   return { id: data[0]?.id };
 }
 
@@ -145,31 +152,33 @@ export async function updateLap(
 ): Promise<FormState> {
   const locked = await lockedError("live");
   if (locked) return { error: locked };
+  const te = await texts();
   const clean: Partial<Record<(typeof NUMBER_FIELDS)[number], number | null> & { is_pit_lap: boolean }> = {};
   for (const key of NUMBER_FIELDS) {
     if (!(key in patch)) continue;
     const value = patch[key];
     if (value !== null && (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 1_000_000))
-      return { error: "Vul een getal in." };
-    if (key === "position" && value !== null && (!Number.isInteger(value) || value < 1 || value > 99)) return { error: "De positie is 1 tot 99." };
+      return { error: te.enterNumber };
+    if (key === "position" && value !== null && (!Number.isInteger(value) || value < 1 || value > 99)) return { error: te.positionRange };
     clean[key] =
       value === null ? null : key === "position" || key === "gap_to_p1_ms" || key === "max_rpm" ? Math.round(value) : Math.round(value * 10) / 10;
   }
   if (typeof patch.is_pit_lap === "boolean") clean.is_pit_lap = patch.is_pit_lap;
   if (Object.keys(clean).length === 0) return {};
   const { supabase, live } = await ownLive(liveId);
-  if (!live || live.ended_at) return { error: "Deze live-sessie is afgesloten." };
+  if (!live || live.ended_at) return { error: te.closed };
   const { error } = await supabase.from("live_laps").update(clean).eq("live_session_id", liveId).eq("lap_number", lapNumber);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
   return {};
 }
 
 /** A wrong tap on the stopwatch: the lap goes; the time of the lap after it is not changed. */
 export async function deleteLap(liveId: string, lapNumber: number): Promise<FormState> {
+  const te = await texts();
   const { supabase, live } = await ownLive(liveId);
-  if (!live || live.ended_at) return { error: "Deze live-sessie is afgesloten." };
+  if (!live || live.ended_at) return { error: te.closed };
   const { error } = await supabase.from("live_laps").delete().eq("live_session_id", liveId).eq("lap_number", lapNumber);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.deleteFailed, error) };
   return {};
 }
 
@@ -180,30 +189,32 @@ export async function deleteLap(liveId: string, lapNumber: number): Promise<Form
 export async function sendPitMessage(liveId: string | null, message: string): Promise<FormState> {
   const locked = await lockedError("pitboard");
   if (locked) return { error: locked };
+  const te = await texts();
   const value = message.trim().replace(/\s+/g, " ");
-  if (value.length === 0) return { error: "Typ een bericht." };
-  if (value.length > 80) return { error: "Houd het kort: hooguit 80 tekens, het moet in één blik te lezen zijn." };
+  if (value.length === 0) return { error: te.typeMessage };
+  if (value.length > 80) return { error: te.messageTooLong };
   const { supabase, garage } = await getCurrentGarage();
   // One message on the board at a time: a new one replaces the last.
   await supabase.from("pit_messages").update({ cleared_at: new Date().toISOString() }).eq("garage_id", garage.id).is("cleared_at", null);
   const { error } = await supabase.from("pit_messages").insert({ garage_id: garage.id, live_session_id: liveId, text: value });
-  if (error) return { error: `Versturen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.sendFailed, error) };
   revalidatePath("/pitbord");
-  return { success: "Staat op het pitbord." };
+  return { success: te.sent };
 }
 
 export async function clearPitMessages(): Promise<FormState> {
   const locked = await lockedError("pitboard");
   if (locked) return { error: locked };
+  const te = await texts();
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase
     .from("pit_messages")
     .update({ cleared_at: new Date().toISOString() })
     .eq("garage_id", garage.id)
     .is("cleared_at", null);
-  if (error) return { error: `Wissen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.clearFailed, error) };
   revalidatePath("/pitbord");
-  return { success: "Pitbord leeg." };
+  return { success: te.cleared };
 }
 
 // ---------------------------------------------------------------------------
@@ -215,9 +226,10 @@ export async function clearPitMessages(): Promise<FormState> {
  * so Analyse, the setup tree and the run time of the parts take it from here.
  */
 export async function endLive(liveId: string, _prev: FormState, formData: FormData): Promise<FormState & { sessionId?: string }> {
+  const te = await texts();
   const { supabase, garage, live } = await ownLive(liveId);
-  if (!live) return { error: "Deze live-sessie bestaat niet meer." };
-  if (live.session_id) return { success: "Al afgesloten.", sessionId: live.session_id };
+  if (!live) return { error: te.gone };
+  if (live.session_id) return { success: te.alreadyClosed, sessionId: live.session_id };
 
   const { data: laps } = await supabase
     .from("live_laps")
@@ -225,7 +237,7 @@ export async function endLive(liveId: string, _prev: FormState, formData: FormDa
     .eq("live_session_id", liveId)
     .order("lap_number");
   const liveLaps = (laps ?? []) as LiveLap[];
-  if (liveLaps.length === 0) return { error: "Er zijn nog geen ronden. Verwijder de live-sessie als hij niet gereden is." };
+  if (liveLaps.length === 0) return { error: te.noLaps };
 
   const endedAt = new Date();
   const minutes = Math.max(1, Math.round((endedAt.getTime() - Date.parse(live.started_at)) / 60_000));
@@ -239,7 +251,7 @@ export async function endLive(liveId: string, _prev: FormState, formData: FormDa
   if (lastPosition !== null) fields.set("position", String(lastPosition));
 
   const saved = await insertSession(supabase, garage.id, live.event_id, fields, { keepSetupFields: KEEP_ALL_SETUP });
-  if (saved.error || !saved.id) return { error: saved.error ?? "Sessie opslaan mislukt." };
+  if (saved.error || !saved.id) return { error: saved.error ?? te.sessionFailed };
   const sessionId = saved.id;
 
   const counting = new Set(countingLiveLaps(liveLaps).map((l) => l.lap_number));
@@ -256,7 +268,7 @@ export async function endLive(liveId: string, _prev: FormState, formData: FormDa
       sectors_ms: l.sectors_ms,
     })) as unknown as Json,
   });
-  if (lapsError) return { error: `Sessie opgeslagen, maar de ronden niet: ${lapsError.message}`, sessionId };
+  if (lapsError) return { error: format(te.lapsNotSaved, { error: lapsError.message }), sessionId };
 
   // The engine temperatures are not part of the lap import; set them per lap.
   for (const l of liveLaps.filter((lap) => lap.max_water_temp_c !== null || lap.max_egt_c !== null)) {
@@ -278,16 +290,17 @@ export async function endLive(liveId: string, _prev: FormState, formData: FormDa
   if (feedback || quick.length > 0) await saveDebrief(supabase, garage.id, sessionId, feedback, quick);
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Sessie opgeslagen.", sessionId };
+  return { success: te.sessionSaved, sessionId };
 }
 
 /** A live session that was started by mistake. Only before it is closed into a session. */
 export async function discardLive(liveId: string): Promise<FormState> {
+  const te = await texts();
   const { supabase, live } = await ownLive(liveId);
-  if (!live) return { error: "Deze live-sessie bestaat niet meer." };
-  if (live.session_id) return { error: "Deze live-sessie is al een sessie geworden; verwijder die sessie op de sessiepagina." };
+  if (!live) return { error: te.gone };
+  if (live.session_id) return { error: te.alreadySession };
   const { error } = await supabase.from("live_sessions").delete().eq("id", liveId);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.deleteFailed, error) };
   revalidatePath("/dashboard/live");
-  return { success: "Live-sessie verwijderd." };
+  return { success: te.discarded };
 }

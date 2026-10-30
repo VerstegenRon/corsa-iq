@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { format } from "@/lib/i18n/locales";
+import { useT } from "@/lib/i18n/client";
 import { formatGapSeconds, formatLapTime } from "@/lib/karting";
 import { createRealtimeClient } from "@/lib/supabase/client";
 
@@ -36,6 +38,7 @@ export function PitboardScreen({
   initialMessage: { id: string; text: string } | null;
   initialSessions: BoardSession[];
 }) {
+  const tp = useT().raceDay.pitboard;
   const router = useRouter();
   const [message, setMessage] = useState(initialMessage);
   const [sessions, setSessions] = useState(initialSessions);
@@ -135,7 +138,7 @@ export function PitboardScreen({
     <main className="flex min-h-dvh flex-col bg-[#0a0a0a] px-4 py-4 text-[#fafafa] sm:px-8">
       <div className="flex items-center justify-between gap-3 font-mono text-xs tracking-[0.1em] text-[#a3a3a3] uppercase">
         <span>
-          Pitbord
+          {tp.title}
           {session && ` · ${session.kartName}`}
         </span>
         <span className="flex items-center gap-3">
@@ -151,7 +154,7 @@ export function PitboardScreen({
               </button>
             ))}
           <Link href="/dashboard/live" className="min-h-11 content-center border border-[#404040] px-3 hover:border-[#737373]">
-            Sluiten
+            {tp.close}
           </Link>
         </span>
       </div>
@@ -160,25 +163,25 @@ export function PitboardScreen({
         {message ? (
           <p className="font-display text-[clamp(3rem,13vw,11rem)] leading-[0.95] font-black break-words text-[#d4ff00] uppercase">{message.text}</p>
         ) : (
-          <p className="font-mono text-sm text-[#737373]">Nog geen bericht. Zet er een op vanuit Live of Analyse.</p>
+          <p className="font-mono text-sm text-[#737373]">{tp.empty}</p>
         )}
       </section>
 
       {session && (
-        <section aria-label="Live" className="grid grid-cols-3 items-end gap-4 border-t border-[#262626] pt-4 font-mono tabular-nums">
+        <section aria-label={tp.liveLabel} className="grid grid-cols-3 items-end gap-4 border-t border-[#262626] pt-4 font-mono tabular-nums">
           <div>
             <p className="text-xs tracking-[0.1em] text-[#a3a3a3] uppercase">
-              Live · {session.label} · R{laps.length}
+              {tp.liveLabel} · {session.label} · {format(tp.lapShort, { lap: laps.length })}
               {session.plannedLaps ? `/${session.plannedLaps}` : ""}
             </p>
             <p className="text-[clamp(2rem,8vw,5rem)] leading-none font-bold">{positioned?.position ? `P${positioned.position}` : "—"}</p>
           </div>
           <div className="text-center">
-            <p className="text-xs tracking-[0.1em] text-[#a3a3a3] uppercase">Laatste</p>
+            <p className="text-xs tracking-[0.1em] text-[#a3a3a3] uppercase">{tp.last}</p>
             <p className="text-[clamp(1.5rem,5vw,3.5rem)] leading-none font-bold">{last ? formatLapTime(last.lap_time_ms) : "—"}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs tracking-[0.1em] text-[#a3a3a3] uppercase">t.o.v. ref</p>
+            <p className="text-xs tracking-[0.1em] text-[#a3a3a3] uppercase">{tp.againstRef}</p>
             <p
               className={`text-[clamp(2rem,8vw,5rem)] leading-none font-bold ${delta === null ? "" : delta < 0 ? "text-[#d4ff00]" : "text-[#ff5a3c]"}`}
             >
