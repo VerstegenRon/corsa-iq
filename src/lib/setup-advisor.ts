@@ -3,6 +3,7 @@
 // the same weather, a setting needs at least two sessions, and every finding says how many sessions
 // it rests on and whether something else changed at the same time.
 
+import { nl } from "@/lib/i18n/dictionaries/nl";
 import { WEATHER, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, formatSetupValue, getSetupValue, type SetupField, type SetupGroup } from "@/lib/setup";
 
@@ -57,7 +58,8 @@ function axlePressure(left: SetupField, right: SetupField): Knob["read"] {
 function plainField(f: SetupField): Knob {
   return {
     key: f.name,
-    label: f.label.replace(/ \(.*\)$/, ""),
+    // Dutch, like the rest of the advice, until the advice screens are translated.
+    label: nl.setup.fields[f.name].name,
     group: f.group,
     read: (setup) => {
       const value = getSetupValue(setup, f);

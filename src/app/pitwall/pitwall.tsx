@@ -15,7 +15,7 @@ import { useT } from "@/lib/i18n/client";
 import { nearestTrack, NEAREST_TRACK_MAX_KM } from "@/lib/geo";
 import { formatDate, formatLapTime, parseLapTime, type SetupValues } from "@/lib/karting";
 import { PITWALL_EVENTS_KEY, PITWALL_QUEUE_KEY, PITWALL_SETUP_FIELDS, type NewEvent, type QueuedSession } from "@/lib/pitwall";
-import { SETUP_FIELDS, getSetupValue, inputSetupValue, type SetupField } from "@/lib/setup";
+import { SETUP_FIELDS, getSetupValue, inputSetupValue, setupWheel, type SetupField } from "@/lib/setup";
 
 export type PitwallEvent = { id: string; label: string; isToday: boolean };
 export type KartDefaults = { driverId: string; durationMin: number | null; setup: SetupValues | null };
@@ -432,7 +432,7 @@ export function Pitwall({
           {/* Laid out like the kart seen from above: front wheels on top. */}
           <div className="grid grid-cols-2 gap-3">
             {tyreFields.map((field) => (
-              <BigStepper key={field.name} name={field.name} label={field.short.replace(" koud", "")} defaultValue={fieldDefault(field)} placeholder={field.placeholder} step={0.01} decimals={2} />
+              <BigStepper key={field.name} name={field.name} label={setupWheel(t.setup, field)} defaultValue={fieldDefault(field)} placeholder={field.placeholder} step={0.01} decimals={2} />
             ))}
           </div>
           <details className="group rounded-2xl border-2 border-zinc-800 px-4 py-3">
@@ -446,7 +446,7 @@ export function Pitwall({
                 <BigStepper
                   key={field.name}
                   name={field.name}
-                  label={field.short.replace(" warm", "")}
+                  label={setupWheel(t.setup, field)}
                   placeholder={inputSetupValue(field, getSetupValue(kartDefaults?.setup ?? {}, field)) ?? field.placeholder}
                   step={0.01}
                   decimals={2}
@@ -460,7 +460,7 @@ export function Pitwall({
           <legend className="mb-3 text-lg font-semibold text-zinc-50">Overbrenging</legend>
           <div className="grid grid-cols-2 gap-3">
             {gearFields.map((field) => (
-              <BigStepper key={field.name} name={field.name} label={field.label.replace(" (tanden)", "")} defaultValue={fieldDefault(field)} placeholder={field.placeholder} step={1} />
+              <BigStepper key={field.name} name={field.name} label={t.setup.fields[field.name].name} defaultValue={fieldDefault(field)} placeholder={field.placeholder} step={1} />
             ))}
           </div>
         </fieldset>

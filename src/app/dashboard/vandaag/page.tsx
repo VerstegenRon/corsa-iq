@@ -102,7 +102,7 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
   const raceNumber = ownSessions.map((s) => s.drivers?.race_number).find(Boolean);
 
   const [tree, checkResult, engineResult, tyreSetResult] = await Promise.all([
-    loadSetupTree(supabase, garage.id, kart.id, { fallback: false }),
+    loadSetupTree(supabase, garage.id, t.setup, kart.id, { fallback: false }),
     supabase
       .from("prestart_checks")
       .select("id, locked_at, setup_id, tyre_pressure_readings(corner, bar, measured_at, temp_state), session_checks(key, value, status)")
@@ -216,7 +216,7 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
     },
   ];
 
-  const changes = setup && fastest && setup.id !== fastest.id ? describeChanges(diffSetups(fastest.values, setup.values)) : [];
+  const changes = setup && fastest && setup.id !== fastest.id ? describeChanges(diffSetups(fastest.values, setup.values), t.setup) : [];
   const typeOptions = Object.entries(t.options.sessionTypes).filter(([value]) => value !== "test");
 
   return (
