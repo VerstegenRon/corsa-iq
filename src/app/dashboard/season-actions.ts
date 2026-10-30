@@ -225,12 +225,18 @@ async function removeSessionLeftovers(
   telemetry: string[] = [],
 ) {
   await removeFiles(supabase, TELEMETRY_BUCKET, telemetry);
-  for (const setupId of sessions.map((s) => s.setup_id).filter((id): id is string => id !== null)) {
-    const [{ count: users }, { count: children }] = await Promise.all([
+  // A removed setup can leave its parent unused too (a whole event's chain v1 → v2 → v3 goes at
+  // once), so its parent is checked again after it.
+  const queue = sessions.map((s) => s.setup_id).filter((id): id is string => id !== null);
+  for (let setupId = queue.shift(); setupId; setupId = queue.shift()) {
+    const [{ count: users }, { count: children }, { data: setup }] = await Promise.all([
       supabase.from("sessions").select("id", { count: "exact", head: true }).eq("setup_id", setupId),
       supabase.from("setups").select("id", { count: "exact", head: true }).eq("parent_setup_id", setupId),
+      supabase.from("setups").select("parent_setup_id").eq("id", setupId).maybeSingle(),
     ]);
-    if (!users && !children) await supabase.from("setups").delete().eq("id", setupId);
+    if (users || children || !setup) continue;
+    await supabase.from("setups").delete().eq("id", setupId);
+    if (setup.parent_setup_id) queue.push(setup.parent_setup_id);
   }
 
   const imports = sessions.map((s) => s.data_imports).filter((i): i is { id: string; file_path: string | null } => i !== null);
