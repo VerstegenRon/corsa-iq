@@ -5,12 +5,13 @@ import { useState, useTransition } from "react";
 import { useCanEdit } from "@/components/edit-access";
 import type { FormState } from "@/components/form-message";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 
 /** A button that runs one Server Action, such as "use the standard list", and shows its error. */
 export function ActionButton({
   action,
   label,
-  pendingLabel = "Bezig…",
+  pendingLabel,
   variant = "primary",
 }: {
   action: () => Promise<FormState>;
@@ -18,6 +19,7 @@ export function ActionButton({
   pendingLabel?: string;
   variant?: "primary" | "secondary";
 }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   if (!useCanEdit()) return null;
@@ -35,7 +37,7 @@ export function ActionButton({
           }
           className={variant === "primary" ? primaryButtonClass : secondaryButtonClass}
         >
-          {pending ? pendingLabel : label}
+          {pending ? (pendingLabel ?? t.common.busy) : label}
         </button>
       </div>
       {error && <p className="text-sm text-red-300">{error}</p>}

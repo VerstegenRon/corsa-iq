@@ -8,20 +8,22 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { gearValidity } from "@/lib/gear";
-import { getDictionary } from "@/lib/i18n/server";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatCents, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
 
 import { GearForm } from "./gear-form";
 
-export const metadata: Metadata = {
-  title: "Uitrusting — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).gear.title} — CorsaIQ` };
+}
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
 export default async function GearPage() {
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  const tg = t.gear;
   const today = todayInAmsterdam();
 
   const [gearResult, driversResult] = await Promise.all([
@@ -40,20 +42,20 @@ export default async function GearPage() {
   // One block per driver (in the order they were added), then shared gear without a driver.
   const groups = [
     ...drivers.map((driver) => ({ key: driver.id, title: driver.name, items: gear.filter((g) => g.driver_id === driver.id) })),
-    { key: "none", title: "Gedeeld", items: gear.filter((g) => g.driver_id === null) },
+    { key: "none", title: tg.shared, items: gear.filter((g) => g.driver_id === null) },
   ].filter((group) => group.items.length > 0);
 
   return (
     <>
       <PageHeader
         icon="helmet"
-        title="Uitrusting"
-        subtitle={gear.length > 0 ? "Homologatie bijna verlopen? Dan zie je het op je overzicht." : undefined}
-        add="Item"
+        title={tg.title}
+        subtitle={gear.length > 0 ? tg.hint : undefined}
+        add={tg.add}
       />
 
       {gear.length === 0 && (
-        <EmptyState icon="helmet" title="Nog geen uitrusting" text="Helm, overall, handschoenen: met de datum tot wanneer de homologatie geldt." />
+        <EmptyState icon="helmet" title={tg.emptyTitle} text={tg.emptyText} />
       )}
 
       {groups.map((group) => (
@@ -81,7 +83,7 @@ export default async function GearPage() {
                       <h3 className="truncate font-semibold tracking-tight">{name}</h3>
                       <p className="truncate text-xs text-zinc-500">
                         {labelFor(t.options.gearCategories, item.category)}
-                        {item.size && ` · maat ${item.size}`}
+                        {item.size && ` · ${format(tg.sizeShort, { size: item.size })}`}
                       </p>
                     </div>
                     {item.purchase_price_cents !== null && (
@@ -93,10 +95,10 @@ export default async function GearPage() {
                     {validity && (
                       <Chip tone={validity.tone === "expired" ? "due" : validity.tone === "soon" ? "soon" : "neutral"}>
                         {validity.tone === "expired"
-                          ? "verlopen"
+                          ? tg.expired
                           : validity.tone === "soon"
-                            ? `nog ${validity.daysLeft} ${validity.daysLeft === 1 ? "dag" : "dagen"}`
-                            : `tot ${formatDate(item.valid_until)}`}
+                            ? plural(validity.daysLeft, tg.daysLeft)
+                            : format(tg.until, { date: formatDate(item.valid_until, locale) })}
                       </Chip>
                     )}
                     {item.status !== "in_use" && <Chip>{labelFor(t.options.gearStatuses, item.status)}</Chip>}
@@ -108,7 +110,7 @@ export default async function GearPage() {
         </section>
       ))}
 
-      <AddSection title="Uitrusting toevoegen" defaultOpen={gear.length === 0}>
+      <AddSection title={tg.addGear} defaultOpen={gear.length === 0}>
         <GearForm drivers={drivers.map((d) => ({ id: d.id, label: d.name }))} />
       </AddSection>
     </>

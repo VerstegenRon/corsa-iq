@@ -10,6 +10,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { useCanEdit } from "@/components/edit-access";
 import { Icon, IconTile } from "@/components/icons";
 import { cardClass, linkClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 import { CHECKLIST_CATEGORIES, type ChecklistCategory } from "@/lib/checklist";
 import type { Suggestion } from "@/lib/checklist-suggestions";
 
@@ -41,6 +42,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
   const [checked, setChecked] = useState<Record<string, boolean>>(() => Object.fromEntries(items.map((i) => [i.id, i.checked])));
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tc = useT().checklist;
   const [, startTransition] = useTransition();
   const [adding, setAdding] = useState<string | null>(null);
   // Viewers see what is packed, but cannot tick, add or remove.
@@ -186,7 +188,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
             <div key={group.category}>
               <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
                 <span aria-hidden="true" className="size-2.5 rounded-full" style={{ background: meta.color }} />
-                {meta.label}
+                {tc.categories[group.category]}
                 <span className="font-normal text-zinc-400">
                   {group.done}/{group.total}
                 </span>

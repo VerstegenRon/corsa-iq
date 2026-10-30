@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
-import { dbError } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { GEAR_STATUSES, isGearCategory, labelFor, todayInAmsterdam } from "@/lib/karting";
 import { seasonIdForDate } from "@/lib/season-for-date";
@@ -14,15 +16,17 @@ import { optionalNumber, text } from "./form-data";
 
 type Supabase = Awaited<ReturnType<typeof getCurrentGarage>>["supabase"];
 
-function readGear(formData: FormData) {
+const failed = async (template: string, error: { message: string; code?: string }) => format(template, { error: await dbErrorText(error) });
+
+function readGear(formData: FormData, t: Dictionary) {
   const category = text(formData, "category");
-  if (!category || !isGearCategory(category)) return { error: "Kies wat voor uitrusting het is." };
+  if (!category || !isGearCategory(category)) return { error: t.gear.chooseCategory };
 
   const status = text(formData, "status") ?? "in_use";
-  if (!(status in GEAR_STATUSES)) return { error: "Kies een status." };
+  if (!(status in GEAR_STATUSES)) return { error: t.equipment.chooseStatus };
 
   const price = optionalNumber(formData, "purchase_price");
-  if (price === undefined) return { error: "Vul een geldige prijs in, bijvoorbeeld 449,95." };
+  if (price === undefined) return { error: t.gear.invalidPrice };
 
   return {
     values: {
@@ -72,7 +76,8 @@ async function syncPurchaseExpense(supabase: Supabase, garageId: string, gearId:
 }
 
 export async function createGear(_prev: FormState, formData: FormData): Promise<FormState> {
-  const gear = readGear(formData);
+  const t = await getDictionary();
+  const gear = readGear(formData, t);
   if ("error" in gear) return gear;
 
   const { supabase, garage } = await getCurrentGarage();
@@ -81,17 +86,18 @@ export async function createGear(_prev: FormState, formData: FormData): Promise<
     .insert({ garage_id: garage.id, ...gear.values })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(t.equipment.saveFailed, error) };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, inserted.id, gear.values);
-  if (expenseError) return { error: `Opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
+  if (expenseError) return { error: await failed(t.gear.savedCostFailed, expenseError) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Uitrusting toegevoegd." };
+  return { success: t.gear.added };
 }
 
 export async function updateGear(gearId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const gear = readGear(formData);
+  const t = await getDictionary();
+  const gear = readGear(formData, t);
   if ("error" in gear) return gear;
 
   const { supabase, garage } = await getCurrentGarage();
@@ -102,14 +108,14 @@ export async function updateGear(gearId: string, _prev: FormState, formData: For
     .eq("garage_id", garage.id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
-  if (!updated) return { error: "Dit item bestaat niet meer." };
+  if (error) return { error: await failed(t.equipment.saveFailed, error) };
+  if (!updated) return { error: t.gear.gone };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, gearId, gear.values);
-  if (expenseError) return { error: `Opgeslagen, maar kosten bijwerken mislukt: ${expenseError.message}` };
+  if (expenseError) return { error: await failed(t.gear.savedCostUpdateFailed, expenseError) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Wijzigingen opgeslagen." };
+  return { success: t.equipment.saved };
 }
 
 export async function deleteGear(gearId: string) {
@@ -118,7 +124,7 @@ export async function deleteGear(gearId: string) {
   // The automatically booked purchase goes with it.
   const { data: purchase } = await purchaseExpense(supabase, gearId);
   const { error } = await supabase.from("gear_items").delete().eq("id", gearId).eq("garage_id", garage.id);
-  if (error) throw new Error(`Verwijderen mislukt: ${dbError(error)}`);
+  if (error) throw new Error(await failed((await getDictionary()).equipment.deleteFailed, error));
   if (purchase) await supabase.from("expenses").delete().eq("id", purchase.id);
 
   revalidatePath("/dashboard", "layout");
