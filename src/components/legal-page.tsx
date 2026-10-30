@@ -31,7 +31,7 @@ export function LegalPage({
         </h1>
         <p className="channel-label mt-2">{version}</p>
         {draftNotice && <p className="mt-4 border border-amber-400/50 px-4 py-3 text-sm text-amber-200">{draftNotice}</p>}
-        <div className="legal mt-8 flex flex-col gap-8 text-[15px] leading-relaxed text-zinc-300 [&_h2]:mb-2 [&_h2]:font-sans [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-normal [&_h2]:text-zinc-50 [&_h2]:normal-case [&_li]:ml-5 [&_li]:list-disc [&_p+p]:mt-2 [&_ul+p]:mt-3 [&_strong]:text-zinc-50 [&_ul]:mt-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1">
+        <div className="legal mt-8 flex flex-col gap-8 text-[15px] leading-relaxed text-zinc-300 [&_h2]:mb-2 [&_h2]:font-sans [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-normal [&_h2]:text-zinc-50 [&_h2]:normal-case [&_h3]:mt-4 [&_h3]:mb-1 [&_h3]:font-sans [&_h3]:text-base [&_h3]:font-semibold [&_h3]:tracking-normal [&_h3]:text-zinc-100 [&_h3]:normal-case [&_li]:ml-5 [&_li]:list-disc [&_p+p]:mt-2 [&_ul+p]:mt-3 [&_strong]:text-zinc-50 [&_ul]:mt-2 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1">
           {children}
         </div>
       </main>
