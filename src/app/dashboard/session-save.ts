@@ -13,11 +13,39 @@ import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
 import { SETUP_FIELDS, getSetupValue, inputSetupValue, setSetupValue } from "@/lib/setup";
+import { LOGGER_BUCKET, TELEMETRY_BUCKET } from "@/lib/storage";
 import { fetchWeather, mergeConditions, type SessionConditions } from "@/lib/weather";
 
 import { optionalNumber, optionalSignedNumber, text } from "./form-data";
 
 export type Supabase = Awaited<ReturnType<typeof getCurrentGarage>>["supabase"];
+
+/**
+ * The telemetry files of these sessions' laps. Read them before the laps go: the links in
+ * lap_channels are deleted with the laps, the files in storage are not.
+ */
+export async function telemetryFiles(supabase: Supabase, sessionIds: string[]): Promise<string[]> {
+  if (sessionIds.length === 0) return [];
+  const { data } = await supabase.from("lap_channels").select("storage_path, laps!inner(session_id)").in("laps.session_id", sessionIds);
+  return (data ?? []).map((row) => row.storage_path);
+}
+
+/** Telemetry imports are not always linked to their session; they are found by their folder. */
+export async function removeTelemetryImports(supabase: Supabase, garageId: string, sessionIds: string[]) {
+  if (sessionIds.length === 0) return;
+  await supabase
+    .from("data_imports")
+    .delete()
+    .eq("garage_id", garageId)
+    .in(
+      "telemetry_path",
+      sessionIds.map((id) => `${garageId}/${id}/`),
+    );
+}
+
+export async function removeFiles(supabase: Supabase, bucket: typeof LOGGER_BUCKET | typeof TELEMETRY_BUCKET, paths: string[]) {
+  if (paths.length > 0) await supabase.storage.from(bucket).remove(paths);
+}
 
 export function readSetup(formData: FormData): SetupValues | { error: string } {
   const setup: SetupValues = {};

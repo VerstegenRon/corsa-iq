@@ -12,11 +12,21 @@ import { getCurrentGarage } from "@/lib/garage";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { EVENT_TYPES, parseLapTime } from "@/lib/karting";
-import { LOGGER_BUCKET } from "@/lib/storage";
+import { LOGGER_BUCKET, TELEMETRY_BUCKET } from "@/lib/storage";
 import type { SessionConditions } from "@/lib/weather";
 
 import { optionalNumber, text } from "./form-data";
-import { insertSession, insertSetup, readSession, saveDebrief, withWeather, type Supabase } from "./session-save";
+import {
+  insertSession,
+  insertSetup,
+  readSession,
+  removeFiles,
+  removeTelemetryImports,
+  saveDebrief,
+  telemetryFiles,
+  withWeather,
+  type Supabase,
+} from "./session-save";
 
 // ---------------------------------------------------------------------------
 // Seasons
@@ -166,13 +176,22 @@ export async function deleteEvent(eventId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
   const { data: sessions } = await supabase
     .from("sessions")
-    .select("setup_id, data_imports(id, file_path), events!inner(garage_id)")
+    .select("id, setup_id, data_imports(id, file_path), events!inner(garage_id)")
     .eq("event_id", eventId)
     .eq("events.garage_id", garage.id);
+  const telemetry = await telemetryFiles(
+    supabase,
+    (sessions ?? []).map((s) => s.id),
+  );
 
   const { error } = await supabase.from("events").delete().eq("id", eventId).eq("garage_id", garage.id);
   if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
-  await removeSessionLeftovers(supabase, sessions ?? []);
+  await removeSessionLeftovers(supabase, sessions ?? [], telemetry);
+  await removeTelemetryImports(
+    supabase,
+    garage.id,
+    (sessions ?? []).map((s) => s.id),
+  );
 
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/seasons");
@@ -197,12 +216,15 @@ function sameSetup(a: unknown, b: unknown): boolean {
 
 /**
  * After sessions are gone: drop setup snapshots nothing points at any more (a setup that is the
- * parent of a later one stays, to keep the change history), plus imports and their logger files.
+ * parent of a later one stays, to keep the change history), plus imports and their logger files,
+ * and the telemetry files of their laps (read with telemetryFiles before the delete).
  */
 async function removeSessionLeftovers(
   supabase: Supabase,
   sessions: { setup_id: string | null; data_imports: { id: string; file_path: string | null } | null }[],
+  telemetry: string[] = [],
 ) {
+  await removeFiles(supabase, TELEMETRY_BUCKET, telemetry);
   for (const setupId of sessions.map((s) => s.setup_id).filter((id): id is string => id !== null)) {
     const [{ count: users }, { count: children }] = await Promise.all([
       supabase.from("sessions").select("id", { count: "exact", head: true }).eq("setup_id", setupId),
@@ -220,8 +242,11 @@ async function removeSessionLeftovers(
         "id",
         imports.map((i) => i.id),
       );
-    const files = imports.map((i) => i.file_path).filter((path): path is string => path !== null);
-    if (files.length > 0) await supabase.storage.from(LOGGER_BUCKET).remove(files);
+    await removeFiles(
+      supabase,
+      LOGGER_BUCKET,
+      imports.map((i) => i.file_path).filter((path): path is string => path !== null),
+    );
   }
 }
 
@@ -308,10 +333,12 @@ export async function deleteSession(sessionId: string): Promise<FormState> {
     .maybeSingle();
   const t = await getDictionary();
   if (!session) return { error: t.session.gone };
+  const telemetry = await telemetryFiles(supabase, [sessionId]);
 
   const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
   if (error) return { error: format(t.session.deleteFailed, { error: await dbErrorText(error) }) };
-  await removeSessionLeftovers(supabase, [session]);
+  await removeSessionLeftovers(supabase, [session], telemetry);
+  await removeTelemetryImports(supabase, garage.id, [sessionId]);
 
   revalidatePath("/dashboard", "layout");
   redirect(`/dashboard/events/${session.event_id}`);
