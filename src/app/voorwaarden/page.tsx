@@ -26,11 +26,33 @@ function Dutch() {
         </p>
       </section>
       <section>
-        <h2>2. Bèta</h2>
+        <h2>2. Abonnementen en betalen</h2>
+        <ul>
+          <li>
+            Er is een gratis abonnement en er zijn betaalde abonnementen. Wat elk abonnement bevat en kost, staat op de{" "}
+            <Link href="/pricing" className="text-brand-300 underline">
+              prijzenpagina
+            </Link>
+            . Zolang CorsaIQ in de opstartfase is, kun je alle functies gratis gebruiken; dat staat dan ook op de prijzenpagina.
+          </li>
+          <li>
+            Een betaald abonnement sluit de eigenaar van de garage af, per maand of per jaar, en betaal je vooruit. Je koopt het via Stripe, dat de
+            betaling en de factuur verzorgt als verkoper; daarvoor gelden ook de voorwaarden van Stripe.
+          </li>
+          <li>
+            Het abonnement wordt telkens met dezelfde periode verlengd. Je kunt het altijd opzeggen via Instellingen → Abonnement; het loopt dan door
+            tot het einde van de betaalde periode, daarna ga je terug naar Gratis. Wat je al betaalde, krijg je niet terug, behalve waar de wet dat
+            voorschrijft.
+          </li>
+          <li>
+            Ga je naar een kleiner abonnement, dan blijven je gegevens bewaard. Je kunt dan alleen niet meer toevoegen dan het kleinere abonnement
+            toestaat, en functies die er niet in zitten, zijn niet meer te gebruiken.
+          </li>
+          <li>Veranderen de prijzen, dan laten we het minstens 30 dagen van tevoren weten; je kunt dan opzeggen voordat de nieuwe prijs ingaat.</li>
+        </ul>
         <p>
-          CorsaIQ is in een gesloten bèta en is in die periode gratis. Functies kunnen veranderen, erbij komen of verdwijnen, en de dienst kan soms
-          niet beschikbaar zijn. We doen ons best om je gegevens veilig te bewaren, maar geven in de bèta geen garantie op beschikbaarheid. Als er
-          later betaalde plannen komen, hoor je dat ruim van tevoren en kies je zelf of je doorgaat.
+          CorsaIQ is volop in ontwikkeling: functies kunnen veranderen, erbij komen of verdwijnen, en de dienst kan soms niet beschikbaar zijn. We
+          doen ons best om de dienst beschikbaar en je gegevens veilig te houden, maar geven geen garantie op ononderbroken beschikbaarheid.
         </p>
       </section>
       <section>
@@ -75,15 +97,15 @@ function Dutch() {
         <h2>7. Aansprakelijkheid</h2>
         <p>
           We zijn niet aansprakelijk voor schade door het gebruik van adviezen of berekeningen, door tijdelijke onbeschikbaarheid of door verlies van
-          gegevens buiten onze schuld. Voor zover we wel aansprakelijk zijn, is dat beperkt tot het bedrag dat je ons in de twaalf maanden daarvoor
-          betaalde; in de gratis bèta is dat nul. Dit geldt niet bij opzet of grove nalatigheid.
+          gegevens buiten onze schuld. Voor zover we wel aansprakelijk zijn, is dat beperkt tot het bedrag dat je in de twaalf maanden daarvoor voor
+          CorsaIQ betaalde; bij het gratis abonnement is dat nul. Dit geldt niet bij opzet of grove nalatigheid.
         </p>
       </section>
       <section>
         <h2>8. Stoppen</h2>
         <p>
-          Je kunt altijd stoppen door je account te verwijderen. Wij kunnen de bèta of de dienst beëindigen; dan laten we het minstens 30 dagen van
-          tevoren weten, zodat je je gegevens kunt downloaden.
+          Je kunt altijd stoppen door je account te verwijderen; een lopend abonnement stopt dan ook. Wij kunnen de dienst beëindigen; dan laten we
+          het minstens 30 dagen van tevoren weten, zodat je je gegevens kunt downloaden, en betaal je niet voor de periode daarna.
         </p>
       </section>
       <section>
@@ -194,11 +216,32 @@ function English() {
         </p>
       </section>
       <section>
-        <h2>2. Beta</h2>
+        <h2>2. Plans and payment</h2>
+        <ul>
+          <li>
+            There is a free plan and there are paid plans. What each plan includes and costs is on the{" "}
+            <Link href="/pricing" className="text-brand-300 underline">
+              pricing page
+            </Link>
+            . As long as CorsaIQ is in its launch phase, you can use every feature for free; the pricing page then says so too.
+          </li>
+          <li>
+            A paid plan is taken out by the owner of the garage, per month or per year, and paid in advance. You buy it through Stripe, which handles
+            the payment and the invoice as the seller; Stripe’s terms apply to that as well.
+          </li>
+          <li>
+            The plan renews for the same period each time. You can cancel at any time in Settings → Subscription; it then runs until the end of the
+            paid period, after which you are back on Free. What you already paid is not refunded, except where the law requires it.
+          </li>
+          <li>
+            If you move to a smaller plan, your data is kept. You just cannot add more than the smaller plan allows, and features it does not include
+            can no longer be used.
+          </li>
+          <li>If prices change, we tell you at least 30 days in advance; you can then cancel before the new price applies.</li>
+        </ul>
         <p>
-          CorsaIQ is in a closed beta and is free during that period. Features may change, be added or be removed, and the service may sometimes be
-          unavailable. We do our best to keep your data safe, but during the beta we give no guarantee of availability. If paid plans come later, you
-          will hear well in advance and decide yourself whether to continue.
+          CorsaIQ is under active development: features may change, be added or be removed, and the service may sometimes be unavailable. We do our
+          best to keep the service available and your data safe, but we give no guarantee of uninterrupted availability.
         </p>
       </section>
       <section>
@@ -243,15 +286,15 @@ function English() {
         <h2>7. Liability</h2>
         <p>
           We are not liable for damage from using advice or calculations, from temporary unavailability or from loss of data not caused by us. Where
-          we are liable, it is limited to what you paid us in the twelve months before; in the free beta that is zero. This does not apply to intent
-          or gross negligence.
+          we are liable, it is limited to what you paid for CorsaIQ in the twelve months before; on the free plan that is zero. This does not apply to
+          intent or gross negligence.
         </p>
       </section>
       <section>
         <h2>8. Stopping</h2>
         <p>
-          You can stop at any time by deleting your account. We may end the beta or the service; we will tell you at least 30 days in advance, so you
-          can download your data.
+          You can stop at any time by deleting your account; a running subscription then stops too. We may end the service; we will tell you at least
+          30 days in advance, so you can download your data, and you do not pay for the period after that.
         </p>
       </section>
       <section>
