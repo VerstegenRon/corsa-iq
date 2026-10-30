@@ -11,6 +11,7 @@ import { useCanEdit } from "@/components/edit-access";
 import { Icon, IconTile } from "@/components/icons";
 import { cardClass, linkClass } from "@/components/ui";
 import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
 import { CHECKLIST_CATEGORIES, type ChecklistCategory } from "@/lib/checklist";
 import type { Suggestion } from "@/lib/checklist-suggestions";
 
@@ -42,7 +43,9 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
   const [checked, setChecked] = useState<Record<string, boolean>>(() => Object.fromEntries(items.map((i) => [i.id, i.checked])));
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tc = useT().checklist;
+  const t = useT();
+  const tc = t.checklist;
+  const te = t.events;
   const [, startTransition] = useTransition();
   const [adding, setAdding] = useState<string | null>(null);
   // Viewers see what is packed, but cannot tick, add or remove.
@@ -53,13 +56,10 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
     return (
       <section aria-labelledby="checklist-heading" className={cardClass}>
         <h2 id="checklist-heading" className="text-lg font-semibold">
-          Paklijst
+          {te.packingList}
         </h2>
-        <p className="mt-1 mb-4 text-sm text-zinc-400">
-          Zet je vaste paklijst klaar voor dit evenement en vink af wat in de bus ligt. Heb je nog geen vaste lijst, dan begin je met de
-          standaardlijst.
-        </p>
-        <ActionButton action={copyChecklistToEvent.bind(null, eventId)} label="Paklijst maken" pendingLabel="Paklijst maken…" />
+        <p className="mt-1 mb-4 text-sm text-zinc-400">{te.packingIntro}</p>
+        <ActionButton action={copyChecklistToEvent.bind(null, eventId)} label={te.makeList} pendingLabel={te.makingList} />
       </section>
     );
   }
@@ -103,7 +103,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
     <section aria-labelledby="checklist-heading" className={cardClass}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="checklist-heading" className="text-lg font-semibold">
-          Paklijst
+          {te.packingList}
         </h2>
         <button
           type="button"
@@ -113,7 +113,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
             onlyOpen ? "border-brand-400 bg-brand-500/15 text-zinc-50" : "border-zinc-700 text-zinc-300 hover:text-white"
           }`}
         >
-          Alleen nog te doen
+          {te.onlyOpen}
         </button>
       </div>
 
@@ -121,13 +121,13 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
       <div className="mt-3">
         <p className="flex items-baseline justify-between gap-2 text-sm">
           <span className="text-zinc-200">
-            <span className="text-2xl font-semibold text-zinc-50">{done}</span> van {items.length} ingepakt
+            <span className="text-2xl font-semibold text-zinc-50">{done}</span> {format(te.packedOf, { total: items.length })}
           </span>
           <span className="font-medium text-zinc-300">{Math.round(share * 100)}%</span>
         </p>
         <div
           role="progressbar"
-          aria-label="Ingepakt"
+          aria-label={te.packed}
           aria-valuemin={0}
           aria-valuemax={items.length}
           aria-valuenow={done}
@@ -138,12 +138,12 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
         >
           <div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${share * 100}%`, background: "var(--chart-3)" }} />
         </div>
-        {done === items.length && <p className="mt-2 text-sm font-medium text-zinc-100">Alles ingepakt. Goede race!</p>}
+        {done === items.length && <p className="mt-2 text-sm font-medium text-zinc-100">{te.allPackedRace}</p>}
       </div>
 
       {suggestions.length > 0 && (
         <div className="mt-5 flex flex-col gap-2">
-          <h3 className="text-sm font-medium text-zinc-300">De app denkt mee</h3>
+          <h3 className="text-sm font-medium text-zinc-300">{te.thinksAlong}</h3>
           {suggestions.map((s) => {
             // Already on the list (rain tyres usually are): the reminder still counts, adding it does not.
             const onList = items.some((i) => i.title.trim().toLowerCase() === s.title.trim().toLowerCase());
@@ -162,7 +162,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
                   <span className="block text-xs text-zinc-300">{s.reason}</span>
                 </span>
                 {onList ? (
-                  <span className="shrink-0 px-1 py-1.5 text-xs text-zinc-300">Staat al op je lijst</span>
+                  <span className="shrink-0 px-1 py-1.5 text-xs text-zinc-300">{te.alreadyOnList}</span>
                 ) : !canEdit ? null : (
                   <button
                     type="button"
@@ -170,7 +170,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
                     disabled={adding === s.key}
                     className={`shrink-0 rounded-full border border-zinc-600 px-3 py-1.5 text-sm text-zinc-100 hover:border-brand-400 ${focusRing}`}
                   >
-                    {adding === s.key ? "…" : "Op de lijst"}
+                    {adding === s.key ? "…" : te.putOnList}
                   </button>
                 )}
               </div>
@@ -194,7 +194,7 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
                 </span>
               </h3>
               {group.items.length === 0 ? (
-                <p className="mt-1 text-xs text-zinc-500">Alles ingepakt.</p>
+                <p className="mt-1 text-xs text-zinc-500">{te.allPacked}</p>
               ) : (
                 <ul className="mt-1.5 flex flex-col gap-1.5">
                   {group.items.map((item) => {
@@ -225,8 +225,8 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
                         </label>
                         <DeleteButton
                           action={deleteEventChecklistItem.bind(null, item.id, eventId)}
-                          confirmText={`${item.title} van deze paklijst halen?`}
-                          label={`${item.title} verwijderen`}
+                          confirmText={format(te.removeFromEvent, { item: item.title })}
+                          label={format(te.removeLabel, { item: item.title })}
                           compact
                           iconOnly
                         />
@@ -242,17 +242,17 @@ export function EventChecklist({ eventId, items, suggestions }: { eventId: strin
 
       {canEdit && (
         <div className="mt-6 border-t border-zinc-800/80 pt-5">
-          <h3 className="mb-2 text-sm font-medium text-zinc-300">Extra voor dit evenement</h3>
+          <h3 className="mb-2 text-sm font-medium text-zinc-300">{te.extra}</h3>
           <ChecklistItemForm action={addEventChecklistItem.bind(null, eventId)} />
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
             <ActionButton
               action={copyChecklistToEvent.bind(null, eventId)}
-              label="Ontbrekende items uit je vaste lijst toevoegen"
-              pendingLabel="Bezig…"
+              label={te.addMissing}
+              pendingLabel={te.busy}
               variant="secondary"
             />
             <Link href="/dashboard/checklist" className={`${linkClass} text-sm`}>
-              Vaste lijst bewerken
+              {te.editFixedList}
             </Link>
           </div>
         </div>

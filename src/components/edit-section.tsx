@@ -6,8 +6,8 @@ import { cardClass } from "@/components/ui";
 
 export { AddSection } from "@/components/add-section";
 
-/** Collapsed "Bewerken" card with the edit form and, below a divider, the delete control; not for viewers. */
-export function EditSection({ title = "Bewerken", children, danger }: { title?: string; children: ReactNode; danger?: ReactNode }) {
+/** Collapsed edit card with the edit form and, below a divider, the delete control; not for viewers. */
+export function EditSection({ title, children, danger }: { title: string; children: ReactNode; danger?: ReactNode }) {
   return (
     <EditOnly>
       <details className={`${cardClass} group`}>

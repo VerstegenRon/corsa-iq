@@ -59,6 +59,7 @@ export function SessionForm({
 }) {
   const t = useT();
   const ts = t.setup;
+  const te = t.events;
   const [state, formAction, isPending] = useActionState(
     session ? updateSession.bind(null, session.id) : createSession.bind(null, eventId),
     initialState,
@@ -76,27 +77,27 @@ export function SessionForm({
   const c = session?.conditions ?? {};
   // Fetched values are not typed into the fields: left as they are, they are looked up again on saving.
   const isAuto = (field: string) => autoWeather && (session ? (c.auto ?? []).includes(field) : true);
-  /** Placeholder of a field Open-Meteo fills in: the fetched value, or "automatisch" before the first save. */
+  /** Placeholder of a field Open-Meteo fills in: the fetched value, or "automatic" before the first save. */
   const autoHint = (field: "air_temp_c" | "humidity_pct" | "precipitation_mm", fallback: string) =>
-    isAuto(field) ? (c[field] !== undefined ? `${decimal(c[field])} (automatisch)` : "automatisch") : fallback;
+    isAuto(field) ? (c[field] !== undefined ? format(te.autoValue, { value: decimal(c[field])! }) : te.autoHint) : fallback;
   const weatherOptions = [
-    ...(autoWeather ? [{ value: "auto", label: "Automatisch" }] : []),
+    ...(autoWeather ? [{ value: "auto", label: te.auto }] : []),
     ...Object.entries(t.options.weather).map(([value, label]) => ({ value, label, icon: WEATHER_ICONS[value] })),
   ];
 
   return (
     <form action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-8">
       <fieldset className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <legend className="mb-4 text-sm font-semibold text-zinc-200">Sessie</legend>
+        <legend className="mb-4 text-sm font-semibold text-zinc-200">{te.sessionLegend}</legend>
         <ChoiceChips
           name="type"
-          legend="Soort"
+          legend={te.type}
           required
           defaultValue={session?.type ?? "practice"}
           options={Object.entries(t.options.sessionTypes).map(([value, label]) => ({ value, label }))}
         />
         <label className={labelClass}>
-          Kart *
+          {te.kart}
           {session ? (
             <span className={`${inputClass} flex items-center text-zinc-400`}>{session.kartName}</span>
           ) : (
@@ -110,7 +111,7 @@ export function SessionForm({
           )}
         </label>
         <label className={labelClass}>
-          Coureur *
+          {te.driver}
           <select name="driver_id" required defaultValue={session?.driverId ?? drivers[0]?.id} className={inputClass}>
             {sortByLabel(drivers).map((driver) => (
               <option key={driver.id} value={driver.id}>
@@ -120,7 +121,7 @@ export function SessionForm({
           </select>
         </label>
         <label className={labelClass}>
-          Starttijd *
+          {te.startTime}
           <input
             ref={localStartRef}
             type="datetime-local"
@@ -131,7 +132,7 @@ export function SessionForm({
           <input ref={isoStartRef} type="hidden" name="started_at_iso" />
         </label>
         <label className={labelClass}>
-          Duur (minuten) *
+          {te.duration}
           <input
             name="duration_min"
             required
@@ -142,10 +143,10 @@ export function SessionForm({
           />
         </label>
         {session?.hasLaps ? (
-          <p className="text-xs text-zinc-500 sm:pt-7">De snelste ronde volgt uit de geïmporteerde ronden.</p>
+          <p className="text-xs text-zinc-500 sm:pt-7">{te.bestFromLaps}</p>
         ) : (
           <label className={labelClass}>
-            Snelste ronde
+            {te.bestLap}
             <input
               name="best_lap"
               inputMode="decimal"
@@ -156,7 +157,7 @@ export function SessionForm({
           </label>
         )}
         <label className={labelClass}>
-          Positie
+          {te.position}
           <input
             name="position"
             inputMode="numeric"
@@ -168,24 +169,24 @@ export function SessionForm({
       </fieldset>
 
       <fieldset className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3">
-        <legend className="mb-4 text-sm font-semibold text-zinc-200">Omstandigheden</legend>
+        <legend className="mb-4 text-sm font-semibold text-zinc-200">{te.conditions}</legend>
         <ChoiceChips
           name="weather"
-          legend="Weer (bij de start)"
+          legend={te.weatherStart}
           defaultValue={isAuto("weather") ? "auto" : (c.weather ?? "dry")}
           options={weatherOptions}
         />
         <ChoiceChips
           name="weather_to"
-          legend="Sloeg het weer om tijdens de sessie?"
+          legend={te.weatherChanged}
           defaultValue={c.weather_to ?? ""}
           options={[
-            { value: "", label: "Nee" },
-            ...Object.entries(t.options.weather).map(([value, label]) => ({ value, label: `Werd ${label.toLowerCase()}`, icon: WEATHER_ICONS[value] })),
+            { value: "", label: te.no },
+            ...Object.entries(t.options.weather).map(([value, label]) => ({ value, label: format(te.became, { weather: label.toLowerCase() }), icon: WEATHER_ICONS[value] })),
           ]}
         />
         <label className={labelClass}>
-          Luchttemperatuur (°C)
+          {te.airTemp}
           <input
             name="air_temp_c"
             inputMode="decimal"
@@ -195,11 +196,11 @@ export function SessionForm({
           />
         </label>
         <label className={labelClass}>
-          Baantemperatuur (°C)
+          {te.trackTemp}
           <input name="track_temp_c" inputMode="decimal" defaultValue={decimal(c.track_temp_c)} placeholder="24" className={inputClass} />
         </label>
         <label className={labelClass}>
-          Luchtvochtigheid (%)
+          {te.humidity}
           <input
             name="humidity_pct"
             inputMode="numeric"
@@ -209,7 +210,7 @@ export function SessionForm({
           />
         </label>
         <label className={labelClass}>
-          Regen (mm)
+          {te.rain}
           <input
             name="precipitation_mm"
             inputMode="decimal"
@@ -220,9 +221,7 @@ export function SessionForm({
         </label>
         {autoWeather && (
           <p className="col-span-2 text-xs text-zinc-500 sm:col-span-3">
-            Weer, luchttemperatuur, luchtvochtigheid en regen haalt de app bij het opslaan op bij Open-Meteo, voor dit circuit en de
-            starttijd. Klopt het niet, bijvoorbeeld omdat een bui alleen boven de baan hing, kies of vul dan zelf iets in: dat gaat
-            voor. De baantemperatuur meet je zelf.
+            {te.autoNote}
           </p>
         )}
       </fieldset>
@@ -281,7 +280,7 @@ export function SessionForm({
       <div className="flex flex-col gap-4">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : session ? "Wijzigingen opslaan" : "Sessie opslaan"}
+          {isPending ? te.saving : session ? te.saveChanges : te.saveSession}
         </button>
       </div>
     </form>

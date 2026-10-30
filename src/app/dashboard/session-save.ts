@@ -6,9 +6,10 @@ import { revalidatePath } from "next/cache";
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
 import { EMPTY_TAGS, parseFeedbackTags, type QuickTag } from "@/lib/feedback";
-import { dbError, dbErrorText } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import type { getCurrentGarage } from "@/lib/garage";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
@@ -68,22 +69,23 @@ export function readSetup(formData: FormData, ts: SetupTexts): SetupValues | { e
 }
 
 /** Everything on the session form except the kart, which is fixed once parts are linked. */
-export function readSession(formData: FormData, ts: SetupTexts) {
+export function readSession(formData: FormData, t: Dictionary) {
+  const te = t.events;
   const type = text(formData, "type");
   const driverId = text(formData, "driver_id");
   const startedAt = text(formData, "started_at_iso");
-  if (!type || !(type in SESSION_TYPES)) return { error: "Kies het soort sessie." };
-  if (!driverId) return { error: "Kies de coureur." };
-  if (!startedAt || Number.isNaN(Date.parse(startedAt))) return { error: "Vul de starttijd in." };
+  if (!type || !(type in SESSION_TYPES)) return { error: te.chooseSessionType };
+  if (!driverId) return { error: te.chooseDriver };
+  if (!startedAt || Number.isNaN(Date.parse(startedAt))) return { error: te.startTimeMissing };
 
   const durationMin = optionalNumber(formData, "duration_min");
   if (durationMin === undefined || durationMin === null || durationMin === 0) {
-    return { error: "Vul in hoeveel minuten de sessie duurde." };
+    return { error: te.durationMissing };
   }
 
   const bestLapRaw = text(formData, "best_lap");
   const bestLapMs = bestLapRaw ? parseLapTime(bestLapRaw) : null;
-  if (bestLapRaw && bestLapMs === null) return { error: "Schrijf de rondetijd als 52.345 of 1:02.345." };
+  if (bestLapRaw && bestLapMs === null) return { error: te.invalidLap };
 
   const position = optionalNumber(formData, "position");
   const airTemp = optionalSignedNumber(formData, "air_temp_c");
@@ -91,11 +93,11 @@ export function readSession(formData: FormData, ts: SetupTexts) {
   const humidity = optionalNumber(formData, "humidity_pct");
   const rain = optionalNumber(formData, "precipitation_mm");
   if (position === undefined || airTemp === undefined || trackTemp === undefined || humidity === undefined || rain === undefined) {
-    return { error: "Controleer positie, temperaturen, luchtvochtigheid en regen: vul alleen getallen in." };
+    return { error: te.numbersOnly };
   }
-  if (humidity !== null && humidity > 100) return { error: "De luchtvochtigheid is hooguit 100%." };
+  if (humidity !== null && humidity > 100) return { error: te.humidityMax };
 
-  const setup = readSetup(formData, ts);
+  const setup = readSetup(formData, t.setup);
   if ("error" in setup) return setup;
 
   const weather = text(formData, "weather");
@@ -154,7 +156,7 @@ export async function insertSetup(supabase: Supabase, garageId: string, setup: S
     .insert({ garage_id: garageId, parent_setup_id: parentId, values: setup as Json })
     .select("id")
     .single();
-  if (error) return { error: `Afstelling opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: format((await getDictionary()).events.setupFailed, { error: await dbErrorText(error) }) };
   return { id: data.id };
 }
 
@@ -170,12 +172,14 @@ export async function insertSession(
   formData: FormData,
   { id, keepSetupFields = [] }: { id?: string; keepSetupFields?: string[] } = {},
 ): Promise<FormState & { id?: string }> {
+  const t = await getDictionary();
+  const te = t.events;
   const kartId = text(formData, "kart_id");
-  if (!kartId) return { error: "Kies met welke kart je reed." };
+  if (!kartId) return { error: te.chooseKart };
 
   if (id) {
     const { data: existing } = await supabase.from("sessions").select("id").eq("id", id).maybeSingle();
-    if (existing) return { success: "Sessie was al opgeslagen.", id };
+    if (existing) return { success: te.alreadySaved, id };
   }
 
   // Link to the kart's previous setup so changes between sessions can be shown later.
@@ -196,7 +200,7 @@ export async function insertSession(
   }
   if (keepSetupFields.includes("setup_notes") && previousValues.notes) formData.set("setup_notes", previousValues.notes);
 
-  const session = readSession(formData, (await getDictionary()).setup);
+  const session = readSession(formData, t);
   if ("error" in session) return session;
 
   const setup = await insertSetup(supabase, garageId, session.setup, previous?.setup_id ?? null);
@@ -216,7 +220,7 @@ export async function insertSession(
     })
     .select("id")
     .single();
-  if (error) return { error: `Sessie opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: format(te.sessionFailed, { error: await dbErrorText(error) }) };
 
   // The pre-start round of this session ("Klaar voor Q1?") now belongs to the session that was driven.
   const { data: round } = await supabase
@@ -235,10 +239,10 @@ export async function insertSession(
   const { data: mounted } = await supabase.from("part_installations").select("part_id").eq("kart_id", kartId).is("removed_at", null);
   if (mounted && mounted.length > 0) {
     const { error: partsError } = await supabase.from("session_parts").insert(mounted.map(({ part_id }) => ({ session_id: inserted.id, part_id })));
-    if (partsError) return { error: `Sessie opgeslagen, maar onderdelen koppelen mislukt: ${partsError.message}`, id: inserted.id };
+    if (partsError) return { error: format(te.partsFailed, { error: partsError.message }), id: inserted.id };
   }
 
-  return { success: "Sessie opgeslagen.", id: inserted.id };
+  return { success: te.sessionSaved, id: inserted.id };
 }
 
 /** Saves the debrief (text and tapped tags) on a session. The text is labelled again only when it changed. */

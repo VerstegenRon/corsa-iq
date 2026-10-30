@@ -32,6 +32,7 @@ export type EventValues = {
 /** Adds an event, or edits one when `event` is given. */
 export function EventForm({ seasons, tracks, event }: { seasons: Option[]; tracks: Option[]; event?: EventValues }) {
   const t = useT();
+  const te = t.events;
   const [state, formAction, isPending] = useActionState(
     event ? updateEvent.bind(null, event.id) : createEvent,
     initialState,
@@ -41,24 +42,24 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
   return (
     <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
       <label className={`${labelClass} col-span-2 sm:col-span-1`}>
-        Naam *
-        <input name="name" required defaultValue={event?.name} placeholder="Ronde 1 – Genk" className={inputClass} />
+        {te.name}
+        <input name="name" required defaultValue={event?.name} placeholder={te.eventPlaceholder} className={inputClass} />
       </label>
       <ChoiceChips
         name="type"
-        legend="Soort"
+        legend={te.type}
         required
         defaultValue={event?.type ?? "race"}
         options={Object.entries(t.options.eventTypes).map(([value, label]) => ({ value, label, icon: EVENT_ICONS[value] }))}
       />
       <label className={`${labelClass} col-span-2 sm:col-span-1`}>
-        Seizoen
+        {te.season}
         <select
           name="season_id"
           defaultValue={event ? (event.season_id ?? "") : (seasons[0]?.id ?? "")}
           className={inputClass}
         >
-          <option value="">Geen (losse training)</option>
+          <option value="">{te.noSeason}</option>
           {sortByLabel(seasons).map((season) => (
             <option key={season.id} value={season.id}>
               {season.label}
@@ -67,15 +68,15 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
         </select>
       </label>
       <label className={labelClass}>
-        Startdatum *
+        {te.startsOn}
         <input name="starts_on" type="date" required defaultValue={event?.starts_on} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Einddatum
+        {te.endsOn}
         <input name="ends_on" type="date" defaultValue={event?.ends_on ?? ""} className={inputClass} />
       </label>
       <label className={`${labelClass} col-span-2 sm:col-span-1`}>
-        Circuit *
+        {te.track}
         <select
           name="track_id"
           required
@@ -85,7 +86,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
         >
           {tracks.length > 0 && (
             <option value="" disabled>
-              Kies…
+              {te.choose}
             </option>
           )}
           {sortByLabel(tracks).map((track) => (
@@ -93,23 +94,23 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
               {track.label}
             </option>
           ))}
-          <option value="new">+ Nieuw circuit</option>
+          <option value="new">{te.newTrack}</option>
         </select>
       </label>
 
       {trackId === "new" && (
         <>
           <label className={`${labelClass} col-span-2 sm:col-span-1`}>
-            Naam circuit *
-            <input name="new_track_name" required placeholder="Kartbaan De Polder" className={inputClass} />
+            {te.newTrackName}
+            <input name="new_track_name" required placeholder={te.newTrackPlaceholder} className={inputClass} />
           </label>
           <label className={labelClass}>
-            Plaats
-            <input name="new_track_city" placeholder="Lelystad" className={inputClass} />
+            {te.city}
+            <input name="new_track_city" placeholder={te.cityPlaceholder} className={inputClass} />
           </label>
           <label className={labelClass}>
-            Land (code)
-            <input name="new_track_country" maxLength={2} placeholder="NL" className={`${inputClass} uppercase`} />
+            {te.country}
+            <input name="new_track_country" maxLength={2} placeholder={te.countryPlaceholder} className={`${inputClass} uppercase`} />
           </label>
         </>
       )}
@@ -117,11 +118,11 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
       {event && (
         <>
           <label className={labelClass}>
-            Uitslag (positie)
+            {te.result}
             <input name="result_position" inputMode="numeric" defaultValue={event.result_position ?? ""} placeholder="3" className={inputClass} />
           </label>
           <label className={labelClass}>
-            Pole-tijd
+            {te.pole}
             <input
               name="pole_lap"
               inputMode="decimal"
@@ -136,7 +137,7 @@ export function EventForm({ seasons, tracks, event }: { seasons: Option[]; track
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : event ? "Wijzigingen opslaan" : "Evenement toevoegen"}
+          {isPending ? te.saving : event ? te.saveChanges : te.addEvent}
         </button>
       </div>
     </form>
