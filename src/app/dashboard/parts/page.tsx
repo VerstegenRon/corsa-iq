@@ -7,14 +7,15 @@ import { Chip, Meter, toneForShare } from "@/components/meter";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { format, plural } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { formatCents, formatMinutes, labelFor, sortedEntries } from "@/lib/karting";
 
 import { PartForm } from "./part-form";
 
-export const metadata: Metadata = {
-  title: "Onderdelen — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).equipment.parts} — CorsaIQ` };
+}
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
@@ -22,6 +23,8 @@ export default async function PartsPage({ searchParams }: PageProps<"/dashboard/
   const { category } = await searchParams;
   const { supabase, garage } = await getCurrentGarage();
   const t = await getDictionary();
+  const te = t.equipment;
+  const hour = t.common.hourUnit;
 
   const [partsResult, usageResult] = await Promise.all([
     supabase
@@ -48,18 +51,18 @@ export default async function PartsPage({ searchParams }: PageProps<"/dashboard/
     <>
       <PageHeader
         icon="engine"
-        title="Onderdelen"
-        subtitle={parts.length > 0 ? `${parts.length} ${parts.length === 1 ? "onderdeel" : "onderdelen"}` : undefined}
-        add="Onderdeel"
+        title={te.parts}
+        subtitle={parts.length > 0 ? plural(parts.length, te.partCount) : undefined}
+        add={te.partAdd}
       />
 
       {parts.length === 0 ? (
-        <EmptyState icon="engine" title="Nog geen onderdelen" text="Motoren, banden, assen en meer. Draaiuren tellen mee zodra je sessies vastlegt." />
+        <EmptyState icon="engine" title={te.partsEmptyTitle} text={te.partsEmptyText} />
       ) : (
         <>
           {categories.length > 1 && (
-            <nav aria-label="Filter op categorie" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-              <FilterChip href="/dashboard/parts" active={!active} label="Alles" count={parts.length} />
+            <nav aria-label={te.filterCategory} className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              <FilterChip href="/dashboard/parts" active={!active} label={te.all} count={parts.length} />
               {categories.map(([key, label]) => (
                 <FilterChip
                   key={key}
@@ -73,7 +76,7 @@ export default async function PartsPage({ searchParams }: PageProps<"/dashboard/
             </nav>
           )}
 
-          <section aria-label="Voorraad" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section aria-label={te.stock} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((part) => {
               const kart = part.part_installations.find((i) => i.removed_at === null)?.karts;
               const usage = usageByPart.get(part.id);
@@ -104,7 +107,7 @@ export default async function PartsPage({ searchParams }: PageProps<"/dashboard/
                     {kart ? (
                       <Chip tone="brand">
                         <Icon name="kart" className="size-3" />
-                        Op {kart.name}
+                        {format(te.onKart, { kart: kart.name })}
                       </Chip>
                     ) : (
                       <Chip>{labelFor(t.options.partStatuses, part.status)}</Chip>
@@ -112,14 +115,14 @@ export default async function PartsPage({ searchParams }: PageProps<"/dashboard/
                   </div>
                   <div className="mt-auto">
                     <div className="mb-1.5 flex justify-between text-xs text-zinc-400">
-                      <span>Draaitijd</span>
+                      <span>{te.runTime}</span>
                       <span className="tabular-nums">
-                        {formatMinutes(minutes)}
-                        {limit && <span className="text-zinc-500"> / {formatMinutes(limit)}</span>}
+                        {formatMinutes(minutes, hour)}
+                        {limit && <span className="text-zinc-500"> / {formatMinutes(limit, hour)}</span>}
                       </span>
                     </div>
                     {share !== null ? (
-                      <Meter share={share} tone={toneForShare(share)} label={`${name}: deel van de grens gebruikt`} />
+                      <Meter share={share} tone={toneForShare(share)} label={format(te.partMeter, { part: name })} />
                     ) : (
                       <div aria-hidden="true" className="h-1.5 rounded-full bg-zinc-800" />
                     )}
@@ -131,7 +134,7 @@ export default async function PartsPage({ searchParams }: PageProps<"/dashboard/
         </>
       )}
 
-      <AddSection title="Onderdeel toevoegen" defaultOpen={parts.length === 0}>
+      <AddSection title={te.addPart} defaultOpen={parts.length === 0}>
         <PartForm />
       </AddSection>
     </>

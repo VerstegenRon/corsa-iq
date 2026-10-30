@@ -6,6 +6,7 @@ import { EditOnly } from "@/components/edit-access";
 import { PlanLock } from "@/components/plan-lock";
 import { cardClass } from "@/components/ui";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format, type Locale } from "@/lib/i18n/locales";
 import { formatCents, formatDate, formatMinutes, labelFor, sortedEntries } from "@/lib/karting";
 import { limitState, type ComponentLimits, type LimitTone, type Usage } from "@/lib/part-usage";
 
@@ -20,7 +21,6 @@ export function componentLabels(t: Dictionary, set: ComponentSet) {
 }
 
 const barClass: Record<LimitTone, string> = { ok: "bg-zinc-300", soon: "bg-amber-400", due: "bg-red-400" };
-const statusText: Record<LimitTone, string> = { ok: "", soon: "bijna", due: "nu nodig" };
 const statusClass: Record<LimitTone, string> = { ok: "", soon: "text-amber-300", due: "text-red-300" };
 
 function Meter({ share, tone, label }: { share: number; tone: LimitTone; label: string }) {
@@ -40,39 +40,38 @@ function Meter({ share, tone, label }: { share: number; tone: LimitTone; label: 
 }
 
 /** Total run time (never resets) and run time since the last resetting job, against its limit. */
-export function UsageCards({ kind, usage, limit }: { kind: MaintenanceTarget["kind"]; usage: Usage; limit: number | null }) {
+export function UsageCards({ kind, usage, limit, t }: { kind: MaintenanceTarget["kind"]; usage: Usage; limit: number | null; t: Dictionary }) {
   const state = limitState(usage.sinceResetMinutes, limit);
-  const sinceLabel = kind === "kart" ? "Sinds groot onderhoud" : "Sinds laatste revisie";
-  const limitName = kind === "kart" ? "onderhoudsgrens" : "revisiegrens";
+  const te = t.equipment;
+  const text = te.maintenanceCopy[kind];
+  const hour = t.common.hourUnit;
 
   return (
-    <section aria-label="Draaitijd" className="grid gap-4 sm:grid-cols-2">
+    <section aria-label={te.runTime} className="grid gap-4 sm:grid-cols-2">
       <div className={cardClass}>
-        <p className="text-sm text-zinc-400">Totale draaitijd</p>
-        <p className="mt-2 text-3xl font-semibold">{formatMinutes(usage.totalMinutes)}</p>
-        <p className="mt-1 text-xs text-zinc-500">Loopt altijd door, ook na onderhoud en vervangen onderdelen.</p>
+        <p className="text-sm text-zinc-400">{te.totalRunTime}</p>
+        <p className="mt-2 text-3xl font-semibold">{formatMinutes(usage.totalMinutes, hour)}</p>
+        <p className="mt-1 text-xs text-zinc-500">{te.totalHint}</p>
       </div>
       <div className={cardClass}>
-        <p className="text-sm text-zinc-400">{sinceLabel}</p>
+        <p className="text-sm text-zinc-400">{text.since}</p>
         <p className="mt-2 text-3xl font-semibold">
-          {formatMinutes(usage.sinceResetMinutes)}
-          {limit !== null && <span className="text-base font-normal text-zinc-500"> / {formatMinutes(limit)}</span>}
+          {formatMinutes(usage.sinceResetMinutes, hour)}
+          {limit !== null && <span className="text-base font-normal text-zinc-500"> / {formatMinutes(limit, hour)}</span>}
         </p>
         {state ? (
           <>
             <div className="mt-3">
-              <Meter share={state.share} tone={state.tone} label={`Deel van de ${limitName} gebruikt`} />
+              <Meter share={state.share} tone={state.tone} label={format(te.limitShare, { limit: text.limitName })} />
             </div>
             <p className="mt-2 text-xs text-zinc-500">
               {state.tone === "due"
-                ? kind === "kart"
-                  ? "Groot onderhoud nodig."
-                  : "Revisie nodig."
-                : `Nog ${formatMinutes(limit! - usage.sinceResetMinutes)} tot de ${limitName}.`}
+                ? text.due
+                : format(te.remaining, { time: formatMinutes(limit! - usage.sinceResetMinutes, hour), limit: text.limitName })}
             </p>
           </>
         ) : (
-          <p className="mt-1 text-xs text-zinc-500">Stel bij Bewerken een {limitName} in om te zien wanneer het tijd is.</p>
+          <p className="mt-1 text-xs text-zinc-500">{format(te.setLimit, { limit: text.limitName })}</p>
         )}
       </div>
     </section>
@@ -87,6 +86,7 @@ export function ComponentsSection({
   limits,
   canSetLimits,
   t,
+  locale,
 }: {
   target: MaintenanceTarget;
   componentSet: ComponentSet;
@@ -95,32 +95,34 @@ export function ComponentsSection({
   /** Limits per component come with Driver; without it the form gives way to the lock card. */
   canSetLimits: boolean;
   t: Dictionary;
+  locale: Locale;
 }) {
-  const subject = target.kind === "kart" ? "onderdeel van het chassis" : "component";
+  const te = t.equipment;
+  const text = te.maintenanceCopy[target.kind];
+  const hour = t.common.hourUnit;
+  const statusText: Record<LimitTone, string> = { ok: "", soon: te.soon, due: te.dueNow };
 
   return (
     <section aria-labelledby="components-heading" className={cardClass}>
       <h2 id="components-heading" className="text-lg font-semibold">
-        Componenten
+        {te.components}
       </h2>
-      <p className="mt-1 text-sm text-zinc-400">
-        Draaitijd sinds elk {subject} voor het laatst is vervangen of gereviseerd (of sinds nieuw), met een eigen grens als je die instelt.
-      </p>
+      <p className="mt-1 text-sm text-zinc-400">{text.componentsIntro}</p>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[34rem] text-left text-sm">
           <thead className="text-xs text-zinc-500">
             <tr className="border-b border-zinc-800">
               <th scope="col" className="py-2 pr-4 font-medium">
-                Component
+                {te.colComponent}
               </th>
               <th scope="col" className="py-2 pr-4 font-medium">
-                Laatst gedaan
+                {te.colLast}
               </th>
               <th scope="col" className="py-2 pr-4 text-right font-medium">
-                Draaitijd sindsdien
+                {te.colSince}
               </th>
               <th scope="col" className="w-40 py-2 font-medium">
-                Grens
+                {te.colLimit}
               </th>
             </tr>
           </thead>
@@ -132,13 +134,13 @@ export function ComponentsSection({
               return (
                 <tr key={key}>
                   <td className="py-2 pr-4 text-zinc-200">{label}</td>
-                  <td className="py-2 pr-4 text-zinc-400">{component.lastOn ? formatDate(component.lastOn) : "nog niet"}</td>
-                  <td className="py-2 pr-4 text-right text-zinc-200 tabular-nums">{formatMinutes(component.minutes)}</td>
+                  <td className="py-2 pr-4 text-zinc-400">{component.lastOn ? formatDate(component.lastOn, locale) : te.notYet}</td>
+                  <td className="py-2 pr-4 text-right text-zinc-200 tabular-nums">{formatMinutes(component.minutes, hour)}</td>
                   <td className="py-2">
                     {state ? (
                       <div className="flex flex-col gap-1">
                         <span className="text-xs text-zinc-400 tabular-nums">
-                          {formatMinutes(limit)}
+                          {formatMinutes(limit, hour)}
                           {state.tone !== "ok" && (
                             <span className={`ml-2 font-medium ${statusClass[state.tone]}`}>
                               <span aria-hidden="true">{state.tone === "due" ? "● " : "▲ "}</span>
@@ -146,7 +148,7 @@ export function ComponentsSection({
                             </span>
                           )}
                         </span>
-                        <Meter share={state.share} tone={state.tone} label={`Deel van de grens van ${label.toLowerCase()} gebruikt`} />
+                        <Meter share={state.share} tone={state.tone} label={format(te.componentMeter, { component: label.toLowerCase() })} />
                       </div>
                     ) : (
                       <span className="text-xs text-zinc-500">—</span>
@@ -162,16 +164,13 @@ export function ComponentsSection({
         <details className="group mt-6 border-t border-zinc-800/80 pt-6">
           <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
             <span className="inline-flex items-center gap-2">
-              Grenzen per component instellen
+              {te.setLimits}
               <span aria-hidden="true" className="text-zinc-500 transition-transform group-open:rotate-90">
                 ›
               </span>
             </span>
           </summary>
-          <p className="mt-2 mb-4 text-xs text-zinc-500">
-            Na hoeveel draaiuren een {subject} weer aan de beurt is. Vanaf 90% verschijnt het onder “Onderhoud nodig” op je overzicht. Laat een veld
-            leeg voor geen grens.
-          </p>
+          <p className="mt-2 mb-4 text-xs text-zinc-500">{text.limitsIntro}</p>
           {canSetLimits ? <LimitsForm target={target} componentSet={componentSet} limits={limits} /> : <PlanLock feature="limits" compact />}
         </details>
       </EditOnly>
@@ -197,27 +196,30 @@ export function MaintenanceSection({
   records,
   today,
   t,
+  locale,
 }: {
   target: MaintenanceTarget;
   componentSet: ComponentSet | null;
   records: MaintenanceRecord[];
   today: string;
   t: Dictionary;
+  locale: Locale;
 }) {
+  const te = t.equipment;
   const allComponents = { ...t.options.engineComponents, ...t.options.chassisComponents };
 
   return (
     <section aria-labelledby="maintenance-heading" className={cardClass}>
       <h2 id="maintenance-heading" className="text-lg font-semibold">
-        Onderhoud
+        {te.maintenance}
       </h2>
       {records.length === 0 ? (
-        <p className="mt-2 text-sm text-zinc-400">Nog geen onderhoud vastgelegd.</p>
+        <p className="mt-2 text-sm text-zinc-400">{te.noMaintenance}</p>
       ) : (
         <ul className="mt-4 divide-y divide-zinc-800/80">
           {records.map((record) => {
             const cost = record.expenses.reduce((sum, e) => sum + e.amount_cents, 0);
-            const title = `${labelFor(t.options.maintenanceTypes, record.type)} van ${formatDate(record.performed_on)}`;
+            const title = format(te.recordTitle, { type: labelFor(t.options.maintenanceTypes, record.type), date: formatDate(record.performed_on, locale) });
             return (
               <li key={record.id} className="flex items-start justify-between gap-4 py-3">
                 <div className="min-w-0">
@@ -225,9 +227,9 @@ export function MaintenanceSection({
                     {labelFor(t.options.maintenanceTypes, record.type)}
                     <span className="font-normal text-zinc-500">
                       {" "}
-                      · {formatDate(record.performed_on)}
+                      · {formatDate(record.performed_on, locale)}
                       {record.performed_by && ` · ${record.performed_by}`}
-                      {record.resets_usage && " · teller op nul"}
+                      {record.resets_usage && ` · ${te.counterReset}`}
                     </span>
                   </p>
                   {record.components.length > 0 && (
@@ -240,8 +242,10 @@ export function MaintenanceSection({
                   <DeleteButton
                     compact
                     action={deleteMaintenance.bind(null, record.id)}
-                    label={`${title} verwijderen`}
-                    confirmText={`${title} verwijderen?${cost > 0 ? " De kosten verdwijnen ook uit je overzicht." : ""} De tellers rekenen dan weer vanaf het vorige onderhoud.`}
+                    label={format(te.deleteRecord, { title })}
+                    confirmText={[format(te.deleteRecordConfirm, { title }), cost > 0 ? te.deleteRecordCost : null, te.deleteRecordCounters]
+                      .filter(Boolean)
+                      .join(" ")}
                   />
                 </div>
               </li>
@@ -259,14 +263,12 @@ export function MaintenanceSection({
               >
                 +
               </span>
-              Onderhoud vastleggen
+              {te.logMaintenance}
             </span>
           </summary>
           <div className="mt-4">
             <MaintenanceForm target={target} componentSet={componentSet} today={today} />
-            <p className="mt-3 text-xs text-zinc-500">
-              Sessies op de dag van het onderhoud tellen nog mee voor de oude stand; vanaf de volgende dag begint de teller opnieuw.
-            </p>
+            <p className="mt-3 text-xs text-zinc-500">{te.sameDayNote}</p>
           </div>
         </details>
       </EditOnly>

@@ -9,7 +9,8 @@ import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getPlanAccess } from "@/lib/plan-access";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
-import { getDictionary } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { CHASSIS_COMPONENTS, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
 import { computeUsage, readLimits } from "@/lib/part-usage";
 
@@ -18,9 +19,9 @@ import { deleteKart, removePart, type MaintenanceTarget } from "../../actions";
 import { KartForm } from "../kart-form";
 import { InstallForm } from "./install-form";
 
-export const metadata: Metadata = {
-  title: "Kart — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).equipment.kart} — CorsaIQ` };
+}
 
 function partLabel(part: { category: string; brand: string | null; model: string | null; serial_number: string | null }, t: Dictionary) {
   const name = [part.brand, part.model].filter(Boolean).join(" ") || labelFor(t.options.partCategories, part.category);
@@ -30,7 +31,8 @@ function partLabel(part: { category: string; brand: string | null; model: string
 export default async function KartPage({ params }: PageProps<"/dashboard/karts/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  const te = t.equipment;
 
   const [kartResult, stockResult] = await Promise.all([
     supabase
@@ -62,27 +64,27 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
   const target: MaintenanceTarget = { kind: "kart", id: kart.id };
 
   const details = [
-    ["Chassis", [kart.chassis_brand, kart.chassis_model].filter(Boolean).join(" ")],
-    ["Bouwjaar", kart.chassis_year?.toString()],
-    ["Klasse", kart.class],
-    ["Chassisnummer", kart.serial_number],
-    ["Homologatie", kart.homologation],
-    ["Sessies", String(kart.sessions.length)],
-    ["Laatste groot onderhoud", usage.lastResetOn ? formatDate(usage.lastResetOn) : "nog niet"],
+    [te.chassis, [kart.chassis_brand, kart.chassis_model].filter(Boolean).join(" ")],
+    [te.year, kart.chassis_year?.toString()],
+    [te.kartClass, kart.class],
+    [te.chassisNumber, kart.serial_number],
+    [te.homologation, kart.homologation],
+    [te.sessions, String(kart.sessions.length)],
+    [te.lastMajor, usage.lastResetOn ? formatDate(usage.lastResetOn, locale) : te.notYet],
   ].filter((row): row is [string, string] => Boolean(row[1]));
 
   return (
     <>
       <section>
         <Link href="/dashboard/karts" className={`${linkClass} text-sm`}>
-          ← Alle karts
+          {te.allKarts}
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{kart.name}</h1>
         <p className="mt-2 text-sm text-zinc-400">{labelFor(t.options.kartStatuses, kart.status)}</p>
       </section>
 
       {details.length > 0 && (
-        <section aria-label="Gegevens" className={cardClass}>
+        <section aria-label={te.details} className={cardClass}>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {details.map(([label, value]) => (
               <div key={label}>
@@ -96,10 +98,10 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
 
       <section aria-labelledby="mounted-heading" className={cardClass}>
         <h2 id="mounted-heading" className="text-lg font-semibold">
-          Gemonteerd
+          {te.mounted}
         </h2>
         {mounted.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-400">Er zit nog niets op deze kart.</p>
+          <p className="mt-2 text-sm text-zinc-400">{te.nothingMounted}</p>
         ) : (
           <ul className="mt-4 divide-y divide-zinc-800/80">
             {mounted.map((installation) => {
@@ -109,13 +111,13 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
                   <div>
                     <p className="text-sm font-medium text-zinc-100">{partLabel(part, t)}</p>
                     <p className="text-xs text-zinc-500">
-                      {labelFor(t.options.partCategories, part.category)} · sinds {formatDate(installation.installed_at)}
+                      {labelFor(t.options.partCategories, part.category)} · {format(te.since, { date: formatDate(installation.installed_at, locale) })}
                     </p>
                   </div>
                   <EditOnly>
                     <form action={removePart.bind(null, installation.id, part.id)}>
                       <button type="submit" className={secondaryButtonClass}>
-                        Demonteren
+                        {te.unmount}
                       </button>
                     </form>
                   </EditOnly>
@@ -131,9 +133,9 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
               <InstallForm kartId={kart.id} options={stockOptions} />
             ) : (
               <p className="text-sm text-zinc-400">
-                Geen onderdelen op voorraad.{" "}
+                {te.noStock}{" "}
                 <Link href="/dashboard/parts" className={linkClass}>
-                  Onderdeel toevoegen
+                  {te.addPart}
                 </Link>
               </p>
             )}
@@ -144,14 +146,14 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
       {history.length > 0 && (
         <section aria-labelledby="history-heading" className={cardClass}>
           <h2 id="history-heading" className="text-lg font-semibold">
-            Eerder gemonteerd
+            {te.history}
           </h2>
           <ul className="mt-4 divide-y divide-zinc-800/80">
             {history.map((installation) => (
               <li key={installation.id} className="py-3 text-sm">
                 <p className="text-zinc-200">{partLabel(installation.parts!, t)}</p>
                 <p className="text-xs text-zinc-500">
-                  {formatDate(installation.installed_at)} – {formatDate(installation.removed_at)}
+                  {formatDate(installation.installed_at, locale)} – {formatDate(installation.removed_at, locale)}
                 </p>
               </li>
             ))}
@@ -159,7 +161,7 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
         </section>
       )}
 
-      <UsageCards kind="kart" usage={usage} limit={kart.usage_limit_minutes} />
+      <UsageCards kind="kart" usage={usage} limit={kart.usage_limit_minutes} t={t} />
 
       <ComponentsSection
         target={target}
@@ -168,17 +170,18 @@ export default async function KartPage({ params }: PageProps<"/dashboard/karts/[
         usage={usage}
         limits={componentLimits}
         t={t}
+        locale={locale}
       />
 
-      <MaintenanceSection target={target} componentSet="chassis" records={kart.maintenance_records} today={todayInAmsterdam()} t={t} />
+      <MaintenanceSection target={target} componentSet="chassis" records={kart.maintenance_records} today={todayInAmsterdam()} t={t} locale={locale} />
 
       <EditSection
-        title="Kart bewerken"
+        title={te.editKart}
         danger={
           <DeleteButton
             action={deleteKart.bind(null, kart.id)}
-            label="Kart verwijderen"
-            confirmText={`${kart.name} verwijderen? Gemonteerde onderdelen gaan terug naar de voorraad.`}
+            label={te.deleteKart}
+            confirmText={format(te.deleteKartConfirm, { kart: kart.name })}
           />
         }
       >

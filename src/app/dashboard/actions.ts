@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
-import { dbError } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format, plural } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import {
   CHASSIS_COMPONENTS,
@@ -23,19 +25,22 @@ import { lockedError } from "@/lib/plan-access";
 import { optionalNumber, text } from "./form-data";
 
 type Supabase = Awaited<ReturnType<typeof getCurrentGarage>>["supabase"];
+type Texts = Dictionary["equipment"];
 
-function readKart(formData: FormData) {
+const failed = async (template: string, error: { message: string; code?: string }) => format(template, { error: await dbErrorText(error) });
+
+function readKart(formData: FormData, te: Texts) {
   const name = text(formData, "name");
-  if (!name) return { error: "Geef je kart een naam, bijvoorbeeld “Kart A”." };
+  if (!name) return { error: te.kartNameMissing };
 
   const year = optionalNumber(formData, "chassis_year");
   if (year === undefined || (year !== null && (year < 1950 || year > 2100))) {
-    return { error: "Vul een geldig bouwjaar in." };
+    return { error: te.invalidYear };
   }
 
   const limitHours = optionalNumber(formData, "usage_limit_hours");
   if (limitHours === undefined || limitHours === 0) {
-    return { error: "Vul een geldig aantal draaiuren in, of laat het veld leeg." };
+    return { error: te.invalidHours };
   }
 
   return {
@@ -52,22 +57,24 @@ function readKart(formData: FormData) {
 }
 
 export async function createKart(_prev: FormState, formData: FormData): Promise<FormState> {
-  const kart = readKart(formData);
+  const te = (await getDictionary()).equipment;
+  const kart = readKart(formData, te);
   if ("error" in kart) return kart;
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("karts").insert({ garage_id: garage.id, ...kart.values });
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: `${kart.values.name} is toegevoegd.` };
+  return { success: format(te.kartAdded, { kart: kart.values.name }) };
 }
 
 export async function updateKart(kartId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const kart = readKart(formData);
+  const te = (await getDictionary()).equipment;
+  const kart = readKart(formData, te);
   if ("error" in kart) return kart;
   const status = text(formData, "status");
-  if (!status || !(status in KART_STATUSES)) return { error: "Kies een status." };
+  if (!status || !(status in KART_STATUSES)) return { error: te.chooseStatus };
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase
@@ -75,20 +82,21 @@ export async function updateKart(kartId: string, _prev: FormState, formData: For
     .update({ ...kart.values, status })
     .eq("id", kartId)
     .eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Wijzigingen opgeslagen." };
+  return { success: te.saved };
 }
 
 export async function deleteKart(kartId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   // Sessions keep pointing at the kart they ran with, so a kart with history stays.
   const { count } = await supabase.from("sessions").select("id", { count: "exact", head: true }).eq("kart_id", kartId);
   if (count) {
     return {
-      error: `Deze kart heeft ${count} ${count === 1 ? "sessie" : "sessies"}. Zet de status op “Verkocht” of “Uit dienst” om hem te bewaren, of verwijder eerst die sessies.`,
+      error: format(plural(count, t.equipment.kartHasSessions), { sold: t.options.kartStatuses.sold, retired: t.options.kartStatuses.retired }),
     };
   }
 
@@ -96,7 +104,7 @@ export async function deleteKart(kartId: string): Promise<FormState> {
   const { data: mounted } = await supabase.from("part_installations").select("part_id").eq("kart_id", kartId).is("removed_at", null);
 
   const { error } = await supabase.from("karts").delete().eq("id", kartId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(t.equipment.deleteFailed, error) };
 
   if (mounted && mounted.length > 0) {
     await supabase
@@ -112,16 +120,16 @@ export async function deleteKart(kartId: string): Promise<FormState> {
   redirect("/dashboard/karts");
 }
 
-function readPart(formData: FormData) {
+function readPart(formData: FormData, te: Texts) {
   const category = text(formData, "category");
-  if (!category || !isPartCategory(category)) return { error: "Kies een categorie." };
+  if (!category || !isPartCategory(category)) return { error: te.chooseCategory };
 
   const price = optionalNumber(formData, "purchase_price");
-  if (price === undefined) return { error: "Vul een geldige prijs in, bijvoorbeeld 249,95." };
+  if (price === undefined) return { error: te.invalidPrice };
 
   const limitHours = optionalNumber(formData, "usage_limit_hours");
   if (limitHours === undefined || limitHours === 0) {
-    return { error: "Vul een geldig aantal draaiuren in, of laat het veld leeg." };
+    return { error: te.invalidHours };
   }
 
   return {
@@ -171,7 +179,8 @@ async function syncPurchaseExpense(supabase: Supabase, garageId: string, partId:
 }
 
 export async function createPart(_prev: FormState, formData: FormData): Promise<FormState> {
-  const part = readPart(formData);
+  const te = (await getDictionary()).equipment;
+  const part = readPart(formData, te);
   if ("error" in part) return part;
 
   const { supabase, garage } = await getCurrentGarage();
@@ -180,28 +189,29 @@ export async function createPart(_prev: FormState, formData: FormData): Promise<
     .insert({ garage_id: garage.id, ...part.values })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, inserted.id, part.values);
-  if (expenseError) return { error: `Onderdeel opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
+  if (expenseError) return { error: await failed(te.partSavedCostFailed, expenseError) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Onderdeel toegevoegd." };
+  return { success: te.partAdded };
 }
 
 export async function updatePart(partId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const part = readPart(formData);
+  const te = (await getDictionary()).equipment;
+  const part = readPart(formData, te);
   if ("error" in part) return part;
 
   const { supabase, garage } = await getCurrentGarage();
 
   // "Gemonteerd" follows from mounting; a mounted part keeps that status until it is removed.
   const { data: current } = await supabase.from("parts").select("status").eq("id", partId).eq("garage_id", garage.id).maybeSingle();
-  if (!current) return { error: "Dit onderdeel bestaat niet meer." };
+  if (!current) return { error: te.partGone };
   const status = text(formData, "status");
   const nextStatus = current.status === "installed" ? "installed" : status;
   if (!nextStatus || !(nextStatus in PART_STATUSES) || (current.status !== "installed" && nextStatus === "installed")) {
-    return { error: "Kies een status. Monteren doe je op de pagina van de kart." };
+    return { error: te.chooseStatusMount };
   }
 
   const { error } = await supabase
@@ -209,23 +219,24 @@ export async function updatePart(partId: string, _prev: FormState, formData: For
     .update({ ...part.values, status: nextStatus })
     .eq("id", partId)
     .eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   const { error: expenseError } = await syncPurchaseExpense(supabase, garage.id, partId, part.values);
-  if (expenseError) return { error: `Onderdeel opgeslagen, maar kosten bijwerken mislukt: ${expenseError.message}` };
+  if (expenseError) return { error: await failed(te.partSavedCostUpdateFailed, expenseError) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Wijzigingen opgeslagen." };
+  return { success: te.saved };
 }
 
 export async function deletePart(partId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
 
   // Deleting a part would also erase it from past sessions, so used parts are written off instead.
   const { count } = await supabase.from("session_parts").select("part_id", { count: "exact", head: true }).eq("part_id", partId);
   if (count) {
     return {
-      error: `Dit onderdeel is in ${count} ${count === 1 ? "sessie" : "sessies"} gebruikt. Zet de status op “Afgeschreven” of “Verkocht” om de geschiedenis te bewaren.`,
+      error: format(plural(count, t.equipment.partUsed), { discarded: t.options.partStatuses.discarded, sold: t.options.partStatuses.sold }),
     };
   }
 
@@ -233,7 +244,7 @@ export async function deletePart(partId: string): Promise<FormState> {
   const { data: purchase } = await purchaseExpense(supabase, partId);
 
   const { error } = await supabase.from("parts").delete().eq("id", partId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(t.equipment.deleteFailed, error) };
   if (purchase) await supabase.from("expenses").delete().eq("id", purchase.id);
 
   revalidatePath("/dashboard", "layout");
@@ -258,21 +269,22 @@ async function maintenanceSubject(supabase: Supabase, garageId: string, target: 
 }
 
 export async function createMaintenance(target: MaintenanceTarget, _prev: FormState, formData: FormData): Promise<FormState> {
+  const t = await getDictionary();
+  const te = t.equipment;
   const performedOn = text(formData, "performed_on");
   const type = text(formData, "type");
-  if (!performedOn) return { error: "Vul de datum in." };
-  if (!type || !(type in MAINTENANCE_TYPES)) return { error: "Kies het soort onderhoud." };
+  if (!performedOn) return { error: te.dateMissing };
+  if (!type || !(type in MAINTENANCE_TYPES)) return { error: te.chooseKind };
 
   const cost = optionalNumber(formData, "cost");
-  if (cost === undefined) return { error: "Vul een geldig bedrag in, of laat het veld leeg." };
+  if (cost === undefined) return { error: te.invalidAmount };
 
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
   const subject = await maintenanceSubject(supabase, garage.id, target);
-  if (!subject) return { error: target.kind === "kart" ? "Deze kart bestaat niet meer." : "Dit onderdeel bestaat niet meer." };
+  if (!subject) return { error: target.kind === "kart" ? te.kartGone : te.partGone };
 
   const components = formData.getAll("components").map(String);
-  if (components.some((c) => !(c in subject.components))) return { error: "Onbekend component gekozen." };
+  if (components.some((c) => !(c in subject.components))) return { error: te.unknownComponent };
 
   const { data: record, error } = await supabase
     .from("maintenance_records")
@@ -289,7 +301,7 @@ export async function createMaintenance(target: MaintenanceTarget, _prev: FormSt
     })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   if (cost) {
     const { error: expenseError } = await supabase.from("expenses").insert({
@@ -304,11 +316,11 @@ export async function createMaintenance(target: MaintenanceTarget, _prev: FormSt
         subject.category ? labelFor(t.options.partCategories, subject.category).toLowerCase() : "chassis",
       ].join(" "),
     });
-    if (expenseError) return { error: `Onderhoud opgeslagen, maar kosten vastleggen mislukt: ${expenseError.message}` };
+    if (expenseError) return { error: await failed(te.maintenanceSavedCostFailed, expenseError) };
   }
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Onderhoud vastgelegd." };
+  return { success: te.maintenanceLogged };
 }
 
 /** Removes the job and its cost; the counters then count from the previous job again. */
@@ -316,7 +328,7 @@ export async function deleteMaintenance(recordId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
   await supabase.from("expenses").delete().eq("maintenance_record_id", recordId).eq("garage_id", garage.id);
   const { error } = await supabase.from("maintenance_records").delete().eq("id", recordId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed((await getDictionary()).equipment.deleteFailed, error) };
 
   revalidatePath("/dashboard", "layout");
   return {};
@@ -327,14 +339,17 @@ export async function updateComponentLimits(target: MaintenanceTarget, _prev: Fo
   const locked = await lockedError("limits");
   if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
+  const t = await getDictionary();
+  const te = t.equipment;
   const subject = await maintenanceSubject(supabase, garage.id, target);
-  if (!subject) return { error: target.kind === "kart" ? "Deze kart bestaat niet meer." : "Dit onderdeel bestaat niet meer." };
+  if (!subject) return { error: target.kind === "kart" ? te.kartGone : te.partGone };
+  const names: Record<string, string> = { ...t.options.engineComponents, ...t.options.chassisComponents };
 
   const limits: Record<string, number> = {};
   for (const key of Object.keys(subject.components)) {
     const hours = optionalNumber(formData, `limit_${key}`);
     if (hours === undefined || hours === 0) {
-      return { error: `Vul bij ${labelFor(subject.components, key).toLowerCase()} een geldig aantal uren in, of laat het leeg.` };
+      return { error: format(te.invalidLimit, { component: labelFor(names, key).toLowerCase() }) };
     }
     if (hours !== null) limits[key] = Math.round(hours * 60);
   }
@@ -343,28 +358,29 @@ export async function updateComponentLimits(target: MaintenanceTarget, _prev: Fo
     target.kind === "kart"
       ? await supabase.from("karts").update({ component_limits: limits }).eq("id", target.id).eq("garage_id", garage.id)
       : await supabase.from("parts").update({ component_limits: limits }).eq("id", target.id).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Grenzen opgeslagen." };
+  return { success: te.limitsSaved };
 }
 
 export async function installPart(kartId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const te = (await getDictionary()).equipment;
   const partId = text(formData, "part_id");
-  if (!partId) return { error: "Kies een onderdeel om te monteren." };
+  if (!partId) return { error: te.choosePart };
 
   const { supabase } = await getCurrentGarage();
   const { error } = await supabase.from("part_installations").insert({ part_id: partId, kart_id: kartId });
   if (error) {
     return {
-      error: error.code === "23505" ? "Dit onderdeel zit al op een kart. Demonteer het daar eerst." : `Monteren mislukt: ${dbError(error)}`,
+      error: error.code === "23505" ? te.alreadyMounted : await failed(te.mountFailed, error),
     };
   }
 
   await supabase.from("parts").update({ status: "installed" }).eq("id", partId);
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Onderdeel gemonteerd." };
+  return { success: te.partMounted };
 }
 
 export async function removePart(installationId: string, partId: string) {
@@ -375,7 +391,7 @@ export async function removePart(installationId: string, partId: string) {
     .update({ removed_at: new Date().toISOString() })
     .eq("id", installationId)
     .is("removed_at", null);
-  if (error) throw new Error(`Demonteren mislukt: ${dbError(error)}`);
+  if (error) throw new Error(await failed((await getDictionary()).equipment.unmountFailed, error));
 
   await supabase.from("parts").update({ status: "in_stock" }).eq("id", partId);
 
