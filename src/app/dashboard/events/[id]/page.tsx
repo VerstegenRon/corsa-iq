@@ -9,6 +9,7 @@ import { FeedbackTags } from "@/components/feedback-tags";
 import { cardClass, linkClass } from "@/components/ui";
 import { parseFeedbackTags } from "@/lib/feedback";
 import { getCurrentGarage } from "@/lib/garage";
+import { lockedError } from "@/lib/plan-access";
 import { getDictionary } from "@/lib/i18n/server";
 import {
   formatCents,
@@ -250,7 +251,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         <ExpenseList expenses={expenses} showEvent={false} />
         <EditOnly>
           <div className="mt-6 border-t border-zinc-800/80 pt-6">
-            <ExpenseForm garageId={garage.id} eventId={event.id} defaultDate={event.starts_on} />
+            <ExpenseForm readLocked={await lockedError("receipts")} garageId={garage.id} eventId={event.id} defaultDate={event.starts_on} />
           </div>
         </EditOnly>
       </section>

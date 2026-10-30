@@ -191,6 +191,22 @@ export const en: Dictionary = {
     payYearly: "Pay yearly instead",
     yourPlan: "Your current plan",
   },
+  plan: {
+    lockedTitle: "Part of {plan}",
+    lockedText: "{feature} comes with {plan} and up. Your garage is on {current} now.",
+    lockedError: "{feature} comes with {plan} and up. See the plans to upgrade.",
+    upgrade: "Upgrade to {plan}",
+    upgradeMore: "View plans",
+    askOwner: "Ask the garage owner to upgrade.",
+    limitTitle: "Plan full",
+    limitReached: "With {plan} you have room for {things}.",
+    kartsNote: "Sold and retired karts don't count.",
+    things: {
+      karts: { one: "{count} kart", other: "{count} karts" },
+      drivers: { one: "{count} driver", other: "{count} drivers" },
+      members: { one: "{count} team member", other: "{count} team members" },
+    },
+  },
   home: {
     metaTitle: "CorsaIQ — your karting season in one pit box",
     metaDescription:

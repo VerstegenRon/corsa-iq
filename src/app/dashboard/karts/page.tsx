@@ -5,6 +5,7 @@ import { AddSection } from "@/components/edit-section";
 import { Icon, IconTile } from "@/components/icons";
 import { Chip, Meter, toneForShare } from "@/components/meter";
 import { EmptyState, PageHeader } from "@/components/page-header";
+import { atLimit, LimitReached } from "@/components/plan-lock";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getDictionary } from "@/lib/i18n/server";
@@ -29,6 +30,8 @@ export default async function KartsPage() {
     .eq("garage_id", garage.id)
     .order("created_at");
   if (error) throw new Error(error.message);
+  // Sold and retired karts do not count towards the plan.
+  const inUse = karts.filter((k) => k.status === "active" || k.status === "spare").length;
 
   return (
     <>
@@ -92,7 +95,7 @@ export default async function KartsPage() {
       )}
 
       <AddSection title="Kart toevoegen" defaultOpen={karts.length === 0}>
-        <KartForm />
+        {(await atLimit("karts", inUse)) ? <LimitReached counted="karts" used={inUse} /> : <KartForm />}
       </AddSection>
     </>
   );

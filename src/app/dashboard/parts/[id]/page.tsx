@@ -6,6 +6,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { getPlanAccess } from "@/lib/plan-access";
 import { getDictionary } from "@/lib/i18n/server";
 import { ENGINE_COMPONENTS, formatCents, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
 import { computeUsage, readLimits } from "@/lib/part-usage";
@@ -88,7 +89,16 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
 
       <UsageCards kind="part" usage={usage} limit={part.usage_limit_minutes} />
 
-      {isEngine && <ComponentsSection target={target} componentSet="engine" usage={usage} limits={componentLimits} t={t} />}
+      {isEngine && (
+        <ComponentsSection
+          target={target}
+          canSetLimits={(await getPlanAccess()).has("limits")}
+          componentSet="engine"
+          usage={usage}
+          limits={componentLimits}
+          t={t}
+        />
+      )}
 
       <MaintenanceSection target={target} componentSet={isEngine ? "engine" : null} records={records} today={todayInAmsterdam()} t={t} />
 

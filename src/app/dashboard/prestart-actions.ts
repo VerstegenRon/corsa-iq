@@ -6,6 +6,7 @@ import type { FormState } from "@/components/form-message";
 import { dbError } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
 import { CORNERS, chainStatus, type CheckStatus } from "@/lib/prestart";
+import { lockedError } from "@/lib/plan-access";
 
 // ---------------------------------------------------------------------------
 // Pre-start checklist: one round per event, kart and coming session; made on its first reading.
@@ -43,6 +44,8 @@ async function ensureCheck(ctx: PrestartContext) {
 }
 
 export async function saveTyreReading(ctx: PrestartContext, corner: string, value: number): Promise<FormState> {
+  const locked = await lockedError("prestart");
+  if (locked) return { error: locked };
   if (!(CORNERS as readonly string[]).includes(corner)) return { error: "Onbekende band." };
   if (!Number.isFinite(value) || value < 0.2 || value > 3) return { error: "Vul een druk in tussen 0,20 en 3,00 bar." };
   const check = await ensureCheck(ctx);
@@ -59,6 +62,8 @@ const CHECK_KEYS = ["gearing", "chain", "main_jet", "tyre_set"];
 
 /** One check: confirmed (ok) or reopened; the chain slack is a measurement in mm. */
 export async function setCheck(ctx: PrestartContext, key: string, input: { value?: string | null; done?: boolean }): Promise<FormState> {
+  const locked = await lockedError("prestart");
+  if (locked) return { error: locked };
   if (!CHECK_KEYS.includes(key)) return { error: "Onbekende controle." };
   let status: CheckStatus = input.done ? "ok" : "open";
   let value = input.value ?? null;
@@ -70,20 +75,18 @@ export async function setCheck(ctx: PrestartContext, key: string, input: { value
   }
   const check = await ensureCheck(ctx);
   if ("error" in check) return { error: check.error };
-  const { error } = await check.supabase
-    .from("session_checks")
-    .upsert(
-      {
-        garage_id: check.garage.id,
-        prestart_check_id: check.id,
-        key,
-        value,
-        status,
-        checked_by: check.user.id,
-        checked_at: new Date().toISOString(),
-      },
-      { onConflict: "prestart_check_id,key" },
-    );
+  const { error } = await check.supabase.from("session_checks").upsert(
+    {
+      garage_id: check.garage.id,
+      prestart_check_id: check.id,
+      key,
+      value,
+      status,
+      checked_by: check.user.id,
+      checked_at: new Date().toISOString(),
+    },
+    { onConflict: "prestart_check_id,key" },
+  );
   if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
   revalidatePath("/dashboard/vandaag");
   return {};
@@ -91,6 +94,8 @@ export async function setCheck(ctx: PrestartContext, key: string, input: { value
 
 /** Locks the setup for this session: the round and the setup itself record who and when. */
 export async function lockSetup(ctx: PrestartContext): Promise<FormState> {
+  const locked = await lockedError("prestart");
+  if (locked) return { error: locked };
   if (!ctx.setupId) return { error: "Er is nog geen setup voor deze kart om te vergrendelen." };
   const check = await ensureCheck(ctx);
   if ("error" in check) return { error: check.error };
@@ -106,6 +111,8 @@ export async function lockSetup(ctx: PrestartContext): Promise<FormState> {
 }
 
 export async function unlockSetup(ctx: PrestartContext): Promise<FormState> {
+  const locked = await lockedError("prestart");
+  if (locked) return { error: locked };
   const check = await ensureCheck(ctx);
   if ("error" in check) return { error: check.error };
   const { error } = await check.supabase.from("prestart_checks").update({ locked_at: null, locked_by: null }).eq("id", check.id);

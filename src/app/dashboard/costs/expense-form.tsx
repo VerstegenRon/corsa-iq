@@ -28,6 +28,7 @@ export function ExpenseForm({
   seasons = [],
   events = [],
   defaultSeasonId,
+  readLocked,
 }: {
   garageId: string;
   defaultDate: string;
@@ -35,6 +36,8 @@ export function ExpenseForm({
   seasons?: Option[];
   events?: Option[];
   defaultSeasonId?: string;
+  /** Why the receipt is only stored, not read (a plan without it); null when it is read. */
+  readLocked?: string | null;
 }) {
   const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
@@ -53,6 +56,7 @@ export function ExpenseForm({
     const upload = await uploadReceipt(garageId, file);
     if ("error" in upload) return setReading({ error: upload.error });
     receiptPath.current = upload.path;
+    if (readLocked) return setReading({ message: `${readLocked} Het bonnetje wordt wel bewaard.` });
 
     setReading({ busy: true, message: "Bonnetje inlezen…" });
     const result = await readUploadedReceipt(upload.path);
@@ -105,14 +109,7 @@ export function ExpenseForm({
           <span className="block font-semibold text-zinc-100">{reading.busy ? "Bonnetje lezen…" : "Foto of pdf van je bonnetje"}</span>
           <span className="block text-xs text-zinc-500">We vullen bedrag, datum en categorie voor je in.</span>
         </span>
-        <input
-          name="receipt"
-          type="file"
-          accept={RECEIPT_ACCEPT}
-          onChange={onReceiptChange}
-          disabled={reading.busy}
-          className="sr-only"
-        />
+        <input name="receipt" type="file" accept={RECEIPT_ACCEPT} onChange={onReceiptChange} disabled={reading.busy} className="sr-only" />
       </label>
       {(reading.message || reading.error) && (
         <p role="status" className={`col-span-2 text-sm lg:col-span-3 ${reading.error ? "text-amber-300" : "text-brand-300"}`}>
@@ -170,7 +167,6 @@ export function ExpenseForm({
         Omschrijving
         <input name="description" placeholder="Inschrijving NK ronde 1" className={inputClass} />
       </label>
-
 
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />

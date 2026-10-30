@@ -18,6 +18,7 @@ import {
   todayInAmsterdam,
 } from "@/lib/karting";
 import { seasonIdForDate } from "@/lib/season-for-date";
+import { lockedError } from "@/lib/plan-access";
 
 import { optionalNumber, text } from "./form-data";
 
@@ -323,6 +324,8 @@ export async function deleteMaintenance(recordId: string): Promise<FormState> {
 
 /** Saves the hours each component may run before it is due; an empty field removes that limit. */
 export async function updateComponentLimits(target: MaintenanceTarget, _prev: FormState, formData: FormData): Promise<FormState> {
+  const locked = await lockedError("limits");
+  if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
   const subject = await maintenanceSubject(supabase, garage.id, target);
   if (!subject) return { error: target.kind === "kart" ? "Deze kart bestaat niet meer." : "Dit onderdeel bestaat niet meer." };

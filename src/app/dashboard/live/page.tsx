@@ -7,6 +7,8 @@ import { getDictionary } from "@/lib/i18n/server";
 import { formatDate, formatLapTime, labelFor, todayInAmsterdam } from "@/lib/karting";
 import type { LiveReference } from "@/lib/live";
 import { DAY_ORDER } from "@/lib/prestart";
+import { PlanLock } from "@/components/plan-lock";
+import { getPlanAccess } from "@/lib/plan-access";
 
 import { LiveBoard, type BoardLap } from "./live-board";
 import { StartLiveForm, type ReferenceOption } from "./start-live-form";
@@ -21,6 +23,7 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 export default async function LivePage({ searchParams }: PageProps<"/dashboard/live">) {
   const query = await searchParams;
   const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  if (!(await getPlanAccess()).has("live")) return <PlanLock feature="live" />;
 
   const { data: runningData } = await supabase
     .from("live_sessions")

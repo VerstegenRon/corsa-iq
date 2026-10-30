@@ -10,8 +10,10 @@ import { PageHeader } from "@/components/page-header";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { EVENT_TYPES, labelFor, todayInAmsterdam } from "@/lib/karting";
+import { PlanLock } from "@/components/plan-lock";
 import { jobSentence, jobTitle } from "@/lib/maintenance-plan";
 import { loadMaintenancePlan } from "@/lib/maintenance-plan-data";
+import { getPlanAccess } from "@/lib/plan-access";
 
 import { deleteCalendarItem } from "../agenda-actions";
 import { FeedSection } from "./feed-section";
@@ -75,6 +77,8 @@ export default async function AgendaPage({ searchParams }: PageProps<"/dashboard
   const gridEnd = addDays(monthEnd, (7 - utc(monthEnd).getUTCDay()) % 7);
 
   const { supabase, user, garage } = await getCurrentGarage();
+  // Maintenance planning comes with Driver: without it the agenda shows no planned jobs.
+  const canPlan = (await getPlanAccess()).has("limits");
   const [events, items, feed, plan, requestHeaders] = await Promise.all([
     supabase
       .from("events")
@@ -92,7 +96,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/dashboard
       .order("starts_on")
       .order("starts_at", { nullsFirst: true }),
     supabase.from("calendar_feeds").select("token").eq("garage_id", garage.id).eq("user_id", user.id).maybeSingle(),
-    loadMaintenancePlan(supabase, garage.id, today),
+    canPlan ? loadMaintenancePlan(supabase, garage.id, today) : [],
     headers(),
   ]);
 
@@ -255,9 +259,7 @@ export default async function AgendaPage({ searchParams }: PageProps<"/dashboard
         <p className="mt-1 text-sm text-zinc-400">
           Op basis van de draaiuren en limieten van je karts en gemonteerde onderdelen, en de looptijd van je vorige evenementen.
         </p>
-        <div className="mt-3">
-          <MaintenancePlanList jobs={plan} />
-        </div>
+        <div className="mt-3">{canPlan ? <MaintenancePlanList jobs={plan} /> : <PlanLock feature="limits" compact />}</div>
       </section>
 
       <AddSection title="Afspraak toevoegen" defaultOpen={false}>

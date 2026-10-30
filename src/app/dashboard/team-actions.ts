@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import { dbError } from "@/lib/db-error";
+import { getPlanAccess } from "@/lib/plan-access";
 import { GARAGE_COOKIE, getCurrentGarage, type GarageRole } from "@/lib/garage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,6 +32,21 @@ export async function createInvite(role: string, label: string): Promise<FormSta
   if (!ROLES.includes(role as GarageRole)) return { error: "Kies een rol." };
   const { supabase, garage, canManageTeam } = await getCurrentGarage();
   if (!canManageTeam) return { error: "Alleen de eigenaar kan mensen uitnodigen." };
+  const allowed = (await getPlanAccess()).limit("members");
+  if (allowed !== null) {
+    // Open invitations hold a seat, like on the team page.
+    const [{ count: members }, { count: open }] = await Promise.all([
+      supabase.from("garage_members").select("user_id", { count: "exact", head: true }).eq("garage_id", garage.id),
+      supabase
+        .from("garage_invites")
+        .select("id", { count: "exact", head: true })
+        .eq("garage_id", garage.id)
+        .is("accepted_at", null)
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString()),
+    ]);
+    if ((members ?? 0) + (open ?? 0) >= allowed) return { error: `Uitnodiging maken mislukt: ${dbError({ message: "plan_limit:members" })}` };
+  }
   const { data, error } = await supabase
     .from("garage_invites")
     .insert({ garage_id: garage.id, role, label: label.trim().slice(0, 80) || null })

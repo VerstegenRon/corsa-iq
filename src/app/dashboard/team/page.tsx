@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 
 import { DeleteButton } from "@/components/delete-button";
 import { PageHeader } from "@/components/page-header";
+import { atLimit, LimitReached } from "@/components/plan-lock";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { formatDate } from "@/lib/karting";
@@ -36,6 +37,8 @@ export default async function TeamPage() {
       : Promise.resolve({ data: [] }),
   ]);
   const members = team ?? [];
+  // Open invitations hold a seat: accepting one adds a member.
+  const seats = members.length + (invites ?? []).length;
 
   return (
     <>
@@ -64,7 +67,12 @@ export default async function TeamPage() {
                   {canManageTeam && !self ? (
                     <>
                       <RoleSelect userId={m.user_id} role={m.role} name={name} />
-                      <DeleteButton action={removeMember.bind(null, m.user_id)} confirmText={`${name} uit het team halen?`} label={`${name} verwijderen`} iconOnly />
+                      <DeleteButton
+                        action={removeMember.bind(null, m.user_id)}
+                        confirmText={`${name} uit het team halen?`}
+                        label={`${name} verwijderen`}
+                        iconOnly
+                      />
                     </>
                   ) : (
                     <span className="border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300">{ROLE_LABELS[m.role]?.name ?? m.role}</span>
@@ -76,7 +84,11 @@ export default async function TeamPage() {
         </ul>
         {!canManageTeam && (
           <div className="mt-4 border-t border-zinc-800 pt-4">
-            <DeleteButton action={removeMember.bind(null, user.id)} confirmText={`${garage.name} verlaten? Je ziet de gegevens van dit team dan niet meer.`} label="Dit team verlaten" />
+            <DeleteButton
+              action={removeMember.bind(null, user.id)}
+              confirmText={`${garage.name} verlaten? Je ziet de gegevens van dit team dan niet meer.`}
+              label="Dit team verlaten"
+            />
           </div>
         )}
       </section>
@@ -89,7 +101,7 @@ export default async function TeamPage() {
           <p className="mt-1 mb-5 text-sm text-zinc-400">
             Kies een rol en stuur de link, bijvoorbeeld via WhatsApp. Wie hem opent, logt in of maakt een account en zit daarna in jouw team.
           </p>
-          <InviteForm origin={origin} />
+          {(await atLimit("members", seats)) ? <LimitReached counted="members" used={seats} /> : <InviteForm origin={origin} />}
 
           {(invites ?? []).length > 0 && (
             <div className="mt-6 border-t border-zinc-800 pt-4">
@@ -102,7 +114,11 @@ export default async function TeamPage() {
                       {i.label && <span className="text-zinc-300"> · {i.label}</span>}
                       <span className="block text-xs text-zinc-500">geldig tot {formatDate(i.expires_at)}</span>
                     </span>
-                    <DeleteButton action={revokeInvite.bind(null, i.id)} confirmText="Deze uitnodiging intrekken? De link werkt dan niet meer." label="Intrekken" />
+                    <DeleteButton
+                      action={revokeInvite.bind(null, i.id)}
+                      confirmText="Deze uitnodiging intrekken? De link werkt dan niet meer."
+                      label="Intrekken"
+                    />
                   </li>
                 ))}
               </ul>

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { getCurrentGarage } from "@/lib/garage";
+import { PlanLockScreen } from "@/components/plan-lock";
+import { getPlanAccess } from "@/lib/plan-access";
 
 import { PitboardScreen, type BoardSession } from "./pitboard-screen";
 
@@ -11,8 +13,16 @@ export const metadata: Metadata = {
 /** The digital pit board: one message and the live gap, big enough to read from the kart. */
 export default async function PitboardPage() {
   const { supabase, garage } = await getCurrentGarage();
+  if (!(await getPlanAccess()).has("pitboard")) return <PlanLockScreen feature="pitboard" />;
   const [{ data: message }, { data: running }] = await Promise.all([
-    supabase.from("pit_messages").select("id, text").eq("garage_id", garage.id).is("cleared_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase
+      .from("pit_messages")
+      .select("id, text")
+      .eq("garage_id", garage.id)
+      .is("cleared_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("live_sessions")
       .select("id, label, planned_laps, karts(name), laps(lap_time_ms), live_laps(lap_number, lap_time_ms, position, gap_to_p1_ms, is_pit_lap)")
