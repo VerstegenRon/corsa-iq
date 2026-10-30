@@ -104,7 +104,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/dashboa
 
       <section aria-labelledby="data-heading" className={cardClass}>
         <h2 id="data-heading" className="text-lg font-semibold">
-          Je gegevens en account
+          {t.account.heading}
         </h2>
         <div className="mt-4">
           <AccountData garages={accountGarages ?? []} />
