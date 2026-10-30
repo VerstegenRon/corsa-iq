@@ -4,6 +4,8 @@
 import { revalidatePath } from "next/cache";
 
 import { insertSession } from "@/app/dashboard/session-save";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { EVENT_TYPES } from "@/lib/karting";
 import { KEEP_SETUP_FIELDS, type NewEvent } from "@/lib/pitwall";
 import { seasonIdForDate } from "@/lib/season-for-date";
@@ -12,15 +14,16 @@ import { createClient } from "@/lib/supabase/server";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request) {
+  const te = (await getDictionary()).pitwall.errors;
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
-    return Response.json({ error: "Verwacht JSON." }, { status: 415 });
+    return Response.json({ error: te.expectJson }, { status: 415 });
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Log opnieuw in om de sessies te versturen." }, { status: 401 });
+  if (!user) return Response.json({ error: te.logInAgain }, { status: 401 });
 
   const body = (await request.json().catch(() => null)) as {
     id?: unknown;
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
     !fields ||
     typeof fields !== "object"
   ) {
-    return Response.json({ error: "Onvolledige sessie." }, { status: 400 });
+    return Response.json({ error: te.incomplete }, { status: 400 });
   }
 
   // RLS limits events to the user's garages; the event also tells which garage the setup belongs to.
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
     if ("error" in created) return Response.json({ error: created.error }, { status: 422 });
     event = created.event;
   }
-  if (!event) return Response.json({ error: "Dit evenement bestaat niet meer." }, { status: 404 });
+  if (!event) return Response.json({ error: te.eventGone }, { status: 404 });
 
   const formData = new FormData();
   for (const [key, value] of Object.entries(fields)) {
@@ -68,12 +71,13 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /** Saves an event made on the pitwall, in the user's garage and the season of its year. */
 async function createEvent(supabase: Supabase, newEvent: Partial<NewEvent>) {
+  const te = (await getDictionary()).pitwall.errors;
   const { id, name, type, track_id: trackId, starts_on: startsOn } = newEvent;
   if (!id || !UUID.test(id) || !name?.trim() || !type || !(type in EVENT_TYPES) || !trackId || !startsOn || !/^\d{4}-\d{2}-\d{2}$/.test(startsOn)) {
-    return { error: "Het nieuwe evenement is onvolledig." };
+    return { error: te.newEventIncomplete };
   }
   const { data: garage } = await supabase.from("garages").select("id").order("created_at").limit(1).maybeSingle();
-  if (!garage) return { error: "Geen garage gevonden." };
+  if (!garage) return { error: te.noGarage };
 
   const { data: event, error } = await supabase
     .from("events")
@@ -88,6 +92,6 @@ async function createEvent(supabase: Supabase, newEvent: Partial<NewEvent>) {
     })
     .select("id, garage_id")
     .single();
-  if (error) return { error: `Evenement opslaan mislukt: ${error.message}` };
+  if (error) return { error: format(te.eventFailed, { error: error.message }) };
   return { event };
 }
