@@ -31,7 +31,11 @@ export async function syncSubscription(subscriptionId: string) {
     const { data } = await admin.from("garage_billing").select("garage_id").eq("stripe_customer_id", customerId).maybeSingle();
     garageId = data?.garage_id;
   }
-  if (!garageId) throw new Error(`No garage for subscription ${subscription.id}`);
+  // Not one of ours (a test event from the Stripe CLI, a subscription made by hand): nothing to update.
+  if (!garageId) {
+    console.warn("Stripe subscription without a garage, skipped", subscription.id);
+    return;
+  }
 
   // A garage deleted with its account: nothing left to update.
   const { data: garage } = await admin.from("garages").select("id").eq("id", garageId).maybeSingle();
