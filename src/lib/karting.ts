@@ -169,9 +169,7 @@ export function sortByLabel<T extends { label: string }>(options: readonly T[]):
 
 /** A label map as [value, label] pairs, A–Z by label, with the catch-all "other" kept last. */
 export function sortedEntries(labels: Record<string, string>): [string, string][] {
-  return Object.entries(labels).sort(([a, labelA], [b, labelB]) =>
-    a === "other" ? 1 : b === "other" ? -1 : collator.compare(labelA, labelB),
-  );
+  return Object.entries(labels).sort(([a, labelA], [b, labelB]) => (a === "other" ? 1 : b === "other" ? -1 : collator.compare(labelA, labelB)));
 }
 
 export function labelFor<T extends Record<string, string>>(labels: T, key: string): string {
@@ -221,7 +219,10 @@ export function formatHoursMinutes(minutes: number): string {
 
 /** Accepts "52.345", "52,345" or "1:02.345"; returns milliseconds or null when invalid. */
 export function parseLapTime(input: string): number | null {
-  const match = input.trim().replace(",", ".").match(/^(?:(\d+):)?(\d{1,2}(?:\.\d{1,3})?)$/);
+  const match = input
+    .trim()
+    .replace(",", ".")
+    .match(/^(?:(\d+):)?(\d{1,2}(?:\.\d{1,3})?)$/);
   if (!match) return null;
   const minutes = match[1] ? Number(match[1]) : 0;
   const seconds = Number(match[2]);
@@ -232,8 +233,11 @@ export function parseLapTime(input: string): number | null {
 
 const dateFormat = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" });
 
-export function formatDate(value: string | null): string {
-  return value ? dateFormat.format(new Date(value)) : "—";
+/** A date like "28 okt 2026"; pass a language for screens that are translated. */
+export function formatDate(value: string | null, locale?: string): string {
+  if (!value) return "—";
+  const format = locale ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }) : dateFormat;
+  return format.format(new Date(value));
 }
 
 const timeFormat = new Intl.DateTimeFormat("nl-NL", {

@@ -5,9 +5,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
-import { dbError } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { getPlanAccess } from "@/lib/plan-access";
 import { GARAGE_COOKIE, getCurrentGarage, type GarageRole } from "@/lib/garage";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 // ---------------------------------------------------------------------------
@@ -29,9 +31,10 @@ async function chooseGarage(garageId: string) {
 }
 
 export async function createInvite(role: string, label: string): Promise<FormState & { token?: string }> {
-  if (!ROLES.includes(role as GarageRole)) return { error: "Kies een rol." };
+  const t = (await getDictionary()).team;
+  if (!ROLES.includes(role as GarageRole)) return { error: t.chooseRole };
   const { supabase, garage, canManageTeam } = await getCurrentGarage();
-  if (!canManageTeam) return { error: "Alleen de eigenaar kan mensen uitnodigen." };
+  if (!canManageTeam) return { error: t.ownerInvites };
   const allowed = (await getPlanAccess()).limit("members");
   if (allowed !== null) {
     // Open invitations hold a seat, like on the team page.
@@ -45,58 +48,60 @@ export async function createInvite(role: string, label: string): Promise<FormSta
         .is("revoked_at", null)
         .gt("expires_at", new Date().toISOString()),
     ]);
-    if ((members ?? 0) + (open ?? 0) >= allowed) return { error: `Uitnodiging maken mislukt: ${dbError({ message: "plan_limit:members" })}` };
+    if ((members ?? 0) + (open ?? 0) >= allowed)
+      return { error: format(t.inviteFailed, { error: await dbErrorText({ message: "plan_limit:members" }) }) };
   }
   const { data, error } = await supabase
     .from("garage_invites")
     .insert({ garage_id: garage.id, role, label: label.trim().slice(0, 80) || null })
     .select("token")
     .single();
-  if (error) return { error: `Uitnodiging maken mislukt: ${dbError(error)}` };
+  if (error) return { error: format(t.inviteFailed, { error: await dbErrorText(error) }) };
   revalidatePath("/dashboard/team");
-  return { success: "Uitnodiging gemaakt.", token: data.token };
+  return { success: t.inviteCreated, token: data.token };
 }
 
 export async function revokeInvite(inviteId: string): Promise<FormState> {
+  const t = (await getDictionary()).team;
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase
     .from("garage_invites")
     .update({ revoked_at: new Date().toISOString() })
     .eq("id", inviteId)
     .eq("garage_id", garage.id);
-  if (error) return { error: `Intrekken mislukt: ${dbError(error)}` };
+  if (error) return { error: format(t.revokeFailed, { error: await dbErrorText(error) }) };
   revalidatePath("/dashboard/team");
-  return { success: "Uitnodiging ingetrokken." };
+  return { success: t.revoked };
 }
 
 export async function changeRole(userId: string, role: string): Promise<FormState> {
-  if (!ROLES.includes(role as GarageRole)) return { error: "Kies een rol." };
+  const t = (await getDictionary()).team;
+  if (!ROLES.includes(role as GarageRole)) return { error: t.chooseRole };
   const { supabase, garage, canManageTeam } = await getCurrentGarage();
-  if (!canManageTeam) return { error: "Alleen de eigenaar kan rollen wijzigen." };
+  if (!canManageTeam) return { error: t.ownerRoles };
   const { error } = await supabase.from("garage_members").update({ role }).eq("garage_id", garage.id).eq("user_id", userId);
   if (error)
-    return { error: error.message.includes("at least one owner") ? "Er moet altijd een eigenaar blijven." : `Wijzigen mislukt: ${dbError(error)}` };
+    return { error: error.message.includes("at least one owner") ? t.keepOwner : format(t.changeFailed, { error: await dbErrorText(error) }) };
   revalidatePath("/dashboard", "layout");
-  return { success: "Rol gewijzigd." };
+  return { success: t.roleChanged };
 }
 
 /** An owner removes someone, or a member leaves the garage. */
 export async function removeMember(userId: string): Promise<FormState> {
+  const t = (await getDictionary()).team;
   const { supabase, user, garage, canManageTeam } = await getCurrentGarage();
-  if (userId !== user.id && !canManageTeam) return { error: "Alleen de eigenaar kan iemand verwijderen." };
+  if (userId !== user.id && !canManageTeam) return { error: t.ownerRemoves };
   const { error } = await supabase.from("garage_members").delete().eq("garage_id", garage.id).eq("user_id", userId);
   if (error)
     return {
-      error: error.message.includes("at least one owner")
-        ? "Er moet altijd een eigenaar blijven. Maak eerst iemand anders eigenaar."
-        : `Verwijderen mislukt: ${dbError(error)}`,
+      error: error.message.includes("at least one owner") ? t.keepOwnerFirst : format(t.removeFailed, { error: await dbErrorText(error) }),
     };
   if (userId === user.id) {
     (await cookies()).delete(GARAGE_COOKIE);
     redirect("/dashboard");
   }
   revalidatePath("/dashboard/team");
-  return { success: "Verwijderd uit het team." };
+  return { success: t.removed };
 }
 
 export async function switchGarage(garageId: string): Promise<void> {
@@ -110,14 +115,15 @@ export async function switchGarage(garageId: string): Promise<void> {
 export async function acceptInvite(token: string): Promise<FormState> {
   const supabase = await createClient();
   const { data: garageId, error } = await supabase.rpc("accept_garage_invite", { p_token: token });
+  const t = (await getDictionary()).team;
   if (error) {
     const message = error.message.includes("expired")
-      ? "Deze uitnodiging is verlopen. Vraag een nieuwe link."
+      ? t.inviteExpired
       : error.message.includes("already used")
-        ? "Deze uitnodiging is al gebruikt. Vraag een nieuwe link."
+        ? t.inviteUsed
         : error.message.includes("not found")
-          ? "Deze uitnodiging bestaat niet (meer)."
-          : `Lid worden mislukt: ${dbError(error)}`;
+          ? t.inviteMissing
+          : format(t.joinFailed, { error: await dbErrorText(error) });
     return { error: message };
   }
   await chooseGarage(garageId);

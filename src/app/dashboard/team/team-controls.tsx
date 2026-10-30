@@ -4,12 +4,15 @@ import { useState, useTransition } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
-import { ROLE_LABELS } from "@/lib/team";
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
 
 import { changeRole, createInvite, switchGarage } from "../team-actions";
 
 /** A role and a name, then a link to send. The link works once, for seven days. */
 export function InviteForm({ origin }: { origin: string }) {
+  const t = useT();
+  const tt = t.team;
   const [role, setRole] = useState("mechanic");
   const [label, setLabel] = useState("");
   const [link, setLink] = useState<string | null>(null);
@@ -28,13 +31,13 @@ export function InviteForm({ origin }: { origin: string }) {
     });
   }
 
-  const message = link ? `Je bent uitgenodigd voor ons team in CorsaIQ als ${ROLE_LABELS[role].name.toLowerCase()}: ${link}` : "";
+  const message = link ? format(tt.inviteMessage, { role: t.roles[role as keyof typeof t.roles].name.toLowerCase(), link }) : "";
 
   return (
     <div className="flex flex-col gap-5">
       <form action={create} className="flex flex-col gap-4">
         <fieldset>
-          <legend className="channel-label mb-2">Rol</legend>
+          <legend className="channel-label mb-2">{tt.role}</legend>
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
             {(["mechanic", "driver", "viewer", "owner"] as const).map((key) => (
               <label
@@ -44,25 +47,25 @@ export function InviteForm({ origin }: { origin: string }) {
                 }`}
               >
                 <input type="radio" name="role" value={key} checked={role === key} onChange={() => setRole(key)} className="sr-only" />
-                <span className="font-semibold">{ROLE_LABELS[key].name}</span>
-                <span className={`text-xs ${role === key ? "opacity-80" : "text-zinc-400"}`}>{ROLE_LABELS[key].text}</span>
+                <span className="font-semibold">{t.roles[key].name}</span>
+                <span className={`text-xs ${role === key ? "opacity-80" : "text-zinc-400"}`}>{t.roles[key].text}</span>
               </label>
             ))}
           </div>
         </fieldset>
         <label className={labelClass}>
-          Voor wie (alleen voor jezelf, optioneel)
-          <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} placeholder="bijv. Jan, monteur" className={inputClass} />
+          {tt.forWhom}
+          <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} placeholder={tt.forWhomPlaceholder} className={inputClass} />
         </label>
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Maken…" : "Uitnodigingslink maken"}
+          {isPending ? tt.creating : tt.createLink}
         </button>
         <FormMessage state={state} />
       </form>
 
       {link && (
         <div className="border border-brand-400 px-4 py-4">
-          <p className="channel-label">Stuur deze link · 7 dagen geldig · één keer te gebruiken</p>
+          <p className="channel-label">{tt.sendLink}</p>
           <p className="mt-2 font-mono text-sm break-all text-zinc-50">{link}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -77,13 +80,13 @@ export function InviteForm({ origin }: { origin: string }) {
               }}
               className={secondaryButtonClass}
             >
-              {copied ? "Gekopieerd" : "Link kopiëren"}
+              {copied ? tt.copied : tt.copy}
             </button>
             <a href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer" className={secondaryButtonClass}>
-              Via WhatsApp
+              {tt.viaWhatsapp}
             </a>
-            <a href={`mailto:?subject=${encodeURIComponent("Uitnodiging voor CorsaIQ")}&body=${encodeURIComponent(message)}`} className={secondaryButtonClass}>
-              Via e-mail
+            <a href={`mailto:?subject=${encodeURIComponent(tt.inviteSubject)}&body=${encodeURIComponent(message)}`} className={secondaryButtonClass}>
+              {tt.viaEmail}
             </a>
           </div>
         </div>
@@ -93,13 +96,14 @@ export function InviteForm({ origin }: { origin: string }) {
 }
 
 export function RoleSelect({ userId, role, name }: { userId: string; role: string; name: string }) {
+  const t = useT();
   const [value, setValue] = useState(role);
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
   return (
     <span className="flex flex-col items-end gap-1">
       <select
-        aria-label={`Rol van ${name}`}
+        aria-label={format(t.team.roleOf, { name })}
         value={value}
         disabled={isPending}
         onChange={(e) => {
@@ -114,7 +118,7 @@ export function RoleSelect({ userId, role, name }: { userId: string; role: strin
         }}
         className={`${inputClass} h-11 w-36`}
       >
-        {Object.entries(ROLE_LABELS).map(([key, r]) => (
+        {Object.entries(t.roles).map(([key, r]) => (
           <option key={key} value={key}>
             {r.name}
           </option>
@@ -130,6 +134,7 @@ export function RoleSelect({ userId, role, name }: { userId: string; role: strin
 }
 
 export function GarageSwitch({ garages, currentId }: { garages: { id: string; name: string; role: string }[]; currentId: string }) {
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   return (
     <ul className="flex flex-col gap-1">
@@ -145,7 +150,10 @@ export function GarageSwitch({ garages, currentId }: { garages: { id: string; na
             }`}
           >
             <span className="truncate font-semibold">{g.name}</span>
-            <span className="shrink-0 text-xs text-zinc-400">{g.id === currentId ? "Nu actief · " : ""}{ROLE_LABELS[g.role]?.name}</span>
+            <span className="shrink-0 text-xs text-zinc-400">
+              {g.id === currentId ? `${t.team.active} · ` : ""}
+              {t.roles[g.role as keyof typeof t.roles]?.name}
+            </span>
           </button>
         </li>
       ))}
