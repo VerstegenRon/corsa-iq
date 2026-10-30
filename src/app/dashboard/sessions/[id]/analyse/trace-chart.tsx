@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
+
 // SpeedTrace + DeltaTrace over one lap in the distance domain, sharing one crosshair: the channel of
 // your lap (volt, 2px) against the reference (violet, 1.5px), and below it the running time difference
 // (above the zero line is slower, red with a 20% fill). Corner hairlines T1…Tn run through both.
@@ -42,6 +45,7 @@ function niceTicks(min: number, max: number, count: number) {
 }
 
 export function TraceChart({ sampleM, you, reference, delta, corners, channel }: Props) {
+  const tt = useT().telemetry;
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
@@ -97,18 +101,18 @@ export function TraceChart({ sampleM, you, reference, delta, corners, channel }:
         <span className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span aria-hidden className="inline-block h-0.5 w-4 bg-brand-400" />
-            Jij
+            {tt.you}
           </span>
           <span className="flex items-center gap-1.5">
             <span aria-hidden className="inline-block h-px w-4 bg-ref" />
-            Ref
+            {tt.ref}
           </span>
         </span>
       </div>
       {/* The height is known before the width is measured, so the page does not jump. */}
       <div ref={box} className="relative min-w-0 overflow-hidden" style={{ minHeight: PAD.top + TRACE_H + GAP + DELTA_H + PAD.bottom }}>
         {width > 0 && (
-          <svg width={width} height={height} role="img" aria-label={`${channel.label} en tijdverschil over de ronde`} className="block">
+          <svg width={width} height={height} role="img" aria-label={format(tt.chartAria, { channel: channel.label })} className="block">
             {/* Grid and axes: recessive. */}
             {yTicks.map((t) => (
               <g key={t}>
@@ -122,7 +126,15 @@ export function TraceChart({ sampleM, you, reference, delta, corners, channel }:
               const cx = PAD.left + (c.apex_m / lengthM) * innerW;
               return (
                 <g key={c.name}>
-                  <line x1={cx} x2={cx} y1={traceTop - 4} y2={deltaTop + DELTA_H} stroke="var(--color-zinc-700)" strokeWidth={1} strokeDasharray="2 3" />
+                  <line
+                    x1={cx}
+                    x2={cx}
+                    y1={traceTop - 4}
+                    y2={deltaTop + DELTA_H}
+                    stroke="var(--color-zinc-700)"
+                    strokeWidth={1}
+                    strokeDasharray="2 3"
+                  />
                   <text x={cx} y={traceTop - 8} textAnchor="middle" className="fill-zinc-400 font-mono text-[10px]">
                     {c.name}
                   </text>
@@ -135,7 +147,7 @@ export function TraceChart({ sampleM, you, reference, delta, corners, channel }:
 
             {/* Delta: zero line, red line and fill. Above is slower. */}
             <text x={PAD.left} y={deltaTop - 10} className="fill-zinc-500 font-mono text-[10px] tracking-wider">
-              CH.02 TIJDVERSCHIL [S] · BOVEN = TRAGER
+              {tt.deltaCaption}
             </text>
             <line x1={PAD.left} x2={width - PAD.right} y1={zero} y2={zero} stroke="var(--color-zinc-600)" strokeWidth={1} />
             <text x={PAD.left - 6} y={yd(dMax / 1.1) + 3} textAnchor="end" className="fill-zinc-500 font-mono text-[10px]">
@@ -181,19 +193,19 @@ export function TraceChart({ sampleM, you, reference, delta, corners, channel }:
           >
             <p className="text-zinc-400">{Math.round(h * sampleM)} m</p>
             <p className="flex justify-between text-zinc-50">
-              <span>Jij</span>
+              <span>{tt.you}</span>
               <span>
                 {fmt(you[h], channel.digits)} {channel.unit}
               </span>
             </p>
             <p className="flex justify-between text-zinc-300">
-              <span>Ref</span>
+              <span>{tt.ref}</span>
               <span>
                 {fmt(reference[h], channel.digits)} {channel.unit}
               </span>
             </p>
             <p className={`flex justify-between ${delta[h] > 0 ? "text-red-300" : "text-brand-300"}`}>
-              <span>Verschil</span>
+              <span>{tt.diff}</span>
               <span>{signed(delta[h])}</span>
             </p>
           </div>

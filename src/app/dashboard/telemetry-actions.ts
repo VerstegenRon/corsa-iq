@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
-import { dbError } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import type { LapSource } from "@/lib/lap-import";
 import { TELEMETRY_BUCKET } from "@/lib/storage";
 import { CHANNELS, type Corner } from "@/lib/telemetry";
@@ -56,7 +58,9 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
   if (locked) return { error: locked };
   const { supabase, garage } = await getCurrentGarage();
   const prefix = `${garage.id}/${sessionId}/`;
-  if (!validUpload(input, prefix)) return { error: "De telemetrie kon niet gekoppeld worden. Probeer het opnieuw." };
+  const t = await getDictionary();
+  const tt = t.telemetry;
+  if (!validUpload(input, prefix)) return { error: tt.linkFailed };
 
   const { data: session } = await supabase
     .from("sessions")
@@ -64,7 +68,7 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
     .eq("id", sessionId)
     .eq("events.garage_id", garage.id)
     .maybeSingle();
-  if (!session) return { error: "Sessie niet gevonden." };
+  if (!session) return { error: tt.notFound };
 
   const { data: dataImport, error: importError } = await supabase
     .from("data_imports")
@@ -78,7 +82,7 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
     })
     .select("id")
     .single();
-  if (importError) return { error: `Opslaan mislukt: ${importError.message}` };
+  if (importError) return { error: format(t.session.saveFailed, { error: await dbErrorText(importError) }) };
 
   // No laps yet: the telemetry brings them. Otherwise link to the laps already there, by number and time.
   let laps = session.laps;
@@ -98,7 +102,7 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
     });
     if (error) {
       await supabase.from("data_imports").update({ status: "failed", error: error.message }).eq("id", dataImport.id);
-      return { error: `Ronden opslaan mislukt: ${dbError(error)}` };
+      return { error: format(t.session.lapsFailed, { error: await dbErrorText(error) }) };
     }
     const { data } = await supabase.from("laps").select("id, lap_number, lap_time_ms, lap_channels(storage_path)").eq("session_id", sessionId);
     laps = data ?? [];
@@ -121,11 +125,11 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
   });
   if (rows.length === 0) {
     await supabase.from("data_imports").update({ status: "needs_mapping", error: "no matching laps" }).eq("id", dataImport.id);
-    return { error: "Geen enkele ronde komt overeen met de ronden van deze sessie. Controleer of het bestand bij deze sessie hoort." };
+    return { error: tt.noMatch };
   }
 
   const { error } = await supabase.from("lap_channels").upsert(rows, { onConflict: "lap_id" });
-  if (error) return { error: `Telemetrie koppelen mislukt: ${dbError(error)}` };
+  if (error) return { error: format(tt.channelsFailed, { error: await dbErrorText(error) }) };
 
   // Files of an earlier import of this session are no longer used.
   const kept = new Set(rows.map((r) => r.storage_path));
@@ -136,7 +140,7 @@ export async function saveTelemetry(sessionId: string, input: TelemetryUpload): 
   revalidatePath("/dashboard", "layout");
   const skipped = input.laps.length - rows.length;
   return {
-    success: `Telemetrie van ${rows.length} ${rows.length === 1 ? "ronde" : "ronden"} opgeslagen.${skipped > 0 ? ` ${skipped} niet herkend en overgeslagen.` : ""}`,
+    success: [plural(rows.length, tt.saved), skipped > 0 ? format(tt.skipped, { count: skipped }) : null].filter(Boolean).join(" "),
   };
 }
 
@@ -147,19 +151,21 @@ export async function setReferenceLap(sessionId: string, lapId: number | null): 
   const { supabase, garage } = await getCurrentGarage();
   if (lapId !== null) {
     const { data: lap } = await supabase.from("lap_channels").select("lap_id").eq("lap_id", lapId).eq("garage_id", garage.id).maybeSingle();
-    if (!lap) return { error: "Die ronde heeft geen telemetrie." };
+    if (!lap) return { error: (await getDictionary()).telemetry.lapNoTelemetry };
   }
   const { error } = await supabase.from("sessions").update({ reference_lap_id: lapId }).eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  const t = await getDictionary();
+  if (error) return { error: format(t.session.saveFailed, { error: await dbErrorText(error) }) };
   revalidatePath(`/dashboard/sessions/${sessionId}/analyse`);
-  return { success: lapId === null ? "Referentie losgelaten." : "Referentie vastgezet." };
+  return { success: lapId === null ? t.telemetry.refUnpinned : t.telemetry.refPinned };
 }
 
 /** Stores the corners found in the reference lap for the session's layout, so names and positions stay. */
 export async function saveCorners(sessionId: string, layoutId: string, corners: Corner[]): Promise<FormState> {
   const locked = await lockedError("telemetry");
   if (locked) return { error: locked };
-  if (!Array.isArray(corners) || corners.length === 0 || corners.length > 40) return { error: "Geen bochten om op te slaan." };
+  const tt = (await getDictionary()).telemetry;
+  if (!Array.isArray(corners) || corners.length === 0 || corners.length > 40) return { error: tt.noCorners };
   const valid = corners.every(
     (c) =>
       Number.isInteger(c.number) &&
@@ -168,7 +174,7 @@ export async function saveCorners(sessionId: string, layoutId: string, corners: 
       c.start_m <= c.apex_m &&
       c.apex_m <= c.end_m,
   );
-  if (!valid) return { error: "De bochten kloppen niet." };
+  if (!valid) return { error: tt.badCorners };
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("track_layout_corners").upsert(
     corners.map((c) => ({
@@ -182,7 +188,7 @@ export async function saveCorners(sessionId: string, layoutId: string, corners: 
     })),
     { onConflict: "garage_id,track_layout_id,number" },
   );
-  if (error) return { error: `Bochten opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: format(tt.cornersFailed, { error: await dbErrorText(error) }) };
   revalidatePath(`/dashboard/sessions/${sessionId}/analyse`);
-  return { success: `${corners.length} bochten vastgelegd.` };
+  return { success: format(tt.cornersSaved, { count: corners.length }) };
 }

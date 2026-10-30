@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { useCanEdit } from "@/components/edit-access";
 import type { FormState } from "@/components/form-message";
 import { secondaryButtonClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
 import type { Corner } from "@/lib/telemetry";
 
 import { sendPitMessage } from "../../../live-actions";
@@ -21,6 +23,7 @@ function Status({ state }: { state: FormState }) {
 
 /** Pins the shown reference as this session's default, or lets it go again. */
 export function ReferenceButton({ sessionId, lapId, pinned }: { sessionId: string; lapId: number; pinned: boolean }) {
+  const t = useT();
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
   if (!useCanEdit()) return null;
@@ -32,7 +35,7 @@ export function ReferenceButton({ sessionId, lapId, pinned }: { sessionId: strin
         onClick={() => startTransition(async () => setState(await setReferenceLap(sessionId, pinned ? null : lapId)))}
         className={secondaryButtonClass}
       >
-        {isPending ? "Bezig…" : pinned ? "Referentie loslaten" : "Vastzetten als referentie"}
+        {isPending ? t.common.busy : pinned ? t.telemetry.unpin : t.telemetry.pin}
       </button>
       <Status state={state} />
     </span>
@@ -41,6 +44,7 @@ export function ReferenceButton({ sessionId, lapId, pinned }: { sessionId: strin
 
 /** Puts the advice on the pit board, for the kart's live session when one runs. */
 export function PitboardButton({ liveId, text }: { liveId: string | null; text: string }) {
+  const t = useT();
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
   if (!useCanEdit()) return null;
@@ -52,7 +56,7 @@ export function PitboardButton({ liveId, text }: { liveId: string | null; text: 
         onClick={() => startTransition(async () => setState(await sendPitMessage(liveId, text)))}
         className="inline-flex min-h-11 items-center border border-current px-4 text-sm font-bold hover:bg-zinc-950/10 disabled:opacity-60"
       >
-        {isPending ? "Bezig…" : "Zet op het pitbord"}
+        {isPending ? t.common.busy : t.telemetry.toPitboard}
       </button>
       {(state.error || state.success) && (
         <span role={state.error ? "alert" : "status"} className="text-sm font-semibold">
@@ -75,6 +79,7 @@ export function SaveCornersButton({
   layoutName: string;
   corners: Corner[];
 }) {
+  const t = useT();
   const [state, setState] = useState<FormState>({});
   const [isPending, startTransition] = useTransition();
   if (!useCanEdit()) return null;
@@ -86,7 +91,7 @@ export function SaveCornersButton({
         onClick={() => startTransition(async () => setState(await saveCorners(sessionId, layoutId, corners)))}
         className={secondaryButtonClass}
       >
-        {isPending ? "Bezig…" : `Bochten vastleggen voor ${layoutName}`}
+        {isPending ? t.common.busy : format(t.telemetry.saveCorners, { layout: layoutName })}
       </button>
       <Status state={state} />
     </span>

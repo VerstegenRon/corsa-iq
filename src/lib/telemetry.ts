@@ -8,12 +8,12 @@ import { detectDelimiter, detectSource, splitLine, type LapSource } from "@/lib/
 export const SAMPLE_M = 2.5;
 
 export const CHANNELS = {
-  speed: { label: "Snelheid", unit: "km/u", digits: 1 },
-  rpm: { label: "Toeren", unit: "rpm", digits: 0 },
-  lat_g: { label: "G-kracht", unit: "g", digits: 2 },
-  lon_g: { label: "G-kracht lengte", unit: "g", digits: 2 },
-  lat: { label: "Breedtegraad", unit: "°", digits: 6 },
-  lng: { label: "Lengtegraad", unit: "°", digits: 6 },
+  speed: { unit: "km/u", digits: 1 },
+  rpm: { unit: "rpm", digits: 0 },
+  lat_g: { unit: "g", digits: 2 },
+  lon_g: { unit: "g", digits: 2 },
+  lat: { unit: "°", digits: 6 },
+  lng: { unit: "°", digits: 6 },
 } as const;
 export type Channel = keyof typeof CHANNELS;
 /** The channels a driver can pick on the big chart. */
@@ -38,6 +38,8 @@ export type TelemetryLap = {
 };
 
 export type ParsedTelemetry = { source: LapSource; channels: Channel[]; laps: TelemetryLap[]; samples: number };
+/** Why a file could not be read; the page words it in the reader's language. */
+export type TelemetryError = "noColumns" | "noHeader" | "noTime" | "noSpeed" | "tooFewSamples" | "noLaps";
 
 // ---------------------------------------------------------------------------
 // Parsing
@@ -86,16 +88,16 @@ type Sample = { t: number; d: number | null; values: Partial<Record<Channel, num
  * Reads a sample-level export. Laps come from a lap column, else from the beacon markers, else from the
  * distance channel starting over. Each lap is resampled every SAMPLE_M metres from its own start.
  */
-export function parseTelemetry(text: string, fileName?: string): ParsedTelemetry | { error: string } {
+export function parseTelemetry(text: string, fileName?: string): ParsedTelemetry | { error: TelemetryError } {
   const lines = text.replace(/^﻿/, "").split(/\r?\n/);
   const delimiter = detectDelimiter(lines.filter((l) => l.trim() !== "").slice(-200));
-  if (delimiter === null) return { error: "Dit lijkt geen telemetriebestand: er zijn geen kolommen gevonden." };
+  if (delimiter === null) return { error: "noColumns" };
 
   const headerIndex = lines.findIndex((line) => {
     const cells = splitLine(line, delimiter).map(norm);
     return cells.some((c) => /^(time|tijd|zeit|temps|t)$/.test(c)) && cells.some((c) => /speed|snelheid|vitesse|distance|afstand/.test(c));
   });
-  if (headerIndex < 0) return { error: "Geen kolommen voor tijd en snelheid gevonden. Exporteer met de kanalen Time, Distance en Speed." };
+  if (headerIndex < 0) return { error: "noHeader" };
 
   const headers = splitLine(lines[headerIndex], delimiter).map(norm);
   const columns: Partial<Columns> = {};
@@ -103,8 +105,8 @@ export function parseTelemetry(text: string, fileName?: string): ParsedTelemetry
     const index = headers.findIndex((h, i) => pattern.test(h) && !Object.values(columns).includes(i));
     if (index >= 0) columns[key] = index;
   }
-  if (columns.time === undefined) return { error: "Geen tijdkolom gevonden." };
-  if (columns.speed === undefined) return { error: "Geen snelheidskanaal gevonden. Exporteer ook de snelheid (GPS Speed)." };
+  if (columns.time === undefined) return { error: "noTime" };
+  if (columns.speed === undefined) return { error: "noSpeed" };
 
   const samples: Sample[] = [];
   for (const line of lines.slice(headerIndex + 1)) {
@@ -123,7 +125,7 @@ export function parseTelemetry(text: string, fileName?: string): ParsedTelemetry
     const lap = columns.lap === undefined ? NaN : num(cells[columns.lap]);
     samples.push({ t, d: Number.isFinite(d) ? d : null, values, lap: Number.isFinite(lap) ? lap : null });
   }
-  if (samples.length < 20) return { error: "Te weinig meetpunten in het bestand." };
+  if (samples.length < 20) return { error: "tooFewSamples" };
 
   // ---- Split into laps.
   const groups: Sample[][] = [];
@@ -185,7 +187,7 @@ export function parseTelemetry(text: string, fileName?: string): ParsedTelemetry
       file,
     });
   });
-  if (laps.length === 0) return { error: "Er zijn geen volledige ronden gevonden." };
+  if (laps.length === 0) return { error: "noLaps" };
 
   // Out laps, in laps and slow laps: well above the median of the session.
   const sorted = laps.map((l) => l.lap_time_ms).sort((a, b) => a - b);
@@ -397,18 +399,20 @@ export function cornerResults(comparison: LapComparison, corners: Corner[]): Cor
   });
 }
 
+export type Advice = { kind: "brakeLater" | "brakeEarlier"; metres: number } | { kind: "apexSpeed"; kmh: number } | { kind: "throttle" };
+
 /** "Eén ding voor Q2": the corner that costs most, and what to change there. */
-export function oneThing(results: CornerResult[]): { corner: CornerResult; advice: string } | null {
+export function oneThing(results: CornerResult[]): { corner: CornerResult; advice: Advice } | null {
   const worst = [...results].sort((a, b) => b.lossS - a.lossS)[0];
   if (!worst || worst.lossS <= 0.005) return null;
   const apexDiff = Math.round((worst.apexRefKmh - worst.apexYouKmh) * 10) / 10;
-  const advice =
+  const advice: Advice =
     worst.brakeDiffM <= -3
-      ? `${worst.name}: ${-worst.brakeDiffM} m later remmen`
+      ? { kind: "brakeLater", metres: -worst.brakeDiffM }
       : worst.brakeDiffM >= 3
-        ? `${worst.name}: ${worst.brakeDiffM} m eerder remmen`
+        ? { kind: "brakeEarlier", metres: worst.brakeDiffM }
         : apexDiff >= 1
-          ? `${worst.name}: ${String(apexDiff).replace(".", ",")} km/u meer bochtsnelheid`
-          : `${worst.name}: eerder op het gas uit de bocht`;
+          ? { kind: "apexSpeed", kmh: apexDiff }
+          : { kind: "throttle" };
   return { corner: worst, advice };
 }
