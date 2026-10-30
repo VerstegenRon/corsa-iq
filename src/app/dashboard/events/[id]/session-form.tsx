@@ -9,7 +9,8 @@ import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { ChoiceChips, MoreDetails, Stepper } from "@/components/form-controls";
 import { WEATHER_ICONS } from "@/components/icons";
 import { sortByLabel, type SetupValues } from "@/lib/karting";
-import { SETUP_FIELDS, SETUP_GROUPS, getSetupValue, inputSetupValue, type SetupGroup } from "@/lib/setup";
+import { format } from "@/lib/i18n/locales";
+import { SETUP_FIELDS, SETUP_GROUPS, getSetupValue, inputSetupValue, setupPlaceholder } from "@/lib/setup";
 import type { SessionConditions } from "@/lib/weather";
 
 import { createSession, updateSession } from "../../season-actions";
@@ -57,6 +58,7 @@ export function SessionForm({
   autoWeather: boolean;
 }) {
   const t = useT();
+  const ts = t.setup;
   const [state, formAction, isPending] = useActionState(
     session ? updateSession.bind(null, session.id) : createSession.bind(null, eventId),
     initialState,
@@ -226,21 +228,17 @@ export function SessionForm({
       </fieldset>
 
       <fieldset className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <legend className="mb-1 text-sm font-semibold text-zinc-200">Afstelling</legend>
+        <legend className="mb-1 text-sm font-semibold text-zinc-200">{ts.legend}</legend>
         <p className="mb-3 text-xs text-zinc-500 sm:col-span-2 lg:col-span-4">
-          {session
-            ? "Een gewijzigde afstelling wordt als nieuwe momentopname bewaard."
-            : lastSetup
-              ? "Ingevuld met je vorige afstelling. Pas aan wat je veranderde."
-              : "Vul in wat je bijhoudt; alles is optioneel."}
+          {session ? ts.hintEdit : lastSetup ? ts.hintPrevious : ts.hintEmpty}
         </p>
-        {(Object.keys(SETUP_GROUPS) as SetupGroup[]).map((group) => {
+        {SETUP_GROUPS.map((group) => {
           const fields = SETUP_FIELDS.filter((field) => field.group === group);
           const filled = fields.filter((field) => getSetupValue(s, field) !== undefined).length;
           return (
             <MoreDetails
               key={group}
-              title={`${SETUP_GROUPS[group]}${filled > 0 ? ` · ${filled} ingevuld` : ""}`}
+              title={`${ts.groups[group]}${filled > 0 ? ` · ${format(ts.filled, { count: filled })}` : ""}`}
               defaultOpen={filled > 0}
               className="sm:col-span-2 lg:col-span-4"
               columns="lg:grid-cols-4"
@@ -250,20 +248,20 @@ export function SessionForm({
                   <Stepper
                     key={field.name}
                     name={field.name}
-                    label={field.label}
+                    label={ts.fields[field.name].label}
                     defaultValue={inputSetupValue(field, getSetupValue(s, field))}
-                    placeholder={field.placeholder}
+                    placeholder={setupPlaceholder(ts, field)}
                     step={field.unit === "bar" ? 0.01 : 1}
                     decimals={field.unit === "bar" ? 2 : 0}
                   />
                 ) : (
                   <label key={field.name} className={labelClass}>
-                    {field.label}
+                    {ts.fields[field.name].label}
                     <input
                       name={field.name}
                       inputMode={field.kind === "integer" ? "numeric" : field.kind === "decimal" ? "decimal" : undefined}
                       defaultValue={inputSetupValue(field, getSetupValue(s, field))}
-                      placeholder={field.placeholder}
+                      placeholder={setupPlaceholder(ts, field)}
                       className={inputClass}
                     />
                   </label>
@@ -273,7 +271,7 @@ export function SessionForm({
           );
         })}
         <label className={`${labelClass} sm:col-span-2 lg:col-span-4`}>
-          Notities afstelling
+          {ts.notes}
           <input name="setup_notes" defaultValue={s.notes} className={inputClass} />
         </label>
       </fieldset>

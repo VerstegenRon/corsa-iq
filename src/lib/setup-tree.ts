@@ -3,7 +3,7 @@
 // is the chain from the first setup to the one with the lowest dry lap time.
 
 import type { SetupValues } from "@/lib/karting";
-import { SETUP_FIELDS, diffSetups, formatSetupValue, getSetupValue, type SetupChange } from "@/lib/setup";
+import { SETUP_FIELDS, diffSetups, formatSetupValue, getSetupValue, type SetupChange, type SetupTexts } from "@/lib/setup";
 
 export type TreeSession = {
   id: string;
@@ -37,35 +37,35 @@ export type Version = {
   changes: string[];
 };
 
-const PAIRS: [string, string, string][] = [
-  ["pressure_fl", "pressure_fr", "Druk voor"],
-  ["pressure_rl", "pressure_rr", "Druk achter"],
-  ["hot_pressure_fl", "hot_pressure_fr", "Warme druk voor"],
-  ["hot_pressure_rl", "hot_pressure_rr", "Warme druk achter"],
-];
+const PAIRS = [
+  ["pressure_fl", "pressure_fr"],
+  ["pressure_rl", "pressure_rr"],
+  ["hot_pressure_fl", "hot_pressure_fr"],
+  ["hot_pressure_rl", "hot_pressure_rr"],
+] as const;
 
 /** "Druk achter 0,62 → 0,58", "Achteras medium → hard": a wheel pair changed alike reads as one. */
-export function describeChanges(changes: SetupChange[]): string[] {
+export function describeChanges(changes: SetupChange[], ts: SetupTexts): string[] {
   const byName = new Map(changes.map((c) => [c.field.name, c]));
   const done = new Set<string>();
   const out: string[] = [];
   const text = (c: SetupChange) => `${formatSetupValue(c.field, c.from)} → ${formatSetupValue(c.field, c.to)}`;
-  for (const [left, right, label] of PAIRS) {
+  for (const [left, right] of PAIRS) {
     const a = byName.get(left);
     const b = byName.get(right);
     if (a && b && a.from === b.from && a.to === b.to) {
-      out.push(`${label} ${text(a)}`);
+      out.push(`${ts.pairs[left]} ${text(a)}`);
       done.add(left).add(right);
     }
   }
   for (const change of changes) {
     if (done.has(change.field.name)) continue;
-    out.push(`${change.field.label.replace(/ \(.*\)$/, "")} ${text(change)}`);
+    out.push(`${ts.fields[change.field.name].name} ${text(change)}`);
   }
   return out;
 }
 
-export function buildTree(setups: TreeSetup[], sessions: (TreeSession & { setupId: string })[]): Version[] {
+export function buildTree(setups: TreeSetup[], sessions: (TreeSession & { setupId: string })[], ts: SetupTexts): Version[] {
   const ordered = [...setups].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const versions = new Map<string, Version>();
   ordered.forEach((s, i) => {
@@ -95,9 +95,9 @@ export function buildTree(setups: TreeSetup[], sessions: (TreeSession & { setupI
     if (parent) {
       parent.isLeaf = false;
       v.deltaMs = v.bestMs !== null && parent.bestMs !== null ? v.bestMs - parent.bestMs : null;
-      v.changes = describeChanges(diffSetups(parent.values, v.values));
+      v.changes = describeChanges(diffSetups(parent.values, v.values), ts);
     } else {
-      v.changes = ["Startpunt"];
+      v.changes = [ts.startPoint];
     }
   }
 
@@ -118,12 +118,12 @@ export function buildTree(setups: TreeSetup[], sessions: (TreeSession & { setupI
 }
 
 /** Fields that have a value in at least one of two versions, for the side-by-side comparison. */
-export function compareRows(a: SetupValues, b: SetupValues) {
+export function compareRows(a: SetupValues, b: SetupValues, ts: SetupTexts) {
   return SETUP_FIELDS.flatMap((field) => {
     const from = formatSetupValue(field, getSetupValue(a, field));
     const to = formatSetupValue(field, getSetupValue(b, field));
     if (from === "—" && to === "—") return [];
-    return [{ key: field.name, label: field.label.replace(/ \(.*\)$/, ""), a: from, b: to, changed: from !== to }];
+    return [{ key: field.name, label: ts.fields[field.name].name, a: from, b: to, changed: from !== to }];
   });
 }
 

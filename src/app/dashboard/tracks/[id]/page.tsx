@@ -6,7 +6,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { countryName, formatDate, formatLapTime, labelFor, type SetupValues } from "@/lib/karting";
 import { findInsights } from "@/lib/setup-advisor";
 
@@ -28,7 +28,7 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/da
   const weather = typeof query.weather === "string" ? query.weather : null;
   const kartId = typeof query.kart === "string" ? query.kart : null;
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
 
   const [trackResult, eventsResult, sessionsResult] = await Promise.all([
     supabase.from("tracks").select("id, name, city, country, created_by_garage_id").eq("id", id).maybeSingle(),
@@ -151,7 +151,7 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/da
         </section>
       )}
 
-      {setupSessions.length > 0 && <SetupComparison trackId={track.id} sessions={setupSessions} weather={weather} kartId={kartId} t={t} />}
+      {setupSessions.length > 0 && <SetupComparison trackId={track.id} sessions={setupSessions} weather={weather} kartId={kartId} t={t} locale={locale} />}
 
       {own ? (
         <EditOnly>

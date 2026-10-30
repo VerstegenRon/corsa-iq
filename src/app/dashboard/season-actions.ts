@@ -258,7 +258,7 @@ export async function createSession(eventId: string, _prev: FormState, formData:
 }
 
 export async function updateSession(sessionId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const session = readSession(formData);
+  const session = readSession(formData, (await getDictionary()).setup);
   if ("error" in session) return session;
 
   const { supabase, garage } = await getCurrentGarage();

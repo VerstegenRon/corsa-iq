@@ -1,4 +1,5 @@
 import type { SetupValues } from "@/lib/karting";
+import type { SetupTexts } from "@/lib/setup";
 import { buildTree, type Version } from "@/lib/setup-tree";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -12,6 +13,7 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 export async function loadSetupTree(
   supabase: Supabase,
   garageId: string,
+  ts: SetupTexts,
   kartId?: string | null,
   { fallback = true }: { fallback?: boolean } = {},
 ): Promise<{ karts: [string, string][]; kartId: string | null; versions: Version[]; trackName: string | null }> {
@@ -50,6 +52,7 @@ export async function loadSetupTree(
       eventName: s.events.name,
       trackName: s.events.tracks?.name ?? null,
     })),
+    ts,
   );
   return { karts, kartId: chosen, versions, trackName: own[0]?.events.tracks?.name ?? null };
 }

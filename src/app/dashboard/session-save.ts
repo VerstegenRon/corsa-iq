@@ -12,7 +12,7 @@ import type { getCurrentGarage } from "@/lib/garage";
 import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { SESSION_TYPES, WEATHER, parseLapTime, type SetupValues } from "@/lib/karting";
-import { SETUP_FIELDS, getSetupValue, inputSetupValue, setSetupValue } from "@/lib/setup";
+import { SETUP_FIELDS, getSetupValue, inputSetupValue, setSetupValue, type SetupTexts } from "@/lib/setup";
 import { LOGGER_BUCKET, TELEMETRY_BUCKET } from "@/lib/storage";
 import { fetchWeather, mergeConditions, type SessionConditions } from "@/lib/weather";
 
@@ -47,7 +47,7 @@ export async function removeFiles(supabase: Supabase, bucket: typeof LOGGER_BUCK
   if (paths.length > 0) await supabase.storage.from(bucket).remove(paths);
 }
 
-export function readSetup(formData: FormData): SetupValues | { error: string } {
+export function readSetup(formData: FormData, ts: SetupTexts): SetupValues | { error: string } {
   const setup: SetupValues = {};
   for (const field of SETUP_FIELDS) {
     if (field.kind === "text") {
@@ -58,7 +58,7 @@ export function readSetup(formData: FormData): SetupValues | { error: string } {
     const value = optionalNumber(formData, field.name);
     if (value === null) continue;
     if (value === undefined || (field.kind === "integer" && !Number.isInteger(value))) {
-      return { error: `Controleer de afstelling: ${field.label.toLowerCase()} moet een ${field.kind === "integer" ? "heel getal" : "getal"} zijn.` };
+      return { error: format(field.kind === "integer" ? ts.mustInteger : ts.mustNumber, { field: ts.fields[field.name].name.toLowerCase() }) };
     }
     setSetupValue(setup, field, value);
   }
@@ -68,7 +68,7 @@ export function readSetup(formData: FormData): SetupValues | { error: string } {
 }
 
 /** Everything on the session form except the kart, which is fixed once parts are linked. */
-export function readSession(formData: FormData) {
+export function readSession(formData: FormData, ts: SetupTexts) {
   const type = text(formData, "type");
   const driverId = text(formData, "driver_id");
   const startedAt = text(formData, "started_at_iso");
@@ -95,7 +95,7 @@ export function readSession(formData: FormData) {
   }
   if (humidity !== null && humidity > 100) return { error: "De luchtvochtigheid is hooguit 100%." };
 
-  const setup = readSetup(formData);
+  const setup = readSetup(formData, ts);
   if ("error" in setup) return setup;
 
   const weather = text(formData, "weather");
@@ -196,7 +196,7 @@ export async function insertSession(
   }
   if (keepSetupFields.includes("setup_notes") && previousValues.notes) formData.set("setup_notes", previousValues.notes);
 
-  const session = readSession(formData);
+  const session = readSession(formData, (await getDictionary()).setup);
   if ("error" in session) return session;
 
   const setup = await insertSetup(supabase, garageId, session.setup, previous?.setup_id ?? null);

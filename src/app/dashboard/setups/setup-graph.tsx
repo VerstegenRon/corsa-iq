@@ -1,13 +1,15 @@
 // The setup tree as a git-like graph: the fastest line straight across in volt, side branches below it
 // dashed in grey, a wet branch in violet, the setup on the kart now with a dotted ring.
 
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format, plural } from "@/lib/i18n/locales";
 import { formatLapTime } from "@/lib/karting";
 import type { Version } from "@/lib/setup-tree";
 
 const LANE = 66;
 const TOP = 44;
 
-export function SetupGraph({ versions }: { versions: Version[] }) {
+export function SetupGraph({ versions, ts }: { versions: Version[]; ts: Dictionary["setup"] }) {
   const width = Math.max(334, 44 + (versions.length - 1) * 64);
   const step = versions.length > 1 ? (width - 44) / (versions.length - 1) : 0;
   let lanes = 0;
@@ -23,9 +25,13 @@ export function SetupGraph({ versions }: { versions: Version[] }) {
   return (
     <svg
       role="img"
-      aria-label={`Stamboom van ${versions.length} setups.${line.length > 1 ? ` De snelste lijn loopt van ${line.join(" via ")}.` : ""}${
-        branches.length > 0 ? ` ${branches.join(" en ")} ${branches.length === 1 ? "is een zijtak" : "zijn zijtakken"}.` : ""
-      }`}
+      aria-label={[
+        format(ts.graphAria, { count: versions.length }),
+        line.length > 1 ? format(ts.graphLine, { line: line.join(ts.graphVia) }) : null,
+        branches.length > 0 ? format(plural(branches.length, ts.graphBranch), { names: branches.join(ts.graphAnd) }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       viewBox={`0 0 ${width} ${height}`}
       className="block h-auto w-full max-w-[720px]"
     >
@@ -52,7 +58,7 @@ export function SetupGraph({ versions }: { versions: Version[] }) {
       {versions.map((v) => {
         const { x, y } = pos.get(v.id)!;
         const color = v.wet ? "var(--color-ref)" : v.onFastestLine ? "var(--color-brand-400)" : "var(--color-zinc-600)";
-        const time = v.bestMs !== null ? formatLapTime(v.bestMs) : v.isCurrent ? "nu" : "—";
+        const time = v.bestMs !== null ? formatLapTime(v.bestMs) : v.isCurrent ? ts.now : "—";
         return (
           <g key={v.id}>
             {v.isFastest ? (
@@ -77,7 +83,7 @@ export function SetupGraph({ versions }: { versions: Version[] }) {
                 </text>
                 <text x={x + 14} y={y + 12} fontFamily="var(--font-mono)" fontSize="9.5" fill="var(--color-zinc-500)">
                   {time}
-                  {v.wet ? " · nat" : v.isLeaf && !v.isCurrent ? " · niet doorgezet" : ""}
+                  {v.wet ? ` · ${ts.wet}` : v.isLeaf && !v.isCurrent ? ` · ${ts.notPursued}` : ""}
                 </text>
               </>
             )}

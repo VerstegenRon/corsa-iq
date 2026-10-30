@@ -8,7 +8,7 @@ import { richFormat } from "@/lib/i18n/rich";
 import { formatDate, formatLapTime, formatTime, labelFor, type SetupValues } from "@/lib/karting";
 import { formatDelta } from "@/lib/lap-analysis";
 import { weatherText, type SessionConditions } from "@/lib/weather";
-import { SETUP_FIELDS, SETUP_GROUPS, diffSetups, formatSetupValue, gearRatio, getSetupValue, type SetupGroup } from "@/lib/setup";
+import { SETUP_FIELDS, SETUP_GROUPS, diffSetups, formatSetupValue, gearRatio, getSetupValue } from "@/lib/setup";
 
 type Conditions = SessionConditions;
 
@@ -65,12 +65,10 @@ export function SetupSection({
 }) {
   const ts = t.session;
   const ratioFormat = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const groups = (Object.keys(SETUP_GROUPS) as SetupGroup[])
-    .map((group) => ({
+  const groups = SETUP_GROUPS.map((group) => ({
       group,
       fields: SETUP_FIELDS.filter((f) => f.group === group && getSetupValue(session.setup, f) !== undefined),
-    }))
-    .filter((g) => g.fields.length > 0);
+    })).filter((g) => g.fields.length > 0);
   const ratio = gearRatio(session.setup);
 
   const changes = compareWith ? diffSetups(compareWith.setup, session.setup) : [];
@@ -88,11 +86,11 @@ export function SetupSection({
         <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           {groups.map(({ group, fields }) => (
             <div key={group}>
-              <h3 className="text-xs font-medium tracking-wide text-zinc-500 uppercase">{SETUP_GROUPS[group]}</h3>
+              <h3 className="text-xs font-medium tracking-wide text-zinc-500 uppercase">{t.setup.groups[group]}</h3>
               <dl className="mt-2 divide-y divide-zinc-800/60 text-sm">
                 {fields.map((field) => (
                   <div key={field.name} className="flex justify-between gap-4 py-1.5">
-                    <dt className="text-zinc-400">{field.label}</dt>
+                    <dt className="text-zinc-400">{t.setup.fields[field.name].label}</dt>
                     <dd className="text-zinc-100 tabular-nums">{formatSetupValue(field, getSetupValue(session.setup, field))}</dd>
                   </div>
                 ))}
@@ -153,7 +151,7 @@ export function SetupSection({
                   title={ts.setup}
                   t={t}
                   rows={changes.map((c) => ({
-                    label: c.field.label,
+                    label: t.setup.fields[c.field.name].label,
                     from: formatSetupValue(c.field, c.from),
                     to: formatSetupValue(c.field, c.to),
                   }))}
