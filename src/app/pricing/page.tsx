@@ -36,7 +36,8 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 
 export default async function PricingPage() {
   const [t, locale, supabase] = await Promise.all([getDictionary(), getLocale(), createClient()]);
-  const { data } = await supabase.auth.getClaims();
+  // The launch note ("everything free for now") holds only while the plan limits are off.
+  const [{ data }, { data: limitsActive }] = await Promise.all([supabase.auth.getClaims(), supabase.rpc("plan_limits_active")]);
   const signedIn = Boolean(data?.claims);
   const p = t.pricing;
   const cta = signedIn ? { href: "/dashboard", label: t.home.toDashboard } : { href: "/login", label: p.cta };
@@ -105,12 +106,14 @@ export default async function PricingPage() {
           <p className="text-sm font-semibold tracking-wide text-brand-300 uppercase">{p.eyebrow}</p>
           <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{p.title}</h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-pretty text-zinc-400">{p.intro}</p>
-          <p
-            role="note"
-            className="mx-auto mt-8 max-w-2xl rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm text-pretty text-zinc-200"
-          >
-            {p.launchNote}
-          </p>
+          {limitsActive !== true && (
+            <p
+              role="note"
+              className="mx-auto mt-8 max-w-2xl rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-3 text-sm text-pretty text-zinc-200"
+            >
+              {p.launchNote}
+            </p>
+          )}
         </section>
 
         <section aria-label={p.plansLabel} className="mx-auto w-full max-w-6xl px-4 pb-6 sm:px-6">
