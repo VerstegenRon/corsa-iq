@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
-import { dbError } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { getCurrentGarage } from "@/lib/garage";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 import { validateLaps, type LapSource } from "@/lib/lap-import";
 
 import { text } from "./form-data";
@@ -14,6 +16,7 @@ const SOURCES: LapSource[] = ["aim", "alfano", "unipro", "csv", "manual"];
 
 /** Replaces the session's laps with the ones the driver checked in the preview. */
 export async function importLaps(sessionId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const ts = (await getDictionary()).session;
   let parsed: unknown;
   try {
     parsed = JSON.parse(text(formData, "laps_json") ?? "null");
@@ -21,7 +24,7 @@ export async function importLaps(sessionId: string, _prev: FormState, formData: 
     parsed = null;
   }
   const laps = validateLaps(parsed);
-  if (!laps) return { error: "Er zijn geen geldige ronden om op te slaan. Controleer de voorvertoning." };
+  if (!laps) return { error: ts.noValidLaps };
 
   const sourceInput = text(formData, "source");
   const source = SOURCES.find((s) => s === sourceInput) ?? "csv";
@@ -31,7 +34,7 @@ export async function importLaps(sessionId: string, _prev: FormState, formData: 
   // The original file was uploaded by the browser; only accept files inside this garage's folder.
   const filePath = text(formData, "file_path");
   if (filePath && !new RegExp(`^${garage.id}/[\\w-]+\\.[a-z]+$`).test(filePath)) {
-    return { error: "Het bestand kon niet gekoppeld worden. Probeer het opnieuw." };
+    return { error: ts.fileLinkFailed };
   }
 
   const { data: dataImport, error: importError } = await supabase
@@ -51,7 +54,7 @@ export async function importLaps(sessionId: string, _prev: FormState, formData: 
     })
     .select("id")
     .single();
-  if (importError) return { error: `Opslaan mislukt: ${importError.message}` };
+  if (importError) return { error: format(ts.saveFailed, { error: await dbErrorText(importError) }) };
 
   const { error } = await supabase.rpc("replace_session_laps", {
     p_session_id: sessionId,
@@ -60,9 +63,9 @@ export async function importLaps(sessionId: string, _prev: FormState, formData: 
   });
   if (error) {
     await supabase.from("data_imports").update({ status: "failed", error: error.message }).eq("id", dataImport.id);
-    return { error: `Ronden opslaan mislukt: ${dbError(error)}` };
+    return { error: format(ts.lapsFailed, { error: await dbErrorText(error) }) };
   }
 
   revalidatePath("/dashboard", "layout");
-  return { success: `${laps.length} ${laps.length === 1 ? "ronde" : "ronden"} opgeslagen.` };
+  return { success: plural(laps.length, ts.lapsSaved) };
 }

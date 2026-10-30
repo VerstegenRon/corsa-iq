@@ -4,15 +4,10 @@ import { useActionState, useMemo, useRef, useState } from "react";
 
 import { FormMessage, type FormState } from "@/components/form-message";
 import { inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
+import { format, plural } from "@/lib/i18n/locales";
 import { formatLapTime } from "@/lib/karting";
-import {
-  buildLaps,
-  detectSource,
-  guessMapping,
-  parseLapTable,
-  type ColumnMapping,
-  type LapSource,
-} from "@/lib/lap-import";
+import { buildLaps, detectSource, guessMapping, parseLapTable, type ColumnMapping, type LapSource } from "@/lib/lap-import";
 import { uploadLoggerFile } from "@/lib/logger-upload";
 
 import { importLaps } from "../../lap-actions";
@@ -20,23 +15,15 @@ import { importLaps } from "../../lap-actions";
 const initialState: FormState = {};
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-const SOURCE_LABELS: Record<LapSource, string> = {
-  aim: "AiM / MyChron-export",
-  alfano: "Alfano-export",
-  unipro: "Unipro-export",
-  csv: "CSV-bestand",
-  manual: "Geplakte tijden",
-};
-
-export function LapImportForm({
-  sessionId,
-  garageId,
-  hasLaps,
-}: {
-  sessionId: string;
-  garageId: string;
-  hasLaps: boolean;
-}) {
+export function LapImportForm({ sessionId, garageId, hasLaps }: { sessionId: string; garageId: string; hasLaps: boolean }) {
+  const ts = useT().session;
+  const sourceLabels: Record<LapSource, string> = {
+    aim: ts.sourceAim,
+    alfano: ts.sourceAlfano,
+    unipro: ts.sourceUnipro,
+    csv: ts.sourceCsv,
+    manual: ts.sourceManual,
+  };
   const [input, setInput] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -67,13 +54,13 @@ export function LapImportForm({
     setFileError(null);
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
-      setFileError("Dit bestand is groter dan 5 MB. Exporteer alleen de rondetijden als CSV.");
+      setFileError(ts.fileTooBig);
       return;
     }
     const content = await file.text();
     // Binary logger files (.xrk, .drk) are not text; those need a CSV export from the logger software.
     if (content.slice(0, 2000).includes("\u0000")) {
-      setFileError("Dit is geen tekstbestand. Exporteer de rondetijden als CSV vanuit je loggersoftware.");
+      setFileError(ts.notText);
       return;
     }
     reset(content, file);
@@ -97,7 +84,7 @@ export function LapImportForm({
     <form action={formAction} className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
         <label className={`${secondaryButtonClass} cursor-pointer`}>
-          Bestand kiezen
+          {ts.chooseFile}
           <input
             type="file"
             accept=".csv,.txt,.tsv,text/csv,text/plain"
@@ -108,7 +95,7 @@ export function LapImportForm({
             }}
           />
         </label>
-        <span className="text-sm text-zinc-500">{fileName ?? "of plak hieronder je rondetijden, één per regel"}</span>
+        <span className="text-sm text-zinc-500">{fileName ?? ts.orPaste}</span>
       </div>
       {fileError && (
         <p role="alert" className="text-sm text-red-300">
@@ -117,7 +104,7 @@ export function LapImportForm({
       )}
 
       <label className={labelClass}>
-        Rondetijden
+        {ts.lapTimes}
         <textarea
           value={input}
           onChange={(event) => reset(event.target.value, null)}
@@ -132,7 +119,7 @@ export function LapImportForm({
         <>
           <div className="grid gap-4 sm:grid-cols-3">
             <label className={labelClass}>
-              Kolom rondetijd
+              {ts.colLapTime}
               <select
                 value={mapping.lapTime}
                 onChange={(event) => setMappingOverride((m) => ({ ...m, lapTime: Number(event.target.value) }))}
@@ -146,7 +133,7 @@ export function LapImportForm({
               </select>
             </label>
             <label className={labelClass}>
-              Kolom rondenummer
+              {ts.colLapNumber}
               <select
                 value={mapping.lapNumber ?? ""}
                 onChange={(event) =>
@@ -157,7 +144,7 @@ export function LapImportForm({
                 }
                 className={inputClass}
               >
-                <option value="">Doortellen vanaf 1</option>
+                <option value="">{ts.countFromOne}</option>
                 {columnOptions.map((column) => (
                   <option key={column.index} value={column.index}>
                     {column.label}
@@ -166,33 +153,31 @@ export function LapImportForm({
               </select>
             </label>
             <div className="text-sm text-zinc-400 sm:pt-7">
-              <p>{SOURCE_LABELS[source]}</p>
+              <p>{sourceLabels[source]}</p>
               <p className="text-xs text-zinc-500">
-                {laps.length} {laps.length === 1 ? "ronde" : "ronden"}
-                {sectorCount > 0 && ` · ${sectorCount} sectoren`}
-                {laps.some((lap) => lap.max_speed_kmh !== null) && " · topsnelheid"}
-                {laps.some((lap) => lap.max_rpm !== null) && " · toerental"}
+                {plural(laps.length, ts.lapCount)}
+                {sectorCount > 0 && ` · ${format(ts.sectorCount, { count: sectorCount })}`}
+                {laps.some((lap) => lap.max_speed_kmh !== null) && ` · ${ts.hasTopSpeed}`}
+                {laps.some((lap) => lap.max_rpm !== null) && ` · ${ts.hasRpm}`}
               </p>
             </div>
           </div>
 
           {laps.length === 0 ? (
-            <p className="text-sm text-zinc-400">
-              Geen rondetijden gevonden in deze kolom. Kies een andere kolom, of schrijf tijden als 52.345 of 1:02.345.
-            </p>
+            <p className="text-sm text-zinc-400">{ts.noneFound}</p>
           ) : (
             <div className="max-h-96 overflow-auto rounded-xl border border-zinc-800">
               <table className="w-full text-sm tabular-nums">
                 <thead className="sticky top-0 bg-zinc-900 text-left text-xs text-zinc-400">
                   <tr>
-                    <th className="px-3 py-2 font-medium">Ronde</th>
-                    <th className="px-3 py-2 font-medium">Tijd</th>
+                    <th className="px-3 py-2 font-medium">{ts.colLap}</th>
+                    <th className="px-3 py-2 font-medium">{ts.colTime}</th>
                     {Array.from({ length: sectorCount }, (_, i) => (
                       <th key={i} className="px-3 py-2 font-medium">
                         S{i + 1}
                       </th>
                     ))}
-                    <th className="px-3 py-2 font-medium">Telt mee</th>
+                    <th className="px-3 py-2 font-medium">{ts.counts}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/80">
@@ -209,7 +194,7 @@ export function LapImportForm({
                         <input
                           type="checkbox"
                           checked={lap.is_valid}
-                          aria-label={`Ronde ${lap.lap_number} telt mee`}
+                          aria-label={format(ts.lapCounts, { lap: lap.lap_number })}
                           onChange={(event) => setExcluded((e) => ({ ...e, [lap.lap_number]: !event.target.checked }))}
                           className="size-4 accent-brand-400"
                         />
@@ -220,10 +205,7 @@ export function LapImportForm({
               </table>
             </div>
           )}
-          <p className="-mt-3 text-xs text-zinc-500">
-            Uit- en inrondes en rondes die veel trager zijn dan normaal tellen niet mee voor snelste ronde en gemiddelde.
-            Vink aan of uit wat klopt.
-          </p>
+          <p className="-mt-3 text-xs text-zinc-500">{ts.excludedNote}</p>
         </>
       )}
 
@@ -232,16 +214,14 @@ export function LapImportForm({
 
       <div className="flex flex-col gap-4">
         <FormMessage state={state} />
-        <button
-          type="submit"
-          disabled={isPending || finalLaps.length === 0}
-          className={`${primaryButtonClass} self-start`}
-        >
+        <button type="submit" disabled={isPending || finalLaps.length === 0} className={`${primaryButtonClass} self-start`}>
           {isPending
-            ? "Opslaan…"
+            ? ts.saving
             : finalLaps.length === 0
-              ? "Ronden opslaan"
-              : `${finalLaps.length} ${finalLaps.length === 1 ? "ronde" : "ronden"} opslaan${hasLaps ? " (vervangt huidige)" : ""}`}
+              ? ts.saveLaps
+              : hasLaps
+                ? format(ts.replaces, { label: plural(finalLaps.length, ts.saveCount) })
+                : plural(finalLaps.length, ts.saveCount)}
         </button>
       </div>
     </form>

@@ -6,14 +6,16 @@
 import { useState } from "react";
 
 import { QUICK_TAGS, type QuickTag } from "@/lib/feedback";
+import { useT } from "@/lib/i18n/client";
 
 const focusRing = "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-400";
 
 export function QuickTagToggles({ defaultValue = [] }: { defaultValue?: QuickTag[] }) {
+  const tf = useT().feedback;
   const [selected, setSelected] = useState<QuickTag[]>(defaultValue);
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="channel-label mb-2">Hoe voelde de kart?</legend>
+      <legend className="channel-label mb-2">{tf.quickLegend}</legend>
       <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
         {(Object.keys(QUICK_TAGS) as QuickTag[]).map((key) => {
           const on = selected.includes(key);
@@ -32,7 +34,7 @@ export function QuickTagToggles({ defaultValue = [] }: { defaultValue?: QuickTag
                 onChange={(event) => setSelected((s) => (event.target.checked ? [...s, key] : s.filter((k) => k !== key)))}
                 className="sr-only"
               />
-              {QUICK_TAGS[key]}
+              {tf.quick[key]}
             </label>
           );
         })}

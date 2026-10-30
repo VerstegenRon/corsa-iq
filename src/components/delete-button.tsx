@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useCanEdit } from "@/components/edit-access";
 import type { FormState } from "@/components/form-message";
 import { Icon } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
@@ -18,7 +19,7 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 export function DeleteButton({
   action,
   confirmText,
-  label = "Verwijderen",
+  label,
   compact = false,
   iconOnly = false,
 }: {
@@ -33,6 +34,8 @@ export function DeleteButton({
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canEdit = useCanEdit();
+  const tc = useT().common;
+  const name = label ?? tc.delete;
 
   function run() {
     setError(null);
@@ -56,7 +59,7 @@ export function DeleteButton({
     return (
       <div
         role="group"
-        aria-label={label}
+        aria-label={name}
         className={`flex flex-col gap-2 ${compact ? "items-end" : "items-start"}`}
         onKeyDown={(event) => {
           if (event.key === "Escape" && !isPending) setConfirming(false);
@@ -75,7 +78,7 @@ export function DeleteButton({
               compact ? "h-7 px-3 text-xs" : "h-9 px-4 text-sm"
             }`}
           >
-            {isPending ? "Bezig…" : "Ja, verwijderen"}
+            {isPending ? tc.busy : tc.confirmDelete}
           </button>
           <button
             type="button"
@@ -85,7 +88,7 @@ export function DeleteButton({
               compact ? "h-7 px-3 text-xs" : "h-9 px-4 text-sm"
             }`}
           >
-            Annuleren
+            {tc.cancel}
           </button>
         </div>
         {errorMessage}
@@ -97,7 +100,7 @@ export function DeleteButton({
     <div className={`flex flex-col gap-2 ${compact ? "items-end" : "items-start"}`}>
       <button
         type="button"
-        aria-label={compact || iconOnly ? label : undefined}
+        aria-label={compact || iconOnly ? name : undefined}
         onClick={() => setConfirming(true)}
         className={
           iconOnly
@@ -107,7 +110,7 @@ export function DeleteButton({
               : `inline-flex h-9 items-center justify-center rounded-full border border-red-500/40 px-4 text-sm text-red-200 transition-colors hover:border-red-400 hover:bg-red-500/10 ${focusRing}`
         }
       >
-        {iconOnly ? <Icon name="plus" className="size-4 rotate-45" /> : compact ? "Verwijder" : label}
+        {iconOnly ? <Icon name="plus" className="size-4 rotate-45" /> : compact ? tc.deleteShort : name}
       </button>
       {errorMessage}
     </div>

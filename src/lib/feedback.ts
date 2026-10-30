@@ -87,8 +87,3 @@ export function parseFeedbackTags(value: unknown): FeedbackTags | null {
     quick: keysOf(raw.quick, QUICK_TAGS),
   };
 }
-
-/** "3" → "Bocht 3"; a name stays as it is, with a capital. */
-export function cornerLabel(corner: string) {
-  return /^\d+$/.test(corner) ? `Bocht ${corner}` : corner.charAt(0).toUpperCase() + corner.slice(1);
-}
