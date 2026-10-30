@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   // RLS limits events to the user's garages; the event also tells which garage the setup belongs to.
   let { data: event } = await supabase.from("events").select("id, garage_id").eq("id", body.eventId).maybeSingle();
   if (!event && body.newEvent?.id === body.eventId) {
-    const created = await createEvent(supabase, body.newEvent);
+    const created = await createEvent(supabase, body.newEvent, (fields as Record<string, unknown>).kart_id);
     if ("error" in created) return Response.json({ error: created.error }, { status: 422 });
     event = created.event;
   }
@@ -69,22 +69,25 @@ export async function POST(request: Request) {
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-/** Saves an event made on the pitwall, in the user's garage and the season of its year. */
-async function createEvent(supabase: Supabase, newEvent: Partial<NewEvent>) {
+/**
+ * Saves an event made on the pitwall, in the garage of the session's kart and the season of its year.
+ * The kart, not the garage chosen now: a session can wait on the phone while someone switches garage.
+ */
+async function createEvent(supabase: Supabase, newEvent: Partial<NewEvent>, kartId: unknown) {
   const te = (await getDictionary()).pitwall.errors;
   const { id, name, type, track_id: trackId, starts_on: startsOn } = newEvent;
   if (!id || !UUID.test(id) || !name?.trim() || !type || !(type in EVENT_TYPES) || !trackId || !startsOn || !/^\d{4}-\d{2}-\d{2}$/.test(startsOn)) {
     return { error: te.newEventIncomplete };
   }
-  const { data: garage } = await supabase.from("garages").select("id").order("created_at").limit(1).maybeSingle();
-  if (!garage) return { error: te.noGarage };
+  const { data: kart } = typeof kartId === "string" && UUID.test(kartId) ? await supabase.from("karts").select("garage_id").eq("id", kartId).maybeSingle() : { data: null };
+  if (!kart) return { error: te.noGarage };
 
   const { data: event, error } = await supabase
     .from("events")
     .insert({
       id,
-      garage_id: garage.id,
-      season_id: await seasonIdForDate(supabase, garage.id, startsOn),
+      garage_id: kart.garage_id,
+      season_id: await seasonIdForDate(supabase, kart.garage_id, startsOn),
       name: name.trim().slice(0, 120),
       type,
       track_id: trackId,
