@@ -3,26 +3,29 @@ import Link from "next/link";
 
 import { cardClass, linkClass, secondaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatDate, formatLapTime, labelFor, todayInAmsterdam } from "@/lib/karting";
 import type { LiveReference } from "@/lib/live";
-import { DAY_ORDER } from "@/lib/prestart";
+import { DAY_ORDER, displayLabel } from "@/lib/prestart";
 import { PlanLock } from "@/components/plan-lock";
 import { getPlanAccess } from "@/lib/plan-access";
 
 import { LiveBoard, type BoardLap } from "./live-board";
 import { StartLiveForm, type ReferenceOption } from "./start-live-form";
 
-export const metadata: Metadata = {
-  title: "Live — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).raceDay.live.metaTitle };
+}
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 
 /** Live: the session being driven, from the pit stopwatch to every team device; or a new one to start. */
 export default async function LivePage({ searchParams }: PageProps<"/dashboard/live">) {
   const query = await searchParams;
-  const [{ supabase, garage, canEdit }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit }, t, locale] = await Promise.all([getCurrentGarage(), getDictionary(), getLocale()]);
+  const tl = t.raceDay.live;
+  const shownLabel = (label: string) => displayLabel(label, t.raceDay.practiceCode);
   if (!(await getPlanAccess()).has("live")) return <PlanLock feature="live" />;
 
   const { data: runningData } = await supabase
@@ -41,18 +44,18 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
       <div className="min-w-0">
         <p className="channel-label mb-2 truncate">
           {live
-            ? `Live · ${live.events?.name ?? ""} · ${live.karts?.name ?? ""} · ${live.drivers?.name ?? ""}`
-            : "Volg een sessie terwijl hij gereden wordt"}
+            ? `${tl.title} · ${live.events?.name ?? ""} · ${live.karts?.name ?? ""} · ${live.drivers?.name ?? ""}`
+            : tl.intro}
         </p>
         <h1 className="text-3xl sm:text-4xl">
-          {live ? labelFor(t.options.sessionTypes, live.session_type) : "Live"}
+          {live ? labelFor(t.options.sessionTypes, live.session_type) : tl.title}
           <span className="text-brand-400">.</span>
         </h1>
       </div>
       {canEdit && (
         <div className="flex flex-wrap gap-2">
           <Link href="/pitwall" className={`${linkClass} text-sm`}>
-            Pitwall: sessie snel loggen
+            {tl.pitwallLink}
           </Link>
         </div>
       )}
@@ -62,7 +65,7 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
   const others = running.filter((r) => r.id !== live?.id);
   const switcher =
     running.length > 0 ? (
-      <nav aria-label="Live-sessies" className="flex flex-wrap gap-1">
+      <nav aria-label={tl.switcherLabel} className="flex flex-wrap gap-1">
         {others.map((r) => (
           <Link
             key={r.id}
@@ -70,12 +73,12 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
             className={`inline-flex min-h-11 items-center gap-2 border border-zinc-800 px-3 text-sm text-zinc-300 hover:border-zinc-600 ${focusRing}`}
           >
             <span aria-hidden className="size-2 bg-red-400" />
-            {r.label} · {r.karts?.name}
+            {shownLabel(r.label)} · {r.karts?.name}
           </Link>
         ))}
         {live && canEdit && (
           <Link href="/dashboard/live?new=1" className={`${secondaryButtonClass}`}>
-            Nog een kart live volgen
+            {tl.followAnother}
           </Link>
         )}
       </nav>
@@ -87,7 +90,7 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
       ? {
           lapTimeMs: ref.lap_time_ms,
           sectorsMs: [...ref.lap_sectors].sort((a, b) => a.sector_number - b.sector_number).map((s) => s.sector_time_ms),
-          label: `ref ${ref.sessions?.drivers?.name ?? ""}`.trim(),
+          label: format(tl.referenceOf, { name: ref.sessions?.drivers?.name ?? "" }).trim(),
         }
       : null;
     const { data: message } = await supabase
@@ -107,7 +110,7 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
           live={{
             id: live.id,
             garageId: garage.id,
-            label: live.label,
+            label: shownLabel(live.label),
             plannedLaps: live.planned_laps,
             startedAt: live.started_at,
             title: live.events?.name ?? "",
@@ -174,7 +177,7 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
     if (list.length >= 6) continue;
     list.push({
       lapId: lap.id,
-      label: `${formatLapTime(lap.lap_time_ms)} · ${lap.sessions.drivers?.name ?? ""} · ${labelFor(t.options.sessionTypes, lap.sessions.type).toLowerCase()} ${formatDate(lap.sessions.started_at)}`,
+      label: `${formatLapTime(lap.lap_time_ms)} · ${lap.sessions.drivers?.name ?? ""} · ${labelFor(t.options.sessionTypes, lap.sessions.type).toLowerCase()} ${formatDate(lap.sessions.started_at, locale)}`,
     });
   }
 
@@ -187,26 +190,26 @@ export default async function LivePage({ searchParams }: PageProps<"/dashboard/l
       {switcher}
       {!canEdit ? (
         <section className={cardClass}>
-          <p className="text-zinc-300">Er loopt nu geen live-sessie. Zodra iemand in het team er een start, zie je hem hier.</p>
+          <p className="text-zinc-300">{tl.noneRunning}</p>
         </section>
       ) : ordered.length === 0 || karts.length === 0 || drivers.length === 0 ? (
         <section className={cardClass}>
-          <p className="text-zinc-300">Voor Live heb je een evenement, een kart en een coureur nodig.</p>
+          <p className="text-zinc-300">{tl.needs}</p>
           <Link href="/dashboard/seasons#add-event" className={`${linkClass} mt-3 inline-block text-sm`}>
-            Evenement plannen
+            {t.raceDay.today.planEvent}
           </Link>
         </section>
       ) : (
         <section className={cardClass}>
-          <h2 className="text-lg font-semibold">Live volgen</h2>
+          <h2 className="text-lg font-semibold">{tl.startTitle}</h2>
           <p className="mt-1 mb-5 text-sm text-zinc-400">
-            Eén iemand in de pit klokt met de stopwatch; iedereen in het team ziet elke ronde, het verschil met de referentie en het pitbord direct.
+            {tl.startIntro}
           </p>
           <StartLiveForm
             events={ordered.map((e) => ({
               id: e.id,
               trackId: e.track_id,
-              label: `${e.name} · ${formatDate(e.starts_on)}${e.tracks ? ` · ${e.tracks.name}` : ""}`,
+              label: `${e.name} · ${formatDate(e.starts_on, locale)}${e.tracks ? ` · ${e.tracks.name}` : ""}`,
             }))}
             karts={karts}
             drivers={drivers}

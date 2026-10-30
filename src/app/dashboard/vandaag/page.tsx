@@ -3,10 +3,11 @@ import Link from "next/link";
 
 import { cardClass, linkClass, primaryButtonClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatHoursMinutes, labelFor, todayInAmsterdam, type SetupValues } from "@/lib/karting";
 import { computeUsage } from "@/lib/part-usage";
-import { CORNER_FIELDS, CORNERS, DAY_ORDER, hoursStatus, sessionLabel, tyreStatus, type CheckStatus } from "@/lib/prestart";
+import { CHAIN_SLACK_MM, CORNER_FIELDS, CORNERS, DAY_ORDER, displayLabel, hoursStatus, sessionLabel, tyreStatus, type CheckStatus } from "@/lib/prestart";
 import { diffSetups, getSetupValue } from "@/lib/setup";
 import { describeChanges } from "@/lib/setup-tree";
 import { loadSetupTree } from "@/lib/setup-tree-data";
@@ -16,9 +17,9 @@ import { getPlanAccess } from "@/lib/plan-access";
 
 import { PrestartBoard, type BoardRow, type BoardTyre } from "./prestart-board";
 
-export const metadata: Metadata = {
-  title: "Vandaag — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).raceDay.today.metaTitle };
+}
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400";
 /** The last half hour, for the weather at the circuit right now. */
@@ -26,11 +27,11 @@ function halfAnHourAgo() {
   return new Date(Date.now() - 30 * 60_000).toISOString();
 }
 
-const clock = new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
-
 export default async function TodayPage({ searchParams }: PageProps<"/dashboard/vandaag">) {
   const query = await searchParams;
-  const [{ supabase, garage, canEdit, canManageTeam }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const [{ supabase, garage, canEdit, canManageTeam }, t, locale] = await Promise.all([getCurrentGarage(), getDictionary(), getLocale()]);
+  const tt = t.raceDay.today;
+  const clock = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" });
   if (!(await getPlanAccess()).has("prestart")) return <PlanLock feature="prestart" />;
   const today = todayInAmsterdam();
 
@@ -67,23 +68,23 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
     return (
       <>
         <section>
-          <p className="channel-label mb-2">Pre-start</p>
+          <p className="channel-label mb-2">{tt.eyebrow}</p>
           <h1 className="text-3xl sm:text-4xl">
-            Vandaag<span className="text-brand-400">.</span>
+            {tt.title}<span className="text-brand-400">.</span>
           </h1>
         </section>
         <section className={cardClass}>
           <p className="text-zinc-300">
-            {!kart ? "Nog geen actieve kart." : "Geen evenement vandaag of gepland."}
-            {canEdit && (!kart ? " Voeg je kart toe om de checklist te gebruiken." : " Plan je volgende evenement.")}
+            {!kart ? tt.noKart : tt.noEvent}
+            {canEdit && ` ${!kart ? tt.addKartHint : tt.planEventHint}`}
           </p>
           {canManageTeam && !kart ? (
             <Link href="/dashboard/start" className={`${primaryButtonClass} mt-4`}>
-              Aan de slag: team, kart en eerste evenement
+              {tt.getStarted}
             </Link>
           ) : !canEdit ? null : (
             <Link href={!kart ? "/dashboard/karts#add" : "/dashboard/seasons#add-event"} className={`${linkClass} mt-3 inline-block text-sm`}>
-              {!kart ? "Kart toevoegen" : "Evenement plannen"}
+              {!kart ? tt.addKart : tt.planEvent}
             </Link>
           )}
         </section>
@@ -99,6 +100,7 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
     : "practice";
   const type = typeof query.type === "string" && query.type in t.options.sessionTypes ? query.type : suggested;
   const label = sessionLabel(type, ownSessions.filter((s) => s.type === type).length);
+  const shownLabel = displayLabel(label, t.raceDay.practiceCode);
   const raceNumber = ownSessions.map((s) => s.drivers?.race_number).find(Boolean);
 
   const [tree, checkResult, engineResult, tyreSetResult] = await Promise.all([
@@ -161,29 +163,30 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
   const tyreSet = tyreSetResult.data?.[0]?.parts ?? null;
   const tyreSetName = tyreSet ? [tyreSet.brand === "TEST" ? null : tyreSet.brand, tyreSet.model].filter(Boolean).join(" ") : null;
   const stored = (key: string): CheckStatus => (checks.get(key)?.status as CheckStatus | undefined) ?? "open";
-  const weatherNote = weather ? `${String(weather.air_temp_c).replace(".", ",")} °C, ${weather.humidity_pct} % RV` : null;
+  const weatherNote = weather ? format(tt.weatherNote, { temp: String(weather.air_temp_c).replace(".", ","), humidity: weather.humidity_pct }) : null;
+  const withNote = (value: string, note: string | null) => (note ? `${format(tt.target, { value })} · ${note}` : format(tt.target, { value }));
 
   const rows: BoardRow[] = [
     {
       key: "gearing",
-      name: "Overbrenging",
-      spec: gearing ? `Doel ${gearing}${setup ? ` · setup ${setup.label}` : ""}` : "Geen overbrenging in de setup",
+      name: tt.gearing,
+      spec: gearing ? withNote(gearing, setup ? format(tt.withSetup, { label: setup.label }) : null) : tt.noGearing,
       value: gearing ?? "—",
       status: stored("gearing"),
       kind: "confirm",
     },
     {
       key: "chain",
-      name: "Kettingspanning",
-      spec: "Doel 10–15 mm speling",
+      name: tt.chain,
+      spec: format(tt.chainTarget, { min: CHAIN_SLACK_MM.min, max: CHAIN_SLACK_MM.max }),
       value: checks.get("chain")?.value ? `${String(checks.get("chain")!.value).replace(".", ",")} mm` : "—",
       status: stored("chain"),
       kind: "measure",
     },
     {
       key: "main_jet",
-      name: "Hoofdsproeier",
-      spec: jet ? `Doel ${jet}${weatherNote ? ` · ${weatherNote}` : ""}` : "Geen sproeier in de setup",
+      name: tt.mainJet,
+      spec: jet ? withNote(String(jet), weatherNote) : tt.noJet,
       value: jet ? String(jet) : "—",
       status: stored("main_jet"),
       kind: "confirm",
@@ -191,25 +194,25 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
     engine?.usage_limit_minutes && engineMinutes !== null
       ? {
           key: "engine",
-          name: "Motoruren",
-          spec: `Revisie bij ${formatHoursMinutes(engine.usage_limit_minutes)}`,
+          name: tt.engineHours,
+          spec: format(tt.revisionAt, { time: formatHoursMinutes(engine.usage_limit_minutes) }),
           value: formatHoursMinutes(engineMinutes),
           status: hoursStatus(engineMinutes, engine.usage_limit_minutes),
           kind: "auto",
         }
-      : { key: "engine", name: "Motoruren", spec: "Geen motor met een limiet op deze kart", value: "—", status: "open" as CheckStatus, kind: "auto" },
+      : { key: "engine", name: tt.engineHours, spec: tt.noEngine, value: "—", status: "open" as CheckStatus, kind: "auto" },
     {
       key: "tyre_set",
-      name: tyreSetName ? `${tyreSetName} gemarkeerd` : "Bandenset gemarkeerd",
-      spec: `Voor ${labelFor(t.options.sessionTypes, type).toLowerCase()}`,
+      name: tyreSetName ? format(tt.tyreSetMarked, { name: tyreSetName }) : tt.tyreSetDefault,
+      spec: format(tt.forSession, { type: labelFor(t.options.sessionTypes, type).toLowerCase() }),
       value: "—",
       status: stored("tyre_set"),
       kind: "confirm",
     },
     {
       key: "lock",
-      name: "Setup vergrendeld",
-      spec: check?.locked_at ? `Om ${clock.format(new Date(check.locked_at))}` : "Na deze checklist",
+      name: tt.setupLocked,
+      spec: check?.locked_at ? format(tt.lockedAt, { time: clock.format(new Date(check.locked_at)) }) : tt.afterChecklist,
       value: check?.locked_at ? (setup?.label ?? "✓") : "—",
       status: check?.locked_at ? "ok" : "open",
       kind: "auto",
@@ -223,15 +226,15 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
     <>
       <div className="flex items-center justify-between gap-3">
         <p className="channel-label">
-          Pre-start{kart.class ? ` · ${kart.class}` : ""}
+          {tt.eyebrow}{kart.class ? ` · ${kart.class}` : ""}
           {raceNumber ? ` #${raceNumber}` : ""} · {kart.name}
         </p>
         <span className="shrink-0 border border-zinc-800 px-2.5 py-2 font-mono text-xs tracking-wider uppercase">
-          {(event.tracks?.city ?? event.tracks?.name ?? event.name).toUpperCase()} · {label}
+          {(event.tracks?.city ?? event.tracks?.name ?? event.name).toUpperCase()} · {shownLabel}
         </span>
       </div>
 
-      <nav aria-label="Sessie" className="-mt-4 flex flex-wrap gap-1">
+      <nav aria-label={tt.sessionNav} className="-mt-4 flex flex-wrap gap-1">
         {typeOptions.map(([value, name]) => (
           <Link
             key={value}
@@ -261,7 +264,7 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
 
       <PrestartBoard
         ctx={{ eventId: event.id, kartId: kart.id, label, type, setupId: setup?.id ?? null }}
-        label={label}
+        label={shownLabel}
         eventName={event.name}
         upcoming={!current}
         tyres={tyres}
@@ -272,7 +275,10 @@ export default async function TodayPage({ searchParams }: PageProps<"/dashboard/
         compare={
           setup
             ? {
-                title: fastest && fastest.id !== setup.id ? `Setup ${setup.label} · nieuw t.o.v. ${fastest.label}` : `Setup ${setup.label}`,
+                title:
+                  fastest && fastest.id !== setup.id
+                    ? format(tt.setupNewTitle, { label: setup.label, reference: fastest.label })
+                    : format(tt.setupTitle, { label: setup.label }),
                 changes,
               }
             : null

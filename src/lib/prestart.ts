@@ -1,6 +1,7 @@
 // The pre-start checklist ("Klaar voor Q1?"): the four cold tyre pressures against the setup, the
 // drivetrain checks, engine hours and the setup lock. Pure, so the page and the actions agree.
 
+import { format } from "@/lib/i18n/locales";
 import { SETUP_FIELDS, type SetupField } from "@/lib/setup";
 
 export type CheckStatus = "ok" | "warn" | "fail" | "open";
@@ -29,11 +30,9 @@ export function tyreStatus(value: number | null, target: number | null): CheckSt
 const bar = (v: number, digits: number) => v.toFixed(digits).replace(".", ",");
 
 /** What to do about a wheel outside the band, e.g. "0,031 bar te hoog. Laat af tot 0,58 en meet opnieuw." */
-export function tyreAdvice(value: number, target: number): string {
+export function tyreAdvice(value: number, target: number, tr: { tooHigh: string; tooLow: string }): string {
   const diff = value - target;
-  return diff > 0
-    ? `${bar(diff, 3)} bar te hoog. Laat af tot ${bar(target, 2)} en meet opnieuw.`
-    : `${bar(-diff, 3)} bar te laag. Pomp op tot ${bar(target, 2)} en meet opnieuw.`;
+  return format(diff > 0 ? tr.tooHigh : tr.tooLow, { diff: bar(Math.abs(diff), 3), target: bar(target, 2) });
 }
 
 export function chainStatus(mm: number | null): CheckStatus {
@@ -54,6 +53,11 @@ export const DAY_ORDER = ["practice", "qualifying", "heat", "prefinal", "final"]
 /** "Q1" for the first qualifying of the event, "VT2" for the second free practice. */
 export function sessionLabel(type: string, alreadyDriven: number): string {
   return `${CODES[type] ?? "S"}${alreadyDriven + 1}`;
+}
+
+/** A label as the reader writes it: it is stored as "VT1", shown as "FP1" in English. */
+export function displayLabel(label: string, practiceCode: string): string {
+  return label.replace(/^VT/, practiceCode);
 }
 
 /** Statuses counted for the progress bar: a warning is in order, but marked. */

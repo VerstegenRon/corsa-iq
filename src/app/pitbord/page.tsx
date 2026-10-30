@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 
 import { getCurrentGarage } from "@/lib/garage";
+import { getDictionary } from "@/lib/i18n/server";
+import { displayLabel } from "@/lib/prestart";
 import { PlanLockScreen } from "@/components/plan-lock";
 import { getPlanAccess } from "@/lib/plan-access";
 
 import { PitboardScreen, type BoardSession } from "./pitboard-screen";
 
-export const metadata: Metadata = {
-  title: "Pitbord — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).raceDay.pitboard.metaTitle };
+}
 
 /** The digital pit board: one message and the live gap, big enough to read from the kart. */
 export default async function PitboardPage() {
-  const { supabase, garage } = await getCurrentGarage();
+  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
   if (!(await getPlanAccess()).has("pitboard")) return <PlanLockScreen feature="pitboard" />;
   const [{ data: message }, { data: running }] = await Promise.all([
     supabase
@@ -33,7 +35,7 @@ export default async function PitboardPage() {
 
   const sessions: BoardSession[] = (running ?? []).map((s) => ({
     id: s.id,
-    label: s.label,
+    label: displayLabel(s.label, t.raceDay.practiceCode),
     plannedLaps: s.planned_laps,
     kartName: s.karts?.name ?? "",
     referenceMs: s.laps?.lap_time_ms ?? null,
