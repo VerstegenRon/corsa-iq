@@ -3,7 +3,7 @@
 
 import Stripe from "stripe";
 
-import { KEEPS_PLAN, planFromLookupKey } from "@/lib/billing";
+import { extraFromLookupKey, KEEPS_PLAN, planFromLookupKey } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 let client: Stripe | undefined;
@@ -15,6 +15,30 @@ export function stripe() {
 }
 
 export const idOf = (value: string | { id: string }) => (typeof value === "string" ? value : value.id);
+
+/**
+ * Recounts a garage's extras from its running subscriptions. An extra that does not fit the current
+ * plan (after switching or leaving it) no longer counts and stops at the end of its paid month.
+ */
+async function syncExtras(garageId: string, customerId: string) {
+  const admin = createAdminClient();
+  const { data: garage } = await admin.from("garages").select("plan").eq("id", garageId).maybeSingle();
+  if (!garage) return;
+
+  const counts = { driver: 0, kart: 0 };
+  const { data: subscriptions } = await stripe().subscriptions.list({ customer: customerId, status: "all", limit: 100 });
+  for (const subscription of subscriptions) {
+    const item = subscription.items.data[0];
+    const extra = extraFromLookupKey(item?.price.lookup_key);
+    if (!extra || !KEEPS_PLAN.includes(subscription.status)) continue;
+    if (extra.plan === garage.plan) counts[extra.key] += item.quantity ?? 1;
+    else if (!subscription.cancel_at_period_end && subscription.cancel_at === null)
+      await stripe().subscriptions.update(subscription.id, { cancel_at_period_end: true });
+  }
+
+  const { error } = await admin.from("garages").update({ extra_drivers: counts.driver, extra_karts: counts.kart }).eq("id", garageId);
+  if (error) throw new Error(`Saving extras failed: ${error.message}`);
+}
 
 /**
  * Writes the subscription's current state to the garage it belongs to: the billing row, and the plan
@@ -43,6 +67,11 @@ export async function syncSubscription(subscriptionId: string) {
 
   const item = subscription.items.data[0];
   const lookupKey = item?.price.lookup_key ?? null;
+  // An extra has its own subscription: it never touches the plan or the billing row.
+  if (extraFromLookupKey(lookupKey)) {
+    await syncExtras(garageId, customerId);
+    return;
+  }
   const paidPlan = planFromLookupKey(lookupKey);
   const plan = paidPlan && KEEPS_PLAN.includes(subscription.status) ? paidPlan : "free";
   const periodEnd = subscription.cancel_at ?? item?.current_period_end;
@@ -62,4 +91,6 @@ export async function syncSubscription(subscriptionId: string) {
 
   const { error: planError } = await admin.from("garages").update({ plan }).eq("id", garageId);
   if (planError) throw new Error(`Saving plan failed: ${planError.message}`);
+
+  await syncExtras(garageId, customerId);
 }

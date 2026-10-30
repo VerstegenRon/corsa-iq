@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
-import { billingEnabled, INTERVALS, isPaidPlan, KEEPS_PLAN, lookupKey, MANAGED_PAYMENTS, type Interval } from "@/lib/billing";
+import { billingEnabled, extraLookupKey, INTERVALS, isPaidPlan, KEEPS_PLAN, lookupKey, MANAGED_PAYMENTS, type Interval } from "@/lib/billing";
 import { getCurrentGarage } from "@/lib/garage";
 import { getLocale } from "@/lib/i18n/server";
+import { ADDONS, type AddonKey, type PlanKey } from "@/lib/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 
@@ -23,7 +24,7 @@ async function ownerBilling() {
   if (!current.canManageTeam) redirect("/dashboard/settings?billing=owner");
   const { data: billing } = await current.supabase
     .from("garage_billing")
-    .select("stripe_customer_id, stripe_subscription_id, status")
+    .select("stripe_customer_id, stripe_subscription_id, status, cancel_at_period_end")
     .eq("garage_id", current.garage.id)
     .maybeSingle();
   return { ...current, billing };
@@ -90,6 +91,8 @@ export async function startCheckout(formData: FormData) {
       updated_at: new Date().toISOString(),
     });
     if (error) throw new Error(`Saving the Stripe customer failed: ${error.message}`);
+    const { error: extrasError } = await createAdminClient().from("garages").update({ extra_drivers: 0, extra_karts: 0 }).eq("id", garage.id);
+    if (extrasError) throw new Error(`Resetting extras failed: ${extrasError.message}`);
   }
 
   const base = await origin();
@@ -104,6 +107,37 @@ export async function startCheckout(formData: FormData) {
     locale: await getLocale(),
     success_url: `${base}/dashboard/settings?billing=success`,
     cancel_url: `${base}/pricing`,
+  });
+  if (!session.url) throw new Error("Stripe gave no checkout link.");
+  redirect(session.url);
+}
+
+/**
+ * Buying one extra driver or kart: a monthly subscription of its own, through Checkout, for a garage
+ * with a running plan that offers it. Never makes a customer: without a known one, the plan comes first.
+ */
+export async function startExtraCheckout(formData: FormData) {
+  const key = String(formData.get("key") ?? "");
+  const { garage, billing } = await ownerBilling();
+  const customerId = await currentCustomer(billing?.stripe_customer_id);
+  const offered = key in ADDONS ? (ADDONS[key as AddonKey] as Partial<Record<PlanKey, number>>)[garage.plan as PlanKey] : undefined;
+  if (!customerId || !billing?.status || !KEEPS_PLAN.includes(billing.status) || billing.cancel_at_period_end || offered === undefined) redirect("/pricing");
+
+  const lookup = extraLookupKey(key as AddonKey, garage.plan as PlanKey);
+  const { data: prices } = await stripe().prices.list({ lookup_keys: [lookup], active: true, limit: 1 });
+  if (!prices[0]) throw new Error(`No Stripe price for ${lookup}; run scripts/stripe-setup.mjs.`);
+
+  const base = await origin();
+  const session = await stripe().checkout.sessions.create({
+    mode: "subscription",
+    customer: customerId,
+    client_reference_id: garage.id,
+    line_items: [{ price: prices[0].id, quantity: 1 }],
+    subscription_data: { metadata: { garage_id: garage.id } },
+    managed_payments: { enabled: MANAGED_PAYMENTS },
+    locale: await getLocale(),
+    success_url: `${base}/dashboard/settings?billing=extra`,
+    cancel_url: `${base}/dashboard/settings`,
   });
   if (!session.url) throw new Error("Stripe gave no checkout link.");
   redirect(session.url);

@@ -47,12 +47,17 @@ export const getPlanAccess = cache(async () => {
   const { data } = await supabase.rpc("plan_limits_active");
   const active = data === true;
   const plan: PlanKey = PLAN_KEYS.includes(garage.plan as PlanKey) ? (garage.plan as PlanKey) : "free";
+  const extras: Record<Counted, number> = { karts: garage.extra_karts, drivers: garage.extra_drivers, members: 0 };
+  const withExtras = (counted: Counted) => {
+    const base = planLimit(plan, counted);
+    return base === null ? null : base + extras[counted];
+  };
   return {
     active,
     plan,
     isOwner: canManageTeam,
     has: (feature: Feature) => !active || planIncludes(plan, feature),
-    limit: (counted: Counted) => (active ? planLimit(plan, counted) : null),
+    limit: (counted: Counted) => (active ? withExtras(counted) : null),
   };
 });
 

@@ -1,7 +1,7 @@
 // Which Stripe price belongs to which plan. The prices are found by lookup key, so the app needs no
 // price ids: `scripts/stripe-setup.mjs` creates them in Stripe with these keys.
 
-import type { PlanKey } from "@/lib/pricing";
+import type { AddonKey, PlanKey } from "@/lib/pricing";
 
 export const PAID_PLANS = ["hobby", "pro", "team"] as const satisfies readonly PlanKey[];
 export type PaidPlan = (typeof PAID_PLANS)[number];
@@ -20,6 +20,16 @@ export function planFromLookupKey(key: string | null | undefined): PaidPlan | nu
   const [slug, interval] = (key ?? "").split("_");
   if (!INTERVALS.includes(interval as Interval)) return null;
   return PAID_PLANS.find((plan) => SLUG[plan] === slug) ?? null;
+}
+
+/** An extra's price differs per plan, so its lookup key names both: "extra_driver_pro". Always monthly. */
+export function extraLookupKey(key: AddonKey, plan: PlanKey) {
+  return `extra_${key}_${plan}`;
+}
+
+export function extraFromLookupKey(lookup: string | null | undefined): { key: AddonKey; plan: PlanKey } | null {
+  const match = /^extra_(driver|kart)_(pro|team)$/.exec(lookup ?? "");
+  return match ? { key: match[1] as AddonKey, plan: match[2] as PlanKey } : null;
 }
 
 export function isPaidPlan(value: string): value is PaidPlan {

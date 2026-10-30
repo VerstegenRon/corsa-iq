@@ -773,6 +773,8 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           currency: string;
+          extra_drivers: number;
+          extra_karts: number;
           id: string;
           name: string;
           plan: string;
@@ -781,6 +783,8 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           currency?: string;
+          extra_drivers?: number;
+          extra_karts?: number;
           id?: string;
           name: string;
           plan?: string;
@@ -789,6 +793,8 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           currency?: string;
+          extra_drivers?: number;
+          extra_karts?: number;
           id?: string;
           name?: string;
           plan?: string;
