@@ -11,7 +11,8 @@ import { LineChart } from "@/components/charts/line-chart";
 import { FeedbackField } from "@/components/feedback-field";
 import { LapTimeChart } from "@/components/lap-time-chart";
 import { Icon } from "@/components/icons";
-import { useT } from "@/lib/i18n/client";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { format, plural } from "@/lib/i18n/locales";
 import { nearestTrack, NEAREST_TRACK_MAX_KM } from "@/lib/geo";
 import { formatDate, formatLapTime, parseLapTime, type SetupValues } from "@/lib/karting";
 import { PITWALL_EVENTS_KEY, PITWALL_QUEUE_KEY, PITWALL_SETUP_FIELDS, type NewEvent, type QueuedSession } from "@/lib/pitwall";
@@ -75,7 +76,7 @@ function startedAtIso(time: string, durationMin: number): string {
   return start.toISOString();
 }
 
-const clock = (iso: string) => new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+const clock = (iso: string, locale: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
 export function Pitwall({
   history,
@@ -102,6 +103,8 @@ export function Pitwall({
   today: string;
 }) {
   const t = useT();
+  const tp = t.pitwall;
+  const locale = useLocale();
   const [eventId, setEventId] = useState(defaultEventId ?? NEW_EVENT);
   const [localEvents, setLocalEvents] = useState<LocalEvent[]>([]);
   const [newTrackId, setNewTrackId] = useState(lastTrackId ?? tracks[0]?.id ?? "");
@@ -157,9 +160,9 @@ export function Pitwall({
         if (response.ok) {
           updateQueue((queue) => queue.filter((queued) => queued.id !== item.id));
           setSent((list) => [...list, item]);
-          setNotice({ tone: "ok", text: `Verstuurd: ${item.label}` });
+          setNotice({ tone: "ok", text: format(tp.sent, { label: item.label }) });
         } else {
-          const error = body.error ?? "Versturen mislukt.";
+          const error = body.error ?? tp.sendFailed;
           updateQueue((queue) => queue.map((queued) => (queued.id === item.id ? { ...queued, error } : queued)));
         }
       }
@@ -167,7 +170,7 @@ export function Pitwall({
       flushing.current = false;
       setSending(false);
     }
-  }, [updateQueue]);
+  }, [updateQueue, tp]);
 
   useEffect(() => {
     // Mount only: the queue lives in this browser's storage.
@@ -214,8 +217,8 @@ export function Pitwall({
     for (const [key, value] of form.entries()) if (typeof value === "string") fields[key] = value.trim();
 
     const durationMin = Number((fields.duration_min || "0").replace(",", "."));
-    if (eventId === NEW_EVENT && !newTrackId) return setNotice({ tone: "error", text: "Kies het circuit van het evenement." });
-    if (!(durationMin > 0)) return setNotice({ tone: "error", text: "Vul in hoeveel minuten de sessie duurde." });
+    if (eventId === NEW_EVENT && !newTrackId) return setNotice({ tone: "error", text: tp.chooseTrack });
+    if (!(durationMin > 0)) return setNotice({ tone: "error", text: tp.enterDuration });
 
     // A new event gets its id here and is saved with this session, so it also works without signal.
     let newEvent = localEvents.find((local) => local.id === eventId)?.newEvent;
@@ -224,7 +227,7 @@ export function Pitwall({
       const typeName = t.options.eventTypes[newEventType as keyof typeof t.options.eventTypes] ?? newEventType;
       const track = tracks.find((option) => option.id === newTrackId);
       newEvent = { id: crypto.randomUUID(), name: `${typeName} ${track?.name ?? ""}`.trim(), type: newEventType, track_id: newTrackId, starts_on: today };
-      const local: LocalEvent = { id: newEvent.id, label: `${newEvent.name} · ${formatDate(today)}`, isToday: true, newEvent };
+      const local: LocalEvent = { id: newEvent.id, label: `${newEvent.name} · ${formatDate(today, locale)}`, isToday: true, newEvent };
       const next = [local, ...readLocalEvents().filter((event) => event.id !== local.id)];
       writeLocalEvents(next);
       setLocalEvents(next);
@@ -240,7 +243,7 @@ export function Pitwall({
       id: crypto.randomUUID(),
       eventId: targetEventId,
       ...(newEvent ? { newEvent } : {}),
-      label: `${typeLabel} · ${kartLabel} · ${clock(fields.started_at_iso)}`,
+      label: `${typeLabel} · ${kartLabel} · ${clock(fields.started_at_iso, locale)}`,
       fields,
       queuedAt: new Date().toISOString(),
     };
@@ -256,7 +259,7 @@ export function Pitwall({
     setFormKey((key) => key + 1);
     // Only the send can tell whether there is signal (onLine says nothing about the paddock's mast);
     // a successful send replaces this notice.
-    setNotice({ tone: "wait", text: `Op de telefoon bewaard: ${item.label}. Wordt verstuurd zodra er bereik is.` });
+    setNotice({ tone: "wait", text: format(tp.savedOnPhone, { label: item.label }) });
     window.scrollTo({ top: 0, behavior: "smooth" });
     void flush();
   }
@@ -268,15 +271,13 @@ export function Pitwall({
     return (
       <PitwallShell online={online} waiting={0}>
         <p className="text-lg text-zinc-200">
-          {karts.length === 0
-            ? "Voeg eerst een kart toe, dan kun je hier sessies loggen."
-            : "Voeg eerst een coureur toe, dan kun je hier sessies loggen."}
+          {karts.length === 0 ? tp.addKartFirst : tp.addDriverFirst}
         </p>
         <a
           href={karts.length === 0 ? "/dashboard/karts" : "/dashboard/drivers"}
           className={`inline-flex h-14 items-center justify-center rounded-full bg-brand-500 px-6 text-lg font-semibold text-on-brand ${focusRing}`}
         >
-          Naar het dashboard
+          {tp.toDashboard}
         </a>
       </PitwallShell>
     );
@@ -319,12 +320,12 @@ export function Pitwall({
       />
 
       <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
-        Evenement
+        {tp.event}
         <select value={eventId} onChange={(e) => setEventId(e.target.value)} className={bigInputClass}>
-          <option value={NEW_EVENT}>+ Nieuw evenement vandaag</option>
+          <option value={NEW_EVENT}>{tp.newEventOption}</option>
           {[...localEvents, ...events].map((event) => (
             <option key={event.id} value={event.id}>
-              {event.isToday ? `Vandaag: ${event.label}` : event.label}
+              {event.isToday ? format(tp.todayEvent, { label: event.label }) : event.label}
             </option>
           ))}
         </select>
@@ -332,20 +333,19 @@ export function Pitwall({
 
       {eventId === NEW_EVENT && (
         <fieldset className="flex flex-col gap-4 rounded-2xl border-2 border-zinc-700 p-4">
-          <legend className="px-1 text-lg font-semibold text-zinc-50">Nieuw evenement vandaag</legend>
+          <legend className="px-1 text-lg font-semibold text-zinc-50">{tp.newEventTitle}</legend>
           {tracks.length === 0 ? (
             <p className="text-base text-zinc-200">
-              Er is nog geen circuit.{" "}
+              {tp.noTrack}{" "}
               <Link href="/dashboard/tracks" className="underline underline-offset-4">
-                Voeg er een toe
-              </Link>{" "}
-              in het dashboard.
+                {tp.addTrack}
+              </Link>
             </p>
           ) : (
             <>
               <LocateTrack tracks={tracks} onFound={setNewTrackId} />
               <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
-                Circuit
+                {tp.track}
                 <select value={newTrackId} onChange={(e) => setNewTrackId(e.target.value)} className={bigInputClass}>
                   {tracks.map((track) => (
                     <option key={track.id} value={track.id}>
@@ -355,20 +355,20 @@ export function Pitwall({
                 </select>
               </label>
               <BigChoice
-                legend="Soort"
+                legend={tp.eventKind}
                 name="event_type_choice"
                 options={Object.entries(t.options.eventTypes).map(([id, label]) => ({ id, label }))}
                 value={newEventType}
                 onChange={setNewEventType}
               />
-              <p className="text-sm text-zinc-400">Wordt samen met de eerste sessie opgeslagen, ook zonder bereik.</p>
+              <p className="text-sm text-zinc-400">{tp.savedWithFirst}</p>
             </>
           )}
         </fieldset>
       )}
 
       {karts.length > 1 && (
-        <BigChoice legend="Kart" name="kart_choice" options={karts} value={kartId} onChange={setKartId} />
+        <BigChoice legend={tp.kart} name="kart_choice" options={karts} value={kartId} onChange={setKartId} />
       )}
 
       <TodayPanel sessions={daySessions(history, sent, queue, eventId, kartId)} />
@@ -376,13 +376,13 @@ export function Pitwall({
       <form key={`${kartId}-${formKey}`} onSubmit={handleSubmit} className="flex flex-col gap-7">
         <input type="hidden" name="kart_id" value={kartId} />
         <BigChoice
-          legend="Soort sessie"
+          legend={tp.sessionType}
           name="type"
           options={Object.entries(t.options.sessionTypes).map(([id, label]) => ({ id, label }))}
           defaultValue={last.type ?? lastType ?? "practice"}
         />
         {drivers.length > 1 ? (
-          <BigChoice legend="Coureur" name="driver_id" options={drivers} defaultValue={last.driver_id ?? kartDefaults?.driverId ?? drivers[0].id} />
+          <BigChoice legend={tp.driver} name="driver_id" options={drivers} defaultValue={last.driver_id ?? kartDefaults?.driverId ?? drivers[0].id} />
         ) : (
           <input type="hidden" name="driver_id" value={drivers[0].id} />
         )}
@@ -390,45 +390,45 @@ export function Pitwall({
         <div className="grid grid-cols-2 gap-3">
           <BigStepper
             name="duration_min"
-            label="Duur (min)"
+            label={tp.duration}
             defaultValue={last.duration_min ?? String(kartDefaults?.durationMin ?? 15)}
             step={1}
           />
           <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
-            Starttijd
+            {tp.startTime}
             <input name="start_time" type="time" className={`${bigInputClass} text-center tabular-nums`} />
-            <span className="text-sm font-normal text-zinc-400">Leeg = net afgelopen</span>
+            <span className="text-sm font-normal text-zinc-400">{tp.justFinished}</span>
           </label>
         </div>
         <label className="flex flex-col gap-2 text-base font-medium text-zinc-200">
-          Snelste ronde
+          {tp.bestLap}
           <input name="best_lap" inputMode="decimal" autoComplete="off" placeholder="52.345" className={`${bigInputClass} text-center text-2xl font-semibold tabular-nums`} />
         </label>
 
         {/* Automatic: looked up from the circuit's weather once the session is sent. */}
         <BigChoice
-          legend="Weer"
+          legend={tp.weather}
           name="weather"
-          options={[{ id: "auto", label: "Automatisch" }, ...weatherOptions]}
+          options={[{ id: "auto", label: tp.weatherAuto }, ...weatherOptions]}
           defaultValue="auto"
         />
         <details className="group -mt-3 rounded-2xl border-2 border-zinc-800 px-4 py-3">
           <summary className={`flex cursor-pointer list-none items-center justify-between rounded-lg text-base font-medium text-zinc-200 ${focusRing}`}>
-            Weer sloeg om tijdens de sessie
+            {tp.weatherChanged}
             <Icon name="chevron" className="size-5 rotate-90 text-zinc-400 transition-transform group-open:-rotate-90" />
           </summary>
           <div className="mt-4">
             <BigChoice
-              legend="Aan het eind was het"
+              legend={tp.weatherAtEnd}
               name="weather_to"
-              options={[{ id: "", label: "Niet omgeslagen" }, ...weatherOptions]}
+              options={[{ id: "", label: tp.weatherSame }, ...weatherOptions]}
               defaultValue=""
             />
           </div>
         </details>
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="mb-3 text-lg font-semibold text-zinc-50">Bandenspanning koud (bar)</legend>
+          <legend className="mb-3 text-lg font-semibold text-zinc-50">{tp.coldPressure}</legend>
           {/* Laid out like the kart seen from above: front wheels on top. */}
           <div className="grid grid-cols-2 gap-3">
             {tyreFields.map((field) => (
@@ -437,7 +437,7 @@ export function Pitwall({
           </div>
           <details className="group rounded-2xl border-2 border-zinc-800 px-4 py-3">
             <summary className={`flex cursor-pointer list-none items-center justify-between rounded-lg text-base font-medium text-zinc-200 ${focusRing}`}>
-              Warm gemeten na de sessie
+              {tp.hotPressure}
               <Icon name="chevron" className="size-5 rotate-90 text-zinc-400 transition-transform group-open:-rotate-90" />
             </summary>
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -457,7 +457,7 @@ export function Pitwall({
         </fieldset>
 
         <fieldset>
-          <legend className="mb-3 text-lg font-semibold text-zinc-50">Overbrenging</legend>
+          <legend className="mb-3 text-lg font-semibold text-zinc-50">{tp.gearing}</legend>
           <div className="grid grid-cols-2 gap-3">
             {gearFields.map((field) => (
               <BigStepper key={field.name} name={field.name} label={t.setup.fields[field.name].name} defaultValue={fieldDefault(field)} placeholder={field.placeholder} step={1} />
@@ -466,10 +466,10 @@ export function Pitwall({
         </fieldset>
 
         <div className="text-base [&_label]:text-base [&_label]:font-medium [&_label]:text-zinc-200 [&_textarea]:border-2 [&_textarea]:border-zinc-700 [&_textarea]:text-lg">
-          <FeedbackField label="Gevoel coureur" rows={4} />
+          <FeedbackField label={tp.driverFeeling} rows={4} />
         </div>
 
-        <p className="text-sm text-zinc-400">De rest van de afstelling blijft zoals bij de vorige sessie van deze kart.</p>
+        <p className="text-sm text-zinc-400">{tp.restStays}</p>
 
         <div className="sticky bottom-0 -mx-4 border-t border-zinc-800 bg-zinc-950/95 px-4 py-3 backdrop-blur">
           <button
@@ -477,7 +477,7 @@ export function Pitwall({
             className={`inline-flex h-16 w-full items-center justify-center gap-2 rounded-full bg-brand-500 text-xl font-bold text-on-brand transition-colors hover:bg-brand-600 ${focusRing}`}
           >
             <Icon name="check" className="size-6" />
-            Sessie opslaan
+            {tp.saveSession}
           </button>
         </div>
       </form>
@@ -486,6 +486,7 @@ export function Pitwall({
 }
 
 function PitwallShell({ online, waiting, children }: { online: boolean; waiting: number; children: React.ReactNode }) {
+  const tp = useT().pitwall;
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-950 text-zinc-50">
       <header className="border-b-2 border-zinc-800">
@@ -496,7 +497,7 @@ function PitwallShell({ online, waiting, children }: { online: boolean; waiting:
           <ConnectionBadge online={online} waiting={waiting} />
           <a
             href="/dashboard"
-            aria-label="Naar het dashboard"
+            aria-label={tp.toDashboard}
             className={`ml-auto inline-flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-zinc-700 text-zinc-100 ${focusRing}`}
           >
             <Icon name="home" className="size-5" />
@@ -504,7 +505,7 @@ function PitwallShell({ online, waiting, children }: { online: boolean; waiting:
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-7 px-4 pt-6 pb-4">
-        <h1 className="sr-only">Pitwall: sessie loggen</h1>
+        <h1 className="sr-only">{tp.heading}</h1>
         <InstallHint />
         {children}
       </main>
@@ -513,6 +514,7 @@ function PitwallShell({ online, waiting, children }: { online: boolean; waiting:
 }
 
 function ConnectionBadge({ online, waiting }: { online: boolean; waiting: number }) {
+  const tp = useT().pitwall;
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full border-2 px-3 py-1 text-sm font-semibold whitespace-nowrap ${
@@ -520,8 +522,8 @@ function ConnectionBadge({ online, waiting }: { online: boolean; waiting: number
       }`}
     >
       <span aria-hidden="true" className={`size-2.5 rounded-full ${online ? "bg-emerald-400" : "bg-amber-400"}`} />
-      {online ? "Online" : "Geen bereik"}
-      {waiting > 0 && <span className="sr-only">, {waiting} sessies wachten</span>}
+      {online ? tp.online : tp.noSignal}
+      {waiting > 0 && <span className="sr-only">, {plural(waiting, tp.sessionsWaiting)}</span>}
       {waiting > 0 && <span aria-hidden="true">· {waiting}</span>}
     </span>
   );
@@ -546,15 +548,16 @@ function QueueList({
   onRemove: (id: string) => void;
   onRetry: (id: string) => void;
 }) {
+  const tp = useT().pitwall;
   if (waiting.length === 0 && failed.length === 0) return null;
   return (
     <section aria-labelledby="queue-heading" className="rounded-2xl border-2 border-amber-400/70 p-4">
       <h2 id="queue-heading" className="text-lg font-semibold">
-        Nog te versturen ({waiting.length + failed.length})
+        {format(tp.queueTitle, { count: waiting.length + failed.length })}
       </h2>
       {authError && (
         <p className="mt-2 text-base text-amber-200">
-          Je bent uitgelogd. <a href="/login" className="underline underline-offset-4">Log opnieuw in</a>; de sessies blijven bewaard.
+          {tp.loggedOutBefore} <a href="/login" className="underline underline-offset-4">{tp.logInAgain}</a>{tp.loggedOutAfter}
         </p>
       )}
       <ul className="mt-3 flex flex-col gap-2">
@@ -575,7 +578,7 @@ function QueueList({
           disabled={sending}
           className={`mt-4 inline-flex h-12 items-center rounded-full border-2 border-zinc-600 px-5 text-base font-medium text-zinc-100 disabled:opacity-60 ${focusRing}`}
         >
-          {sending ? "Versturen…" : online ? "Nu versturen" : "Opnieuw proberen"}
+          {sending ? tp.sending : online ? tp.sendNow : tp.retry}
         </button>
       )}
     </section>
@@ -583,6 +586,7 @@ function QueueList({
 }
 
 function FailedItem({ item, onRemove, onRetry }: { item: QueuedSession; onRemove: () => void; onRetry: () => void }) {
+  const tp = useT().pitwall;
   const [confirming, setConfirming] = useState(false);
   return (
     <li className="flex flex-col gap-2 rounded-xl border-2 border-red-400/60 p-3 text-base">
@@ -592,19 +596,19 @@ function FailedItem({ item, onRemove, onRetry }: { item: QueuedSession; onRemove
         {confirming ? (
           <>
             <button type="button" onClick={onRemove} className={`h-11 rounded-full bg-red-500 px-4 font-semibold text-white ${focusRing}`}>
-              Ja, weggooien
+              {tp.yesDiscard}
             </button>
             <button type="button" onClick={() => setConfirming(false)} className={`h-11 rounded-full border-2 border-zinc-600 px-4 ${focusRing}`}>
-              Bewaren
+              {tp.keep}
             </button>
           </>
         ) : (
           <>
             <button type="button" onClick={onRetry} className={`h-11 rounded-full border-2 border-zinc-600 px-4 ${focusRing}`}>
-              Opnieuw proberen
+              {tp.retry}
             </button>
             <button type="button" onClick={() => setConfirming(true)} className={`h-11 rounded-full border-2 border-zinc-600 px-4 ${focusRing}`}>
-              Weggooien
+              {tp.discard}
             </button>
           </>
         )}
@@ -668,6 +672,7 @@ function BigStepper({
   step: number;
   decimals?: number;
 }) {
+  const tp = useT().pitwall;
   const id = useId();
   const ref = useRef<HTMLInputElement>(null);
 
@@ -698,10 +703,10 @@ function BigStepper({
         className={`h-14 w-full min-w-0 rounded-2xl border-2 border-zinc-700 bg-zinc-950 px-2 text-center text-2xl font-semibold text-zinc-50 tabular-nums placeholder:font-normal placeholder:text-zinc-500 ${focusRing}`}
       />
       <div className="flex gap-2">
-        <button type="button" onClick={() => bump(-1)} aria-label={`${label}: lager`} className={buttonClass}>
+        <button type="button" onClick={() => bump(-1)} aria-label={format(tp.lowerAria, { label })} className={buttonClass}>
           <Icon name="minus" className="size-6" />
         </button>
-        <button type="button" onClick={() => bump(1)} aria-label={`${label}: hoger`} className={buttonClass}>
+        <button type="button" onClick={() => bump(1)} aria-label={format(tp.higherAria, { label })} className={buttonClass}>
           <Icon name="plus" className="size-6" />
         </button>
       </div>
@@ -709,37 +714,33 @@ function BigStepper({
   );
 }
 
-const GEO_ERRORS: Record<number, string> = {
-  1: "Geef de browser toegang tot je locatie, of kies het circuit uit de lijst.",
-  2: "Je locatie is nu niet te bepalen. Kies het circuit uit de lijst.",
-  3: "Je locatie bepalen duurde te lang. Probeer het opnieuw of kies uit de lijst.",
-};
-
 /**
  * Picks the circuit you are standing at from the phone's GPS, which needs no signal. Asks for the
  * location only on a tap, or by itself when the browser already has permission.
  */
 function LocateTrack({ tracks, onFound }: { tracks: Track[]; onFound: (trackId: string) => void }) {
+  const tp = useT().pitwall;
+  const locale = useLocale();
   const [state, setState] = useState<{ tone: "busy" | "ok" | "error"; text: string } | null>(null);
   const [supported, setSupported] = useState(false);
 
   const locate = useCallback(() => {
-    setState({ tone: "busy", text: "Locatie bepalen…" });
+    setState({ tone: "busy", text: tp.locating });
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const found = nearestTrack(tracks, coords);
         if (!found) {
-          setState({ tone: "error", text: `Geen bekend circuit binnen ${NEAREST_TRACK_MAX_KM} km. Kies het uit de lijst.` });
+          setState({ tone: "error", text: format(tp.noTrackNear, { km: NEAREST_TRACK_MAX_KM }) });
           return;
         }
         onFound(found.track.id);
-        const km = found.km < 1 ? "minder dan 1 km" : `${found.km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`;
-        setState({ tone: "ok", text: `Gevonden: ${found.track.name} (${km})` });
+        const distance = found.km < 1 ? tp.lessThanKm : `${found.km.toLocaleString(locale, { maximumFractionDigits: 1 })} km`;
+        setState({ tone: "ok", text: format(tp.found, { name: found.track.name, distance }) });
       },
-      (error) => setState({ tone: "error", text: GEO_ERRORS[error.code] ?? GEO_ERRORS[2] }),
+      (error) => setState({ tone: "error", text: error.code === 1 ? tp.geoDenied : error.code === 3 ? tp.geoTimeout : tp.geoUnavailable }),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 5 * 60_000 },
     );
-  }, [tracks, onFound]);
+  }, [tracks, onFound, tp, locale]);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
@@ -763,7 +764,7 @@ function LocateTrack({ tracks, onFound }: { tracks: Track[]; onFound: (trackId: 
         className={`inline-flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-brand-400/70 text-base font-semibold text-zinc-50 disabled:opacity-60 ${focusRing}`}
       >
         <Icon name="pin" className="size-5 text-brand-300" />
-        {state?.tone === "busy" ? "Locatie bepalen…" : "Circuit zoeken via GPS"}
+        {state?.tone === "busy" ? tp.locating : tp.findByGps}
       </button>
       {state && state.tone !== "busy" && (
         <p role="status" className={`text-base ${state.tone === "ok" ? "text-emerald-200" : "text-amber-200"}`}>
@@ -816,21 +817,22 @@ function daySessions(history: PitwallSession[], sent: QueuedSession[], queue: Qu
   return [...saved, ...waiting].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
 }
 
-const pressureFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const gapFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-
 /** The day at a glance, above the form: lap times and tyre pressures per session. */
 function TodayPanel({ sessions }: { sessions: DaySession[] }) {
+  const tp = useT().pitwall;
+  const locale = useLocale();
+  const pressureFormat = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const gapFormat = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 3 });
   if (sessions.length === 0) {
     return (
       <p className="rounded-2xl border-2 border-dashed border-zinc-800 px-4 py-3 text-base text-zinc-400">
-        Nog geen sessies bij dit evenement met deze kart. Na de eerste sessie zie je hier de rondetijden en de bandenspanning.
+        {tp.emptyDay}
       </p>
     );
   }
   const step = (s: DaySession, i: number) => ({
     label: `S${i + 1}`,
-    title: `Sessie ${i + 1} · ${clock(s.startedAt)}${s.pending ? " · nog niet verstuurd" : ""}`,
+    title: `${format(tp.sessionTitle, { number: i + 1, time: clock(s.startedAt, locale) })}${s.pending ? ` · ${tp.notSent}` : ""}`,
   });
   const timed = sessions.map((s, index) => ({ ...s, index })).filter((s) => s.bestLapMs !== null);
   const best = timed.length > 0 ? Math.min(...timed.map((s) => s.bestLapMs!)) : null;
@@ -838,10 +840,10 @@ function TodayPanel({ sessions }: { sessions: DaySession[] }) {
   const delta = previous && last ? last.bestLapMs! - previous.bestLapMs! : null;
   const hasPressures = sessions.some((s) => s.front !== null || s.rear !== null);
   const stats = [
-    { label: "Sessies", value: String(sessions.length), color: "var(--color-zinc-600)" },
-    { label: "Snelste", value: best === null ? "—" : formatLapTime(best), color: "var(--color-brand-500)" },
+    { label: tp.statSessions, value: String(sessions.length), color: "var(--color-zinc-600)" },
+    { label: tp.statFastest, value: best === null ? "—" : formatLapTime(best), color: "var(--color-brand-500)" },
     {
-      label: "t.o.v. vorige",
+      label: tp.statAgainst,
       value: delta === null ? "—" : `${delta <= 0 ? "▼" : "▲"} ${gapFormat.format(Math.abs(delta) / 1000)}`,
       color: delta === null ? "var(--color-zinc-600)" : delta <= 0 ? "var(--color-brand-400)" : "var(--color-red-400)",
     },
@@ -850,7 +852,7 @@ function TodayPanel({ sessions }: { sessions: DaySession[] }) {
   return (
     <section aria-labelledby="today-heading" className="flex flex-col gap-4 rounded-3xl border-2 border-zinc-800 bg-zinc-900/60 p-4">
       <h2 id="today-heading" className="text-lg font-semibold text-zinc-50">
-        Vandaag
+        {tp.today}
       </h2>
       <div className="grid grid-cols-3 gap-2">
         {stats.map((stat) => (
@@ -863,15 +865,15 @@ function TodayPanel({ sessions }: { sessions: DaySession[] }) {
       </div>
       {delta !== null && (
         <p className="-mt-2 text-sm text-zinc-300">
-          {delta <= 0 ? "De laatste sessie was sneller dan de vorige." : "De laatste sessie was langzamer dan de vorige."}
+          {delta <= 0 ? tp.fasterNote : tp.slowerNote}
         </p>
       )}
 
       {timed.length >= 2 && (
         <div>
-          <h3 className="mb-1 text-sm font-medium text-zinc-300">Snelste ronde per sessie</h3>
+          <h3 className="mb-1 text-sm font-medium text-zinc-300">{tp.fastestPerSession}</h3>
           <LapTimeChart
-            label="Snelste ronde per sessie"
+            label={tp.fastestPerSession}
             points={timed.map((s) => ({ key: s.key, xLabel: step(s, s.index).label, ms: s.bestLapMs!, title: step(s, s.index).title, position: s.index }))}
           />
         </div>
@@ -879,15 +881,15 @@ function TodayPanel({ sessions }: { sessions: DaySession[] }) {
 
       {hasPressures && sessions.length >= 2 && (
         <div>
-          <h3 className="mb-1 text-sm font-medium text-zinc-300">Bandenspanning koud (bar)</h3>
+          <h3 className="mb-1 text-sm font-medium text-zinc-300">{tp.coldPressure}</h3>
           <LineChart
-            label="Koude bandenspanning per sessie"
+            label={tp.coldChartLabel}
             steps={sessions.map(step)}
             format={(v) => pressureFormat.format(v)}
             minRange={0.06}
             series={[
-              { key: "front", label: "Voor (gemiddeld)", color: "var(--color-brand-400)", values: sessions.map((s) => s.front) },
-              { key: "rear", label: "Achter (gemiddeld)", color: "var(--color-zinc-400)", values: sessions.map((s) => s.rear) },
+              { key: "front", label: tp.frontAverage, color: "var(--color-brand-400)", values: sessions.map((s) => s.front) },
+              { key: "rear", label: tp.rearAverage, color: "var(--color-zinc-400)", values: sessions.map((s) => s.rear) },
             ]}
           />
         </div>
@@ -900,6 +902,7 @@ type InstallPromptEvent = Event & { prompt(): Promise<void>; userChoice: Promise
 
 /** Offers "add to home screen": Chrome's own prompt where there is one, a short how-to on iPhone. */
 function InstallHint() {
+  const tp = useT().pitwall;
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const [isIos, setIsIos] = useState(false);
   const [dismissed, setDismissed] = useState(true);
@@ -934,9 +937,9 @@ function InstallHint() {
   return (
     <div className="flex items-start gap-3 rounded-2xl border-2 border-zinc-700 p-4 text-base">
       <div className="flex-1">
-        <p className="font-semibold text-zinc-50">Zet de pitwall op je beginscherm</p>
+        <p className="font-semibold text-zinc-50">{tp.installTitle}</p>
         <p className="mt-1 text-zinc-300">
-          {prompt ? "Eén tik vanaf je beginscherm, ook zonder bereik." : "Tik in Safari op Deel en kies ‘Zet op beginscherm’."}
+          {prompt ? tp.installPrompt : tp.installIos}
         </p>
         {prompt && (
           <button
@@ -947,11 +950,11 @@ function InstallHint() {
             }}
             className={`mt-3 inline-flex h-12 items-center rounded-full bg-brand-500 px-5 font-semibold text-on-brand ${focusRing}`}
           >
-            Installeren
+            {tp.install}
           </button>
         )}
       </div>
-      <button type="button" onClick={hide} aria-label="Melding sluiten" className={`inline-flex size-11 items-center justify-center rounded-full text-zinc-300 ${focusRing}`}>
+      <button type="button" onClick={hide} aria-label={tp.closeNotice} className={`inline-flex size-11 items-center justify-center rounded-full text-zinc-300 ${focusRing}`}>
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>

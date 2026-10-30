@@ -2,22 +2,23 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getCurrentGarage } from "@/lib/garage";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatDate, ownOrOfficial, sortByLabel, todayInAmsterdam, trackLabel, type SetupValues } from "@/lib/karting";
 import { PlanLockScreen } from "@/components/plan-lock";
 import { getPlanAccess } from "@/lib/plan-access";
 
 import { Pitwall, type KartDefaults, type PitwallEvent, type PitwallSession } from "./pitwall";
 
-export const metadata: Metadata = {
-  title: "Pitwall — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getDictionary()).pitwall.metaTitle };
+}
 
 /**
  * The trackside screen: log a session in seconds with big buttons. It works offline too: the
  * service worker keeps this page, and sessions wait on the phone until there is signal.
  */
 export default async function PitwallPage() {
-  const { supabase, garage, canEdit } = await getCurrentGarage();
+  const [{ supabase, garage, canEdit }, locale] = await Promise.all([getCurrentGarage(), getLocale()]);
   if (!(await getPlanAccess()).has("pitwall")) return <PlanLockScreen feature="pitwall" />;
   // Logging only: a viewer has nothing to do here, Live shows the same sessions.
   if (!canEdit) redirect("/dashboard/live");
@@ -45,7 +46,7 @@ export default async function PitwallPage() {
 
   const events: PitwallEvent[] = eventsResult.data.map((event) => ({
     id: event.id,
-    label: `${event.name} · ${formatDate(event.starts_on)}${event.tracks ? ` · ${event.tracks.name}` : ""}`,
+    label: `${event.name} · ${formatDate(event.starts_on, locale)}${event.tracks ? ` · ${event.tracks.name}` : ""}`,
     isToday: event.starts_on <= today && (event.ends_on ?? event.starts_on) >= today,
   }));
   // Today's event; without one the pitwall starts a new event for today.
