@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Stripe from "stripe";
 
 import { billingEnabled, INTERVALS, isPaidPlan, KEEPS_PLAN, lookupKey, MANAGED_PAYMENTS, type Interval } from "@/lib/billing";
 import { getCurrentGarage } from "@/lib/garage";
@@ -28,6 +29,21 @@ async function ownerBilling() {
   return { ...current, billing };
 }
 
+/**
+ * The saved customer, if Stripe knows it with the current key. A customer made with the test key does
+ * not exist for the live key (and the other way round), so after switching modes the garage starts afresh.
+ */
+async function currentCustomer(customerId: string | null | undefined): Promise<string | null> {
+  if (!customerId) return null;
+  try {
+    const customer = await stripe().customers.retrieve(customerId);
+    return customer.deleted ? null : customer.id;
+  } catch (error) {
+    if (error instanceof Stripe.errors.StripeInvalidRequestError && error.code === "resource_missing") return null;
+    throw error;
+  }
+}
+
 /** The Stripe customer portal: change plan, payment method, invoices, cancel. */
 async function portal(customerId: string) {
   const configurations = await stripe().billingPortal.configurations.list({ active: true, limit: 100 });
@@ -50,18 +66,29 @@ export async function startCheckout(formData: FormData) {
   const interval = String(formData.get("interval") ?? "monthly") as Interval;
   const { user, garage, billing } = await ownerBilling();
 
-  if (billing?.stripe_customer_id && billing.status && KEEPS_PLAN.includes(billing.status)) await portal(billing.stripe_customer_id);
+  const savedCustomer = await currentCustomer(billing?.stripe_customer_id);
+  if (savedCustomer && billing?.status && KEEPS_PLAN.includes(billing.status)) await portal(savedCustomer);
   if (!isPaidPlan(plan) || !INTERVALS.includes(interval)) redirect("/pricing");
 
   const { data: prices } = await stripe().prices.list({ lookup_keys: [lookupKey(plan, interval)], active: true, limit: 1 });
   const price = prices[0];
   if (!price) throw new Error(`No Stripe price for ${lookupKey(plan, interval)}; run scripts/stripe-setup.mjs.`);
 
-  let customerId = billing?.stripe_customer_id;
+  let customerId = savedCustomer;
   if (!customerId) {
     const customer = await stripe().customers.create({ email: user.email, name: garage.name, metadata: { garage_id: garage.id } });
     customerId = customer.id;
-    const { error } = await createAdminClient().from("garage_billing").upsert({ garage_id: garage.id, stripe_customer_id: customerId });
+    // A new customer has no subscription yet; clear what an old one (from the other mode) left behind.
+    const { error } = await createAdminClient().from("garage_billing").upsert({
+      garage_id: garage.id,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: null,
+      status: null,
+      price_lookup_key: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      updated_at: new Date().toISOString(),
+    });
     if (error) throw new Error(`Saving the Stripe customer failed: ${error.message}`);
   }
 
@@ -84,6 +111,7 @@ export async function startCheckout(formData: FormData) {
 
 export async function openBillingPortal() {
   const { billing } = await ownerBilling();
-  if (!billing?.stripe_customer_id) redirect("/pricing");
-  await portal(billing.stripe_customer_id);
+  const customerId = await currentCustomer(billing?.stripe_customer_id);
+  if (!customerId) redirect("/pricing");
+  await portal(customerId);
 }
