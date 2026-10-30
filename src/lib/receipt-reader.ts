@@ -30,23 +30,24 @@ const schema = {
     amount: { type: ["number", "null"], description: "Total amount paid including VAT; null if not readable." },
     currency: { type: ["string", "null"], description: "ISO 4217 code, e.g. EUR." },
     date: { type: ["string", "null"], description: "Purchase or invoice date as YYYY-MM-DD." },
-    description: { type: ["string", "null"], description: "Short Dutch description: vendor and what was bought." },
+    description: { type: ["string", "null"], description: "Short description in the requested language: vendor and what was bought." },
     category: { type: "string", enum: categories },
   },
   required: ["amount", "currency", "date", "description", "category"],
   additionalProperties: false,
 };
 
-const instructions = `Dit is een bonnetje of factuur van een kartcoureur. Lees de gegevens voor één uitgave uit.
+const instructions = (language: string) => `Dit is een bonnetje of factuur van een kartcoureur. Lees de gegevens voor één uitgave uit.
 - amount: het totaal dat betaald is, inclusief btw (niet een subtotaal of het btw-bedrag).
 - date: de aankoop- of factuurdatum.
-- description: kort, in het Nederlands, bijvoorbeeld "Inschrijving NK ronde 1 – Genk" of "2× MG Red banden, Kartshop X". Hooguit 80 tekens.
+- description: kort, in deze taal: ${language}, bijvoorbeeld "Inschrijving NK ronde 1 – Genk" of "2× MG Red banden, Kartshop X". Hooguit 80 tekens.
 - category: kies de best passende: ${categories.map((key) => `${key} (${EXPENSE_CATEGORIES[key]})`).join(", ")}.
 Wat je niet kunt lezen, laat je null.`;
 
 let client: Anthropic | null = null;
 
-export async function readReceipt(file: { data: ArrayBuffer; type: string }): Promise<ReceiptFields> {
+/** `language` is the name of the reader's language; the description is written in it. */
+export async function readReceipt(file: { data: ArrayBuffer; type: string }, language: string): Promise<ReceiptFields> {
   client ??= new Anthropic();
   const data = Buffer.from(file.data).toString("base64");
   const source: Anthropic.Beta.BetaContentBlockParam =
@@ -61,7 +62,7 @@ export async function readReceipt(file: { data: ArrayBuffer; type: string }): Pr
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     output_config: { effort: "low", format: { type: "json_schema", schema } },
-    messages: [{ role: "user", content: [source, { type: "text", text: instructions }] }],
+    messages: [{ role: "user", content: [source, { type: "text", text: instructions(language) }] }],
   });
 
   if (response.stop_reason === "refusal") throw new Error("Het bonnetje kon niet worden gelezen.");

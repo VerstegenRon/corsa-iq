@@ -13,9 +13,9 @@ import { formatCents, labelFor, todayInAmsterdam } from "@/lib/karting";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseList } from "./expense-list";
 
-export const metadata: Metadata = {
-  title: "Kosten — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).costs.title} — CorsaIQ` };
+}
 
 function sumBy<T>(rows: T[], key: (row: T) => string, amount: (row: T) => number) {
   const totals = new Map<string, number>();
@@ -25,15 +25,15 @@ function sumBy<T>(rows: T[], key: (row: T) => string, amount: (row: T) => number
 
 export default async function CostsPage({ searchParams }: PageProps<"/dashboard/costs">) {
   const { season: seasonParam } = await searchParams;
-  const { supabase, garage, canSeeCosts } = await getCurrentGarage();
+  const [{ supabase, garage, canSeeCosts }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const tc = t.costs;
   if (!canSeeCosts) {
     return (
       <section className={cardClass}>
-        <p className="text-zinc-300">De kosten zijn alleen zichtbaar voor de eigenaar en de monteur van het team.</p>
+        <p className="text-zinc-300">{tc.ownersOnly}</p>
       </section>
     );
   }
-  const t = await getDictionary();
 
   const [seasonsResult, eventsResult] = await Promise.all([
     supabase.from("seasons").select("id, name, budget_cents").eq("garage_id", garage.id).order("year", { ascending: false }),
@@ -74,15 +74,15 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
 
   const filters = [
     ...seasons.map((s) => ({ value: s.id, label: s.name })),
-    { value: "none", label: "Buiten seizoen" },
-    { value: "all", label: "Alles" },
+    { value: "none", label: tc.outsideSeason },
+    { value: "all", label: tc.all },
   ];
 
   return (
     <>
       <section>
-        <PageHeader icon="euro" title="Kosten" subtitle="Aankopen van onderdelen en uitrusting tellen vanzelf mee." add="Uitgave" />
-        <nav aria-label="Seizoen kiezen" className="mt-6 flex flex-wrap gap-2">
+        <PageHeader icon="euro" title={tc.title} subtitle={tc.subtitle} add={tc.add} />
+        <nav aria-label={tc.chooseSeason} className="mt-6 flex flex-wrap gap-2">
           {filters.map((f) => (
             <Link
               key={f.value}
@@ -98,20 +98,20 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         </nav>
       </section>
 
-      <section aria-label="Samenvatting" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+      <section aria-label={tc.summary} className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Uitgegeven</p>
+          <p className="text-sm text-zinc-400">{tc.spent}</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatCents(total)}</p>
         </div>
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">{budget !== null && total > budget ? "Over budget" : "Budget over"}</p>
+          <p className="text-sm text-zinc-400">{budget !== null && total > budget ? tc.overBudget : tc.budgetLeft}</p>
           <p className={`mt-2 text-2xl font-semibold tabular-nums sm:text-3xl ${budget !== null && total > budget ? "text-red-300" : ""}`}>
             {budget === null ? "—" : formatCents(Math.abs(budget - total))}
           </p>
           {budget !== null && (
             <div
               role="meter"
-              aria-label="Deel van het budget gebruikt"
+              aria-label={tc.budgetMeter}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.round(usedShare * 100)}
@@ -120,10 +120,10 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
               <div className={`h-full rounded-full ${total > budget ? "bg-red-400" : "bg-zinc-300"}`} style={{ width: `${usedShare * 100}%` }} />
             </div>
           )}
-          {season && budget === null && <p className="mt-2 text-xs text-zinc-500">Geen budget ingesteld voor dit seizoen.</p>}
+          {season && budget === null && <p className="mt-2 text-xs text-zinc-500">{tc.noBudget}</p>}
         </div>
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Uitgaven</p>
+          <p className="text-sm text-zinc-400">{tc.expenses}</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{expenses.length}</p>
         </div>
       </section>
@@ -132,7 +132,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
         <div className="grid gap-4 lg:grid-cols-2">
           <section aria-labelledby="category-heading" className={cardClass}>
             <h2 id="category-heading" className="text-lg font-semibold">
-              Per categorie
+              {tc.byCategory}
             </h2>
             <ul className="mt-4 flex flex-col gap-3">
               {byCategory.map(([category, cents]) => (
@@ -154,10 +154,10 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
 
           <section aria-labelledby="event-heading" className={cardClass}>
             <h2 id="event-heading" className="text-lg font-semibold">
-              Per evenement
+              {tc.byEvent}
             </h2>
             {byEvent.length === 0 ? (
-              <p className="mt-3 text-sm text-zinc-500">Nog geen uitgaven gekoppeld aan een evenement.</p>
+              <p className="mt-3 text-sm text-zinc-500">{tc.noEventExpenses}</p>
             ) : (
               <ul className="mt-4 divide-y divide-zinc-800/80">
                 {byEvent.map((event) => (
@@ -179,12 +179,12 @@ export default async function CostsPage({ searchParams }: PageProps<"/dashboard/
 
       <section aria-labelledby="expenses-heading" className={cardClass}>
         <h2 id="expenses-heading" className="text-lg font-semibold">
-          Uitgaven
+          {tc.expenses}
         </h2>
         <ExpenseList expenses={expenses} />
       </section>
 
-      <AddSection title="Uitgave toevoegen" defaultOpen={expenses.length === 0}>
+      <AddSection title={tc.addExpense} defaultOpen={expenses.length === 0}>
         <ExpenseForm
           readLocked={await lockedError("receipts")}
           key={filter}
