@@ -36,7 +36,7 @@ export function LimitsForm({
             name={`limit_${key}`}
             inputMode="decimal"
             defaultValue={decimalInput(limits[key], 60)}
-            placeholder="uren"
+            placeholder={t.equipment.hoursPlaceholder}
             className={inputClass}
           />
         </label>
@@ -44,7 +44,7 @@ export function LimitsForm({
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-4">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : "Grenzen opslaan"}
+          {isPending ? t.equipment.saving : t.equipment.saveLimits}
         </button>
       </div>
     </form>

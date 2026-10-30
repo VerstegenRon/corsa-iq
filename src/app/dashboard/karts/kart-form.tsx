@@ -27,6 +27,7 @@ export type KartValues = {
 /** Adds a kart, or edits one when `kart` is given. */
 export function KartForm({ kart }: { kart?: KartValues }) {
   const t = useT();
+  const te = t.equipment;
   const [state, formAction, isPending] = useActionState(
     kart ? updateKart.bind(null, kart.id) : createKart,
     initialState,
@@ -35,27 +36,27 @@ export function KartForm({ kart }: { kart?: KartValues }) {
   return (
     <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4">
       <label className={labelClass}>
-        Naam *
-        <input name="name" required defaultValue={kart?.name} placeholder="Kart A" className={inputClass} />
+        {te.name}
+        <input name="name" required defaultValue={kart?.name} placeholder={te.namePlaceholder} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Klasse
+        {te.kartClass}
         <input name="class" defaultValue={kart?.class ?? ""} placeholder="Rotax Max Senior" className={inputClass} />
       </label>
       <MoreDetails
-        title="Chassis en onderhoud"
+        title={te.chassisAndMaintenance}
         defaultOpen={Boolean(kart && (kart.chassis_brand || kart.chassis_model || kart.chassis_year || kart.serial_number || kart.usage_limit_minutes))}
       >
         <label className={labelClass}>
-          Chassismerk
+          {te.chassisBrand}
           <input name="chassis_brand" defaultValue={kart?.chassis_brand ?? ""} placeholder="Tony Kart" className={inputClass} />
         </label>
         <label className={labelClass}>
-          Model
+          {te.model}
           <input name="chassis_model" defaultValue={kart?.chassis_model ?? ""} placeholder="Racer 401 RR" className={inputClass} />
         </label>
         <label className={labelClass}>
-          Bouwjaar
+          {te.year}
           <input
             name="chassis_year"
             inputMode="numeric"
@@ -65,11 +66,11 @@ export function KartForm({ kart }: { kart?: KartValues }) {
           />
         </label>
         <label className={labelClass}>
-          Chassisnummer
+          {te.chassisNumber}
           <input name="serial_number" defaultValue={kart?.serial_number ?? ""} className={inputClass} />
         </label>
         <label className={labelClass}>
-          Groot onderhoud na (uren)
+          {te.majorAfter}
           <input
             name="usage_limit_hours"
             inputMode="decimal"
@@ -81,7 +82,7 @@ export function KartForm({ kart }: { kart?: KartValues }) {
       </MoreDetails>
       {kart && (
         <label className={labelClass}>
-          Status
+          {te.status}
           <select name="status" defaultValue={kart.status} className={inputClass}>
             {sortedEntries(t.options.kartStatuses).map(([value, label]) => (
               <option key={value} value={value}>
@@ -95,7 +96,7 @@ export function KartForm({ kart }: { kart?: KartValues }) {
       <div className="flex flex-col gap-4 col-span-2">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : kart ? "Wijzigingen opslaan" : "Kart toevoegen"}
+          {isPending ? te.saving : kart ? te.saveChanges : te.addKart}
         </button>
       </div>
     </form>

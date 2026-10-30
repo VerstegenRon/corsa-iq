@@ -183,11 +183,12 @@ export function formatCents(cents: number | null): string {
 }
 
 /** 200 → "3 u 20 min" */
-export function formatMinutes(minutes: number | null): string {
+/** "2 u 30 min"; pass the reader's hour unit (`t.common.hourUnit`) outside Dutch screens. */
+export function formatMinutes(minutes: number | null, hourUnit = "u"): string {
   if (minutes === null) return "—";
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  return hours > 0 ? `${hours} u ${rest} min` : `${rest} min`;
+  return hours > 0 ? `${hours} ${hourUnit} ${rest} min` : `${rest} min`;
 }
 
 /** Value for a decimal input, written like its placeholder: 24995 cents / 100 → "249,95", 500 min / 60 → "8,33". */

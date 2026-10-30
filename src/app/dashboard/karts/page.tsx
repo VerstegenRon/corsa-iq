@@ -8,19 +8,22 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { atLimit, LimitReached } from "@/components/plan-lock";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { format, plural } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { CHASSIS_COMPONENTS, formatMinutes, labelFor } from "@/lib/karting";
 import { computeUsage } from "@/lib/part-usage";
 
 import { KartForm } from "./kart-form";
 
-export const metadata: Metadata = {
-  title: "Karts — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).equipment.karts} — CorsaIQ` };
+}
 
 export default async function KartsPage() {
   const { supabase, garage } = await getCurrentGarage();
   const t = await getDictionary();
+  const te = t.equipment;
+  const hour = t.common.hourUnit;
 
   const { data: karts, error } = await supabase
     .from("karts")
@@ -37,15 +40,15 @@ export default async function KartsPage() {
     <>
       <PageHeader
         icon="kart"
-        title="Karts"
-        subtitle={karts.length > 0 ? `${karts.length} ${karts.length === 1 ? "kart" : "karts"}` : undefined}
-        add="Kart"
+        title={te.karts}
+        subtitle={karts.length > 0 ? plural(karts.length, te.kartCount) : undefined}
+        add={te.kartAdd}
       />
 
       {karts.length === 0 ? (
-        <EmptyState icon="kart" title="Nog geen kart" text="Voeg je chassis toe; daarna monteer je er motor, banden en onderdelen op." />
+        <EmptyState icon="kart" title={te.kartsEmptyTitle} text={te.kartsEmptyText} />
       ) : (
-        <section aria-label="Je karts" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section aria-label={te.yourKarts} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {karts.map((kart) => {
             const mounted = kart.part_installations.filter((i) => i.removed_at === null).length;
             const chassis = [kart.chassis_brand, kart.chassis_model, kart.chassis_year].filter(Boolean).join(" ");
@@ -62,7 +65,7 @@ export default async function KartsPage() {
                   <IconTile name="kart" />
                   <div className="min-w-0 flex-1">
                     <h2 className="truncate text-lg font-semibold tracking-tight">{kart.name}</h2>
-                    <p className="truncate text-sm text-zinc-400">{chassis || kart.class || "Chassis nog niet ingevuld"}</p>
+                    <p className="truncate text-sm text-zinc-400">{chassis || kart.class || te.noChassis}</p>
                   </div>
                   <Icon name="chevron" className="size-4 shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-300" />
                 </div>
@@ -71,19 +74,19 @@ export default async function KartsPage() {
                   {kart.class && chassis && <Chip>{kart.class}</Chip>}
                   <Chip>
                     <Icon name="part" className="size-3" />
-                    {mounted} gemonteerd
+                    {format(te.mountedCount, { count: mounted })}
                   </Chip>
                 </div>
                 <div className="mt-auto">
                   <div className="mb-1.5 flex justify-between text-xs text-zinc-400">
-                    <span>Sinds groot onderhoud</span>
+                    <span>{te.sinceMajor}</span>
                     <span className="tabular-nums">
-                      {formatMinutes(usage.sinceResetMinutes)}
-                      {limit && <span className="text-zinc-500"> / {formatMinutes(limit)}</span>}
+                      {formatMinutes(usage.sinceResetMinutes, hour)}
+                      {limit && <span className="text-zinc-500"> / {formatMinutes(limit, hour)}</span>}
                     </span>
                   </div>
                   {share !== null ? (
-                    <Meter share={share} tone={toneForShare(share)} label={`${kart.name}: deel van de onderhoudsgrens gebruikt`} />
+                    <Meter share={share} tone={toneForShare(share)} label={format(te.kartMeter, { kart: kart.name })} />
                   ) : (
                     <div aria-hidden="true" className="h-1.5 rounded-full bg-zinc-800" />
                   )}
@@ -94,7 +97,7 @@ export default async function KartsPage() {
         </section>
       )}
 
-      <AddSection title="Kart toevoegen" defaultOpen={karts.length === 0}>
+      <AddSection title={te.addKart} defaultOpen={karts.length === 0}>
         {(await atLimit("karts", inUse)) ? <LimitReached counted="karts" used={inUse} /> : <KartForm />}
       </AddSection>
     </>

@@ -12,23 +12,6 @@ import type { ComponentSet } from "./maintenance-sections";
 
 const initialState: FormState = {};
 
-const copy = {
-  part: {
-    componentsHelp: "Elk aangevinkt component begint opnieuw te tellen. De totale draaitijd van de motor loopt altijd door.",
-    reset: "Teller “sinds laatste revisie” op nul zetten",
-    resetHelp: "Gebruik dit bij een volledige revisie; daarmee wordt ook de revisiegrens opnieuw gemeten.",
-    byPlaceholder: "Zelf, of je motorbouwer",
-    descriptionPlaceholder: "Nieuwe zuiger 54,00 mm, big-end vervangen…",
-  },
-  kart: {
-    componentsHelp: "Elk aangevinkt onderdeel van het chassis begint opnieuw te tellen. De totale draaitijd van de kart loopt altijd door.",
-    reset: "Teller “sinds groot onderhoud” op nul zetten",
-    resetHelp: "Gebruik dit bij een volledige beurt van het chassis; daarmee wordt ook de onderhoudsgrens opnieuw gemeten.",
-    byPlaceholder: "Zelf, of je team",
-    descriptionPlaceholder: "Frame gemeten, aslagers vervangen…",
-  },
-};
-
 export function MaintenanceForm({
   target,
   componentSet,
@@ -41,17 +24,18 @@ export function MaintenanceForm({
   const t = useT();
   const [state, formAction, isPending] = useActionState(createMaintenance.bind(null, target), initialState);
   const [type, setType] = useState("revision");
-  const text = copy[target.kind];
+  const te = t.equipment;
+  const text = te.maintenanceCopy[target.kind];
   const components = componentSet === "engine" ? t.options.engineComponents : componentSet === "chassis" ? t.options.chassisComponents : null;
 
   return (
     <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
       <label className={labelClass}>
-        Datum *
+        {te.date}
         <input name="performed_on" type="date" required defaultValue={today} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Soort *
+        {te.kind}
         <select name="type" required value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
           {sortedEntries(t.options.maintenanceTypes).map(([value, label]) => (
             <option key={value} value={value}>
@@ -61,13 +45,13 @@ export function MaintenanceForm({
         </select>
       </label>
       <label className={labelClass}>
-        Uitgevoerd door
+        {te.performedBy}
         <input name="performed_by" placeholder={text.byPlaceholder} className={inputClass} />
       </label>
 
       {components && (
         <fieldset className="col-span-2 lg:col-span-3">
-          <legend className="text-sm text-zinc-300">Vervangen of gereviseerd</legend>
+          <legend className="text-sm text-zinc-300">{te.replaced}</legend>
           <p className="mt-1 text-xs text-zinc-500">{text.componentsHelp}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {sortedEntries(components).map(([value, label]) => (
@@ -96,18 +80,18 @@ export function MaintenanceForm({
       </label>
 
       <label className={`${labelClass} col-span-2`}>
-        Omschrijving
+        {te.description}
         <input name="description" placeholder={text.descriptionPlaceholder} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Kosten (€)
+        {te.cost}
         <input name="cost" inputMode="decimal" placeholder="350" className={inputClass} />
       </label>
 
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : "Onderhoud vastleggen"}
+          {isPending ? te.saving : te.logMaintenance}
         </button>
       </div>
     </form>

@@ -29,6 +29,7 @@ export type PartValues = {
 /** Adds a part, or edits one when `part` is given. */
 export function PartForm({ part }: { part?: PartValues }) {
   const t = useT();
+  const te = t.equipment;
   const [state, formAction, isPending] = useActionState(
     part ? updatePart.bind(null, part.id) : createPart,
     initialState,
@@ -38,22 +39,22 @@ export function PartForm({ part }: { part?: PartValues }) {
     <form action={formAction} className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-3">
       <ChoiceChips
         name="category"
-        legend="Wat is het?"
+        legend={te.whatIsIt}
         required
         variant="tiles"
         defaultValue={part?.category}
         options={sortedEntries(t.options.partCategories).map(([value, label]) => ({ value, label, icon: iconFor(PART_ICONS, value) }))}
       />
       <label className={labelClass}>
-        Merk
-        <input name="brand" defaultValue={part?.brand ?? ""} placeholder="Vortex, MG, OTK…" className={inputClass} />
+        {te.brand}
+        <input name="brand" defaultValue={part?.brand ?? ""} placeholder={te.brandPlaceholder} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Model / type
-        <input name="model" defaultValue={part?.model ?? ""} placeholder="Rok GP, SM Red…" className={inputClass} />
+        {te.modelType}
+        <input name="model" defaultValue={part?.model ?? ""} placeholder={te.modelPlaceholder} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Aankoopprijs (€)
+        {te.price}
         <input
           name="purchase_price"
           inputMode="decimal"
@@ -64,11 +65,11 @@ export function PartForm({ part }: { part?: PartValues }) {
       </label>
       {part && (
         <label className={labelClass}>
-          Status
+          {te.status}
           {part.status === "installed" ? (
             <>
               <input name="status" type="hidden" value="installed" />
-              <span className={`${inputClass} flex items-center text-zinc-400`}>Gemonteerd (demonteer via de kart)</span>
+              <span className={`${inputClass} flex items-center text-zinc-400`}>{te.mountedViaKart}</span>
             </>
           ) : (
             <select name="status" defaultValue={part.status} className={inputClass}>
@@ -85,15 +86,15 @@ export function PartForm({ part }: { part?: PartValues }) {
       )}
       <MoreDetails defaultOpen={Boolean(part && (part.serial_number || part.purchased_on || part.usage_limit_minutes || part.notes))}>
         <label className={labelClass}>
-          Serie- of motornummer
+          {te.serialNumber}
           <input name="serial_number" defaultValue={part?.serial_number ?? ""} className={inputClass} />
         </label>
         <label className={labelClass}>
-          Aankoopdatum
+          {te.purchasedOn}
           <input name="purchased_on" type="date" defaultValue={part?.purchased_on ?? ""} className={inputClass} />
         </label>
         <label className={labelClass}>
-          Revisie of vervangen na (uren)
+          {te.revisionAfter}
           <input
             name="usage_limit_hours"
             inputMode="decimal"
@@ -103,7 +104,7 @@ export function PartForm({ part }: { part?: PartValues }) {
           />
         </label>
         <label className={`${labelClass} col-span-2`}>
-          Notities
+          {te.notes}
           <input name="notes" defaultValue={part?.notes ?? ""} className={inputClass} />
         </label>
       </MoreDetails>
@@ -111,7 +112,7 @@ export function PartForm({ part }: { part?: PartValues }) {
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : part ? "Wijzigingen opslaan" : "Onderdeel toevoegen"}
+          {isPending ? te.saving : part ? te.saveChanges : te.addPart}
         </button>
       </div>
     </form>

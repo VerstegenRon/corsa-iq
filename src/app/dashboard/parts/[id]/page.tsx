@@ -7,7 +7,8 @@ import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import { getPlanAccess } from "@/lib/plan-access";
-import { getDictionary } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { ENGINE_COMPONENTS, formatCents, formatDate, labelFor, todayInAmsterdam } from "@/lib/karting";
 import { computeUsage, readLimits } from "@/lib/part-usage";
 
@@ -15,14 +16,15 @@ import { ComponentsSection, MaintenanceSection, UsageCards } from "../../_mainte
 import { deletePart, type MaintenanceTarget } from "../../actions";
 import { PartForm } from "../part-form";
 
-export const metadata: Metadata = {
-  title: "Onderdeel — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).equipment.part} — CorsaIQ` };
+}
 
 export default async function PartPage({ params }: PageProps<"/dashboard/parts/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  const te = t.equipment;
 
   const { data: part, error } = await supabase
     .from("parts")
@@ -46,20 +48,22 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
   const target: MaintenanceTarget = { kind: "part", id: part.id };
 
   const details = [
-    ["Status", kart ? `Op ${kart.name}` : labelFor(t.options.partStatuses, part.status)],
-    ["Sessies", String(sessions.length)],
+    [te.status, kart ? format(te.onKart, { kart: kart.name }) : labelFor(t.options.partStatuses, part.status)],
+    [te.sessions, String(sessions.length)],
     [
-      "Aankoop",
-      part.purchased_on || part.purchase_price_cents !== null ? `${formatDate(part.purchased_on)} · ${formatCents(part.purchase_price_cents)}` : "—",
+      te.purchase,
+      part.purchased_on || part.purchase_price_cents !== null
+        ? `${formatDate(part.purchased_on, locale)} · ${formatCents(part.purchase_price_cents)}`
+        : "—",
     ],
-    ["Laatste revisie", usage.lastResetOn ? formatDate(usage.lastResetOn) : "nog niet"],
+    [te.lastRevision, usage.lastResetOn ? formatDate(usage.lastResetOn, locale) : te.notYet],
   ];
 
   return (
     <>
       <section>
         <Link href="/dashboard/parts" className={`${linkClass} text-sm`}>
-          ← Alle onderdelen
+          {te.allParts}
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{name}</h1>
         <p className="mt-2 text-sm text-zinc-400">
@@ -68,13 +72,13 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
         </p>
       </section>
 
-      <section aria-label="Gegevens" className={cardClass}>
+      <section aria-label={te.details} className={cardClass}>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {details.map(([label, value]) => (
             <div key={label}>
               <dt className="text-xs tracking-wide text-zinc-500 uppercase">{label}</dt>
               <dd className="mt-1 text-sm text-zinc-100">
-                {label === "Status" && kart ? (
+                {label === te.status && kart ? (
                   <Link href={`/dashboard/karts/${kart.id}`} className={linkClass}>
                     {value}
                   </Link>
@@ -87,7 +91,7 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
         </dl>
       </section>
 
-      <UsageCards kind="part" usage={usage} limit={part.usage_limit_minutes} />
+      <UsageCards kind="part" usage={usage} limit={part.usage_limit_minutes} t={t} />
 
       {isEngine && (
         <ComponentsSection
@@ -97,26 +101,29 @@ export default async function PartPage({ params }: PageProps<"/dashboard/parts/[
           usage={usage}
           limits={componentLimits}
           t={t}
+          locale={locale}
         />
       )}
 
-      <MaintenanceSection target={target} componentSet={isEngine ? "engine" : null} records={records} today={todayInAmsterdam()} t={t} />
+      <MaintenanceSection target={target} componentSet={isEngine ? "engine" : null} records={records} today={todayInAmsterdam()} t={t} locale={locale} />
 
       <EditOnly>
         <section aria-labelledby="edit-heading" className={cardClass}>
           <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
-            Bewerken
+            {te.edit}
           </h2>
           <PartForm part={part} />
-          <p className="mt-4 text-xs text-zinc-500">De aankoopprijs staat ook bij je kosten; die past mee als je de prijs of datum wijzigt.</p>
+          <p className="mt-4 text-xs text-zinc-500">{te.priceInCosts}</p>
           <div className="mt-8 border-t border-zinc-800/80 pt-6">
             <DeleteButton
               action={deletePart.bind(null, part.id)}
-              label="Onderdeel verwijderen"
-              confirmText={`${name} verwijderen? De aankoop verdwijnt ook uit je kosten.`}
+              label={te.deletePart}
+              confirmText={format(te.deletePartConfirm, { part: name })}
             />
             {sessions.length > 0 && (
-              <p className="mt-2 text-xs text-zinc-500">Gebruikt in sessies: verwijderen kan niet, zet de status op “Afgeschreven” of “Verkocht”.</p>
+              <p className="mt-2 text-xs text-zinc-500">
+                {format(te.usedInSessions, { discarded: t.options.partStatuses.discarded, sold: t.options.partStatuses.sold })}
+              </p>
             )}
           </div>
         </section>

@@ -7,6 +7,7 @@ import { useId, useRef, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icons";
 import { inputClass } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
 
 const focusWithin = "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-400";
 
@@ -125,7 +126,7 @@ export function Stepper({
 
 /** Fold-out for the fields you rarely need; they still submit when it is closed. */
 export function MoreDetails({
-  title = "Meer details",
+  title,
   defaultOpen = false,
   children,
   className = "col-span-full",
@@ -138,10 +139,11 @@ export function MoreDetails({
   /** Columns from lg, e.g. "lg:grid-cols-4" for the four wheels in one row. */
   columns?: string;
 }) {
+  const t = useT();
   return (
     <details open={defaultOpen || undefined} className={`group rounded-2xl border border-zinc-800/80 ${className}`}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-zinc-300 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400 [&::-webkit-details-marker]:hidden">
-        {title}
+        {title ?? t.common.moreDetails}
         <Icon name="chevron" className="size-4 text-zinc-500 transition-transform group-open:rotate-90" />
       </summary>
       <div className={`grid grid-cols-2 gap-x-3 gap-y-4 border-t border-zinc-800/80 p-4 ${columns}`}>{children}</div>
