@@ -1417,7 +1417,8 @@ export const de: Dictionary = {
     },
     compare: {
       title: "Abos vergleichen",
-      intro: "Alles auf einen Blick. In der Startphase nutzt du jede Funktion kostenlos.",
+      intro: "Alles auf einen Blick.",
+      launchIntro: "In der Startphase nutzt du jede Funktion kostenlos.",
       feature: "Funktion",
       pickPlan: "Wähle ein Abo zum Vergleichen",
       unlimited: "Unbegrenzt",
@@ -1475,6 +1476,7 @@ export const de: Dictionary = {
       now: {
         question: "Was kostet CorsaIQ jetzt?",
         answer: "Nichts, solange du kein Abo abschließt. In der Startphase sind alle Funktionen kostenlos. Du erfährst es vorher, wenn die Grenzen pro Abo gelten.",
+        limitsAnswer: "Das kostenlose Abo bleibt kostenlos, mit einem Kart und einem Fahrer. Wenn du mehr möchtest, wählst du oben ein bezahltes Abo.",
       },
       switch: {
         question: "Kann ich später das Abo wechseln?",

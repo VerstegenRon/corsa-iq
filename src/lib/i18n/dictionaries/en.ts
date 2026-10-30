@@ -1407,7 +1407,8 @@ export const en: Dictionary = {
     },
     compare: {
       title: "Compare the plans",
-      intro: "Everything side by side. During the launch phase you can use every feature for free.",
+      intro: "Everything side by side.",
+      launchIntro: "During the launch phase you can use every feature for free.",
       feature: "Feature",
       pickPlan: "Choose a plan to compare",
       unlimited: "Unlimited",
@@ -1465,6 +1466,7 @@ export const en: Dictionary = {
       now: {
         question: "What does CorsaIQ cost right now?",
         answer: "Nothing, unless you take a plan yourself. During the launch phase every feature is free. You will hear in advance when the limits per plan start.",
+        limitsAnswer: "The free plan stays free, with one kart and one driver. If you want more, choose a paid plan above.",
       },
       switch: {
         question: "Can I change plans later?",

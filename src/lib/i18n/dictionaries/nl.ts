@@ -1422,7 +1422,8 @@ export const nl = {
     },
     compare: {
       title: "Vergelijk de abonnementen",
-      intro: "Alles op een rij. Tijdens de opstartfase kun je elke functie gratis gebruiken.",
+      intro: "Alles op een rij.",
+      launchIntro: "Tijdens de opstartfase kun je elke functie gratis gebruiken.",
       feature: "Functie",
       pickPlan: "Kies een abonnement om te vergelijken",
       unlimited: "Onbeperkt",
@@ -1480,6 +1481,7 @@ export const nl = {
       now: {
         question: "Wat kost CorsaIQ nu?",
         answer: "Niets, tenzij je zelf een abonnement neemt. Tijdens de opstartfase zijn alle functies gratis. Je hoort het vooraf wanneer de grenzen per abonnement ingaan.",
+        limitsAnswer: "Het gratis abonnement blijft gratis, met één kart en één coureur. Wil je meer, dan kies je hierboven een betaald abonnement.",
       },
       switch: {
         question: "Kan ik later van abonnement wisselen?",

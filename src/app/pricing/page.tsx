@@ -36,7 +36,7 @@ const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-
 
 export default async function PricingPage() {
   const [t, locale, supabase] = await Promise.all([getDictionary(), getLocale(), createClient()]);
-  // The launch note ("everything free for now") holds only while the plan limits are off.
+  // The launch texts ("everything free for now") hold only while the plan limits are off.
   const [{ data }, { data: limitsActive }] = await Promise.all([supabase.auth.getClaims(), supabase.rpc("plan_limits_active")]);
   const signedIn = Boolean(data?.claims);
   const p = t.pricing;
@@ -202,7 +202,7 @@ export default async function PricingPage() {
           <h2 id="compare-heading" className="text-2xl font-semibold tracking-tight sm:text-3xl">
             {p.compare.title}
           </h2>
-          <p className="mt-2 mb-6 text-zinc-400">{p.compare.intro}</p>
+          <p className="mt-2 mb-6 text-zinc-400">{limitsActive === true ? p.compare.intro : `${p.compare.intro} ${p.compare.launchIntro}`}</p>
           <ComparisonTable
             plans={PLAN_KEYS.map((key) => ({ key, name: p.plans[key].name, price: `${price(key)} ${p.perMonth}` }))}
             groups={COMPARISON.map(({ group, rows }) => ({
@@ -249,7 +249,10 @@ export default async function PricingPage() {
                   </span>
                 </summary>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">
-                  {format(p.faq[key].answer, { driverPrice: addonPrice("driver", "pro"), kartPrice: addonPrice("kart", "pro") })}
+                  {format(key === "now" && limitsActive === true ? p.faq.now.limitsAnswer : p.faq[key].answer, {
+                    driverPrice: addonPrice("driver", "pro"),
+                    kartPrice: addonPrice("kart", "pro"),
+                  })}
                 </p>
               </details>
             ))}
