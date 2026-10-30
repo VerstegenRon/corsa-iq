@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { EXPENSE_ICONS, Icon, IconTile, iconFor } from "@/components/icons";
 import { getCurrentGarage } from "@/lib/garage";
-import { getDictionary } from "@/lib/i18n/server";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatCents, formatDate, labelFor } from "@/lib/karting";
 import { RECEIPT_BUCKET } from "@/lib/storage";
 
@@ -28,9 +28,9 @@ async function signReceipts(expenses: ExpenseRow[]): Promise<Map<string, string>
 }
 
 export async function ExpenseList({ expenses, showEvent = true }: { expenses: ExpenseRow[]; showEvent?: boolean }) {
-  if (expenses.length === 0) return <p className="mt-3 text-sm text-zinc-500">Nog geen uitgaven.</p>;
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  if (expenses.length === 0) return <p className="mt-3 text-sm text-zinc-500">{t.costs.noExpenses}</p>;
   const receiptUrls = await signReceipts(expenses);
-  const t = await getDictionary();
 
   return (
     <ul className="mt-4 divide-y divide-zinc-800/80">
@@ -43,7 +43,7 @@ export async function ExpenseList({ expenses, showEvent = true }: { expenses: Ex
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-100">{expense.description ?? category}</p>
               <p className="text-xs text-zinc-500">
-                {formatDate(expense.spent_on)} · {category}
+                {formatDate(expense.spent_on, locale)} · {category}
                 {showEvent && expense.events && (
                   <>
                     {" · "}
@@ -62,7 +62,7 @@ export async function ExpenseList({ expenses, showEvent = true }: { expenses: Ex
                       className="inline-flex items-center gap-1 text-brand-300 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                     >
                       <Icon name="receipt" className="size-3" />
-                      Bonnetje
+                      {t.costs.receipt}
                     </a>
                   </>
                 )}

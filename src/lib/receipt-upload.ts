@@ -1,5 +1,7 @@
 // Receipt uploads run in the browser, straight to storage, so large photos never pass through a Server Action.
 
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
+import { format } from "@/lib/i18n/locales";
 import { RECEIPT_BUCKET, RECEIPT_MAX_BYTES } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,14 +26,14 @@ async function shrinkImage(file: File): Promise<Blob> {
   }
 }
 
-export async function uploadReceipt(garageId: string, file: File): Promise<{ path: string } | { error: string }> {
+export async function uploadReceipt(garageId: string, file: File, tc: Dictionary["costs"]): Promise<{ path: string } | { error: string }> {
   const body = await shrinkImage(file);
-  if (body.size > RECEIPT_MAX_BYTES) return { error: "Het bonnetje is groter dan 10 MB." };
+  if (body.size > RECEIPT_MAX_BYTES) return { error: tc.tooLarge };
 
   const subtype = body.type.split("/")[1] || "jpg";
   const path = `${garageId}/${crypto.randomUUID()}.${subtype === "jpeg" ? "jpg" : subtype}`;
   const { error } = await createClient().storage.from(RECEIPT_BUCKET).upload(path, body, { contentType: body.type });
-  if (error) return { error: `Bonnetje uploaden mislukt: ${error.message}` };
+  if (error) return { error: format(tc.uploadFailed, { error: error.message }) };
   return { path };
 }
 

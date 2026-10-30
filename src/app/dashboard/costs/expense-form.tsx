@@ -5,7 +5,8 @@ import { useActionState, useRef, useState } from "react";
 import { ChoiceChips, MoreDetails } from "@/components/form-controls";
 import { FormMessage, type FormState } from "@/components/form-message";
 import { EXPENSE_ICONS, Icon, iconFor } from "@/components/icons";
-import { useT } from "@/lib/i18n/client";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n/locales";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/ui";
 import { sortByLabel, sortedEntries } from "@/lib/karting";
 import { removeReceipt, uploadReceipt } from "@/lib/receipt-upload";
@@ -40,6 +41,8 @@ export function ExpenseForm({
   readLocked?: string | null;
 }) {
   const t = useT();
+  const tc = t.costs;
+  const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
   // A picked receipt is uploaded and read straight away; the form then only sends its storage path.
   // A ref, not state: the handlers must always see the latest upload, also between renders.
@@ -52,15 +55,15 @@ export function ExpenseForm({
     receiptPath.current = null;
     if (!file) return setReading({});
 
-    setReading({ busy: true, message: "Bonnetje uploaden…" });
-    const upload = await uploadReceipt(garageId, file);
+    setReading({ busy: true, message: tc.receiptUploading });
+    const upload = await uploadReceipt(garageId, file, tc);
     if ("error" in upload) return setReading({ error: upload.error });
     receiptPath.current = upload.path;
-    if (readLocked) return setReading({ message: `${readLocked} Het bonnetje wordt wel bewaard.` });
+    if (readLocked) return setReading({ message: `${readLocked} ${tc.receiptKept}` });
 
-    setReading({ busy: true, message: "Bonnetje inlezen…" });
+    setReading({ busy: true, message: tc.receiptParsing });
     const result = await readUploadedReceipt(upload.path);
-    if ("error" in result) return setReading({ error: `${result.error} Het bonnetje wordt wel bewaard.` });
+    if ("error" in result) return setReading({ error: `${result.error} ${tc.receiptKept}` });
 
     const { fields } = result;
     const form = formRef.current;
@@ -71,15 +74,17 @@ export function ExpenseForm({
         element.value = value;
       }
     };
-    set("amount", fields.amount === null ? null : fields.amount.toFixed(2).replace(".", ","));
+    // English writes a decimal point; the other languages a comma.
+    const amount = fields.amount?.toFixed(2) ?? null;
+    set("amount", amount && locale !== "en" ? amount.replace(".", ",") : amount);
     set("spent_on", fields.date);
     set("description", fields.description);
     set("category", fields.category);
     const foreign = fields.currency && fields.currency !== "EUR";
     setReading({
       message: foreign
-        ? `Ingevuld uit het bonnetje. Let op: het bedrag is in ${fields.currency}; reken het om naar euro’s.`
-        : "Ingevuld uit het bonnetje. Controleer de gegevens en sla op.",
+        ? format(tc.receiptForeign, { currency: fields.currency! })
+        : tc.receiptFilled,
     });
   }
 
@@ -106,8 +111,8 @@ export function ExpenseForm({
           <Icon name="camera" className="size-6" />
         </span>
         <span className="min-w-0">
-          <span className="block font-semibold text-zinc-100">{reading.busy ? "Bonnetje lezen…" : "Foto of pdf van je bonnetje"}</span>
-          <span className="block text-xs text-zinc-500">We vullen bedrag, datum en categorie voor je in.</span>
+          <span className="block font-semibold text-zinc-100">{reading.busy ? tc.receiptReading : tc.receiptPrompt}</span>
+          <span className="block text-xs text-zinc-500">{tc.receiptHint}</span>
         </span>
         <input name="receipt" type="file" accept={RECEIPT_ACCEPT} onChange={onReceiptChange} disabled={reading.busy} className="sr-only" />
       </label>
@@ -119,29 +124,29 @@ export function ExpenseForm({
 
       <ChoiceChips
         name="category"
-        legend="Categorie"
+        legend={tc.category}
         required
         variant="tiles"
         defaultValue="entry_fee"
         options={sortedEntries(t.options.expenseCategories).map(([value, label]) => ({ value, label, icon: iconFor(EXPENSE_ICONS, value) }))}
       />
       <label className={labelClass}>
-        Bedrag (€) *
-        <input name="amount" required inputMode="decimal" placeholder="85,00" className={inputClass} />
+        {tc.amount}
+        <input name="amount" required inputMode="decimal" placeholder={tc.amountPlaceholder} className={inputClass} />
       </label>
       <label className={labelClass}>
-        Datum *
+        {tc.date}
         <input name="spent_on" type="date" required defaultValue={defaultDate} className={inputClass} />
       </label>
 
       {eventId ? (
         <input type="hidden" name="event_id" value={eventId} />
       ) : (
-        <MoreDetails title="Seizoen en evenement">
+        <MoreDetails title={tc.seasonAndEvent}>
           <label className={`${labelClass} col-span-2 sm:col-span-1`}>
-            Seizoen
+            {tc.season}
             <select name="season_id" defaultValue={defaultSeasonId ?? ""} className={inputClass}>
-              <option value="">Geen seizoen</option>
+              <option value="">{tc.noSeason}</option>
               {sortByLabel(seasons).map((season) => (
                 <option key={season.id} value={season.id}>
                   {season.label}
@@ -150,9 +155,9 @@ export function ExpenseForm({
             </select>
           </label>
           <label className={`${labelClass} col-span-2 sm:col-span-1`}>
-            Evenement
+            {tc.event}
             <select name="event_id" defaultValue="" className={inputClass}>
-              <option value="">Geen evenement</option>
+              <option value="">{tc.noEvent}</option>
               {sortByLabel(events).map((event) => (
                 <option key={event.id} value={event.id}>
                   {event.label}
@@ -164,14 +169,14 @@ export function ExpenseForm({
       )}
 
       <label className={`${labelClass} col-span-2 lg:col-span-1`}>
-        Omschrijving
-        <input name="description" placeholder="Inschrijving NK ronde 1" className={inputClass} />
+        {tc.description}
+        <input name="description" placeholder={tc.descriptionPlaceholder} className={inputClass} />
       </label>
 
       <div className="flex flex-col gap-4 col-span-2 lg:col-span-3">
         <FormMessage state={state} />
         <button type="submit" disabled={isPending || reading.busy} className={`${primaryButtonClass} self-start`}>
-          {isPending ? "Opslaan…" : "Uitgave toevoegen"}
+          {isPending ? tc.saving : tc.addExpense}
         </button>
       </div>
     </form>
