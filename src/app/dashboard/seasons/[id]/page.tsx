@@ -6,17 +6,20 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditOnly } from "@/components/edit-access";
 import { cardClass, linkClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary } from "@/lib/i18n/server";
 
 import { deleteSeason } from "../../season-actions";
 import { SeasonForm } from "../season-form";
 
-export const metadata: Metadata = {
-  title: "Seizoen bewerken — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).events.editSeasonTitle} — CorsaIQ` };
+}
 
 export default async function SeasonEditPage({ params }: PageProps<"/dashboard/seasons/[id]">) {
   const { id } = await params;
-  const { supabase, garage } = await getCurrentGarage();
+  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const te = t.events;
 
   const { data: season, error } = await supabase
     .from("seasons")
@@ -33,13 +36,13 @@ export default async function SeasonEditPage({ params }: PageProps<"/dashboard/s
     <>
       <section>
         <Link href="/dashboard/seasons" className={`${linkClass} text-sm`}>
-          ← Seizoen
+          {te.back}
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{season.name}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {events} {events === 1 ? "evenement" : "evenementen"} ·{" "}
+          {plural(events, te.eventCount)} ·{" "}
           <Link href={`/dashboard/costs?season=${season.id}`} className={linkClass}>
-            Kosten
+            {te.costs}
           </Link>
         </p>
       </section>
@@ -47,14 +50,20 @@ export default async function SeasonEditPage({ params }: PageProps<"/dashboard/s
       <EditOnly>
         <section aria-labelledby="edit-heading" className={cardClass}>
           <h2 id="edit-heading" className="mb-6 text-lg font-semibold">
-            Bewerken
+            {te.edit}
           </h2>
           <SeasonForm defaultYear={season.year} season={season} />
           <div className="mt-8 border-t border-zinc-800/80 pt-6">
             <DeleteButton
               action={deleteSeason.bind(null, season.id)}
-              label="Seizoen verwijderen"
-              confirmText={`${season.name} verwijderen?${events > 0 ? ` De ${events} ${events === 1 ? "evenement blijft" : "evenementen blijven"} bestaan onder “Buiten seizoen”.` : ""} Kosten van dit seizoen blijven ook bewaard.`}
+              label={te.deleteSeason}
+              confirmText={[
+                format(te.deleteConfirm, { name: season.name }),
+                events > 0 && format(plural(events, te.deleteSeasonEvents), { outside: te.outsideSeason }),
+                te.deleteSeasonCosts,
+              ]
+                .filter(Boolean)
+                .join(" ")}
             />
           </div>
         </section>

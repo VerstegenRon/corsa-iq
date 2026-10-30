@@ -10,7 +10,8 @@ import { cardClass, linkClass } from "@/components/ui";
 import { parseFeedbackTags } from "@/lib/feedback";
 import { getCurrentGarage } from "@/lib/garage";
 import { lockedError } from "@/lib/plan-access";
-import { getDictionary } from "@/lib/i18n/server";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import {
   formatCents,
   formatDate,
@@ -36,16 +37,19 @@ import { ExpenseList } from "../../costs/expense-list";
 import { EventChecklist } from "./event-checklist";
 import { SessionForm } from "./session-form";
 
-export const metadata: Metadata = {
-  title: "Evenement — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).events.eventTitle} — CorsaIQ` };
+}
 
 type Conditions = SessionConditions;
 
 export default async function EventPage({ params }: PageProps<"/dashboard/events/[id]">) {
   const { id } = await params;
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  const te = t.events;
+  const ts = t.session;
+  const decimal = (value: number) => String(value).replace(".", ",");
 
   const [eventResult, kartsResult, driversResult, lastSetupResult, expensesResult, seasonsResult, tracksResult, checklistResult, gearResult] =
     await Promise.all([
@@ -92,7 +96,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
   const added = new Set(checklist.map((item) => item.suggestion_key).filter(Boolean));
   const suggestions = upcoming
     ? (
-        await checklistSuggestions({
+        await checklistSuggestions(t, locale, {
           event: {
             id: event.id,
             starts_on: event.starts_on,
@@ -124,32 +128,32 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
     <>
       <section>
         <Link href="/dashboard/seasons" className={`${linkClass} text-sm`}>
-          ← Seizoen
+          {te.back}
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">{event.name}</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {labelFor(t.options.eventTypes, event.type)} · {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"} ·{" "}
-          {formatDate(event.starts_on)}
-          {event.ends_on && event.ends_on !== event.starts_on && ` – ${formatDate(event.ends_on)}`}
+          {labelFor(t.options.eventTypes, event.type)} · {event.tracks ? trackLabel(event.tracks) : te.unknownTrack} ·{" "}
+          {formatDate(event.starts_on, locale)}
+          {event.ends_on && event.ends_on !== event.starts_on && ` – ${formatDate(event.ends_on, locale)}`}
           {event.seasons && ` · ${event.seasons.name}`}
         </p>
       </section>
 
-      <section aria-label="Samenvatting" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <section aria-label={te.summary} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Sessies</p>
+          <p className="text-sm text-zinc-400">{te.sessions}</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{event.sessions.length}</p>
         </div>
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Snelste ronde</p>
+          <p className="text-sm text-zinc-400">{te.bestLap}</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatLapTime(bestLap)}</p>
         </div>
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Rijtijd</p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatMinutes(totalMinutes)}</p>
+          <p className="text-sm text-zinc-400">{te.driveTime}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatMinutes(totalMinutes, t.common.hourUnit)}</p>
         </div>
         <div className={cardClass}>
-          <p className="text-sm text-zinc-400">Kosten</p>
+          <p className="text-sm text-zinc-400">{te.costs}</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">{formatCents(totalCents)}</p>
         </div>
       </section>
@@ -158,10 +162,10 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         <section aria-labelledby="plan-heading" className={`${cardClass} border-amber-400/30`}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="plan-heading" className="text-lg font-semibold">
-              Onderhoud vóór dit evenement
+              {te.maintenanceBefore}
             </h2>
             <Link href="/dashboard/agenda" className={`${linkClass} text-sm`}>
-              Agenda
+              {te.agenda}
             </Link>
           </div>
           <div className="mt-2">
@@ -179,7 +183,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       {event.sessions.length > 0 && (
         <section aria-labelledby="sessions-heading" className={cardClass}>
           <h2 id="sessions-heading" className="text-lg font-semibold">
-            Sessies
+            {te.sessions}
           </h2>
           <ol className="mt-4 divide-y divide-zinc-800/80">
             {event.sessions.map((session) => {
@@ -199,13 +203,13 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
                       </span>
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
-                      {formatMinutes(Math.round((session.duration_s ?? 0) / 60))}
+                      {formatMinutes(Math.round((session.duration_s ?? 0) / 60), t.common.hourUnit)}
                       {conditions.weather && ` · ${weatherText(conditions, t.options.weather)}`}
-                      {conditions.air_temp_c !== undefined && ` · lucht ${String(conditions.air_temp_c).replace(".", ",")} °C`}
-                      {conditions.track_temp_c !== undefined && ` · baan ${String(conditions.track_temp_c).replace(".", ",")} °C`}
-                      {conditions.humidity_pct !== undefined && ` · ${conditions.humidity_pct}% vocht`}
-                      {conditions.precipitation_mm ? ` · ${String(conditions.precipitation_mm).replace(".", ",")} mm regen` : ""}
-                      {` · ${session.session_parts.length} ${session.session_parts.length === 1 ? "onderdeel" : "onderdelen"}`}
+                      {conditions.air_temp_c !== undefined && ` · ${format(ts.air, { temp: decimal(conditions.air_temp_c) })}`}
+                      {conditions.track_temp_c !== undefined && ` · ${format(ts.track, { temp: decimal(conditions.track_temp_c) })}`}
+                      {conditions.humidity_pct !== undefined && ` · ${format(ts.humidity, { pct: conditions.humidity_pct })}`}
+                      {conditions.precipitation_mm ? ` · ${format(ts.rain, { mm: decimal(conditions.precipitation_mm) })}` : ""}
+                      {` · ${plural(session.session_parts.length, t.equipment.partCount)}`}
                     </p>
                     {setup.length > 0 && <p className="mt-1 text-xs text-zinc-400">{setup.join(" · ")}</p>}
                     {session.driver_feedback && <p className="mt-2 text-sm text-zinc-300 italic">“{session.driver_feedback}”</p>}
@@ -224,12 +228,12 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
         </section>
       )}
 
-      <AddSection title="Sessie toevoegen" defaultOpen={event.sessions.length === 0}>
+      <AddSection title={te.addSession} defaultOpen={event.sessions.length === 0}>
         {karts.length === 0 ? (
           <p className="text-sm text-zinc-400">
-            Voeg eerst een kart toe.{" "}
+            {te.addKartFirst}{" "}
             <Link href="/dashboard/karts" className={linkClass}>
-              Naar karts
+              {te.toKarts}
             </Link>
           </p>
         ) : (
@@ -246,7 +250,7 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
 
       <section aria-labelledby="costs-heading" className={cardClass}>
         <h2 id="costs-heading" className="text-lg font-semibold">
-          Kosten
+          {te.costs}
         </h2>
         <ExpenseList expenses={expenses} showEvent={false} />
         <EditOnly>
@@ -257,12 +261,18 @@ export default async function EventPage({ params }: PageProps<"/dashboard/events
       </section>
 
       <EditSection
-        title="Evenement bewerken"
+        title={te.editEvent}
         danger={
           <DeleteButton
             action={deleteEvent.bind(null, event.id)}
-            label="Evenement verwijderen"
-            confirmText={`${event.name} verwijderen?${event.sessions.length > 0 ? ` De ${event.sessions.length} ${event.sessions.length === 1 ? "sessie" : "sessies"} met afstellingen en rondetijden worden ook verwijderd.` : ""} Kosten blijven bewaard.`}
+            label={te.deleteEvent}
+            confirmText={[
+              format(te.deleteConfirm, { name: event.name }),
+              event.sessions.length > 0 && plural(event.sessions.length, te.deleteEventSessions),
+              te.deleteEventCosts,
+            ]
+              .filter(Boolean)
+              .join(" ")}
           />
         }
       >

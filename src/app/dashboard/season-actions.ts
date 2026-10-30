@@ -5,17 +5,20 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/components/form-message";
 import type { Json } from "@/lib/supabase/database.types";
-import { dbError, dbErrorText } from "@/lib/db-error";
+import { dbErrorText } from "@/lib/db-error";
 import { readQuickTags } from "@/lib/feedback";
 import { tagFeedback } from "@/lib/feedback-tagger";
 import { getCurrentGarage } from "@/lib/garage";
 import { format } from "@/lib/i18n/locales";
+import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
 import { getDictionary } from "@/lib/i18n/server";
 import { EVENT_TYPES, parseLapTime } from "@/lib/karting";
 import { LOGGER_BUCKET, TELEMETRY_BUCKET } from "@/lib/storage";
 import type { SessionConditions } from "@/lib/weather";
 
 import { optionalNumber, text } from "./form-data";
+
+const failed = async (template: string, error: { message: string; code?: string }) => format(template, { error: await dbErrorText(error) });
 import {
   insertSession,
   insertSetup,
@@ -32,15 +35,15 @@ import {
 // Seasons
 // ---------------------------------------------------------------------------
 
-function readSeason(formData: FormData) {
+function readSeason(formData: FormData, te: Dictionary["events"]) {
   const name = text(formData, "name");
-  if (!name) return { error: "Geef het seizoen een naam, bijvoorbeeld “2027 – NK Rotax Senior”." };
+  if (!name) return { error: te.seasonNameMissing };
 
   const year = optionalNumber(formData, "year");
-  if (!year || year < 1950 || year > 2100) return { error: "Vul een geldig jaar in." };
+  if (!year || year < 1950 || year > 2100) return { error: te.invalidYear };
 
   const budget = optionalNumber(formData, "budget");
-  if (budget === undefined) return { error: "Vul een geldig budget in, of laat het veld leeg." };
+  if (budget === undefined) return { error: te.invalidBudget };
 
   return {
     values: {
@@ -54,34 +57,36 @@ function readSeason(formData: FormData) {
 }
 
 export async function createSeason(_prev: FormState, formData: FormData): Promise<FormState> {
-  const season = readSeason(formData);
+  const te = (await getDictionary()).events;
+  const season = readSeason(formData, te);
   if ("error" in season) return season;
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("seasons").insert({ garage_id: garage.id, ...season.values });
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: `${season.values.name} is toegevoegd.` };
+  return { success: format(te.seasonAdded, { name: season.values.name }) };
 }
 
 export async function updateSeason(seasonId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const season = readSeason(formData);
+  const te = (await getDictionary()).events;
+  const season = readSeason(formData, te);
   if ("error" in season) return season;
 
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("seasons").update(season.values).eq("id", seasonId).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Wijzigingen opgeslagen." };
+  return { success: te.changesSaved };
 }
 
 /** Events and costs of the season stay; they move to “Buiten seizoen”. */
 export async function deleteSeason(seasonId: string): Promise<FormState> {
   const { supabase, garage } = await getCurrentGarage();
   const { error } = await supabase.from("seasons").delete().eq("id", seasonId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed((await getDictionary()).events.deleteFailed, error) };
 
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/seasons");
@@ -91,20 +96,20 @@ export async function deleteSeason(seasonId: string): Promise<FormState> {
 // Events
 // ---------------------------------------------------------------------------
 
-async function readEvent(supabase: Supabase, garageId: string, formData: FormData) {
+async function readEvent(supabase: Supabase, garageId: string, formData: FormData, te: Dictionary["events"]) {
   const name = text(formData, "name");
   const type = text(formData, "type");
   const startsOn = text(formData, "starts_on");
   const endsOn = text(formData, "ends_on");
-  if (!name) return { error: "Geef het evenement een naam." };
-  if (!type || !(type in EVENT_TYPES)) return { error: "Kies het soort evenement." };
-  if (!startsOn) return { error: "Vul de startdatum in." };
-  if (endsOn && endsOn < startsOn) return { error: "De einddatum ligt voor de startdatum." };
+  if (!name) return { error: te.eventNameMissing };
+  if (!type || !(type in EVENT_TYPES)) return { error: te.chooseEventType };
+  if (!startsOn) return { error: te.startMissing };
+  if (endsOn && endsOn < startsOn) return { error: te.endBeforeStart };
 
   let trackId = text(formData, "track_id");
   const newTrackName = text(formData, "new_track_name");
   if (!trackId || trackId === "new") {
-    if (!newTrackName) return { error: "Kies een circuit, of vul de naam van een nieuw circuit in." };
+    if (!newTrackName) return { error: te.chooseTrack };
     const { data: track, error } = await supabase
       .from("tracks")
       .insert({
@@ -115,7 +120,7 @@ async function readEvent(supabase: Supabase, garageId: string, formData: FormDat
       })
       .select("id")
       .single();
-    if (error) return { error: `Circuit opslaan mislukt: ${dbError(error)}` };
+    if (error) return { error: await failed(te.trackFailed, error) };
     trackId = track.id;
   }
 
@@ -124,14 +129,14 @@ async function readEvent(supabase: Supabase, garageId: string, formData: FormDat
   if (formData.has("result_position")) {
     const position = optionalNumber(formData, "result_position");
     if (position === undefined || (position !== null && (!Number.isInteger(position) || position < 1))) {
-      return { error: "Vul de uitslag in als een positie: 1, 2, 3…" };
+      return { error: te.invalidResult };
     }
     result.result_position = position;
   }
   if (formData.has("pole_lap")) {
     const raw = text(formData, "pole_lap");
     const pole = raw ? parseLapTime(raw) : null;
-    if (raw && pole === null) return { error: "Schrijf de pole-tijd als 48.871 of 1:02.345." };
+    if (raw && pole === null) return { error: te.invalidPole };
     result.pole_lap_ms = pole;
   }
 
@@ -141,8 +146,9 @@ async function readEvent(supabase: Supabase, garageId: string, formData: FormDat
 }
 
 export async function createEvent(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, garage } = await getCurrentGarage();
-  const event = await readEvent(supabase, garage.id, formData);
+  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const te = t.events;
+  const event = await readEvent(supabase, garage.id, formData, te);
   if ("error" in event) return event;
 
   const { data: inserted, error } = await supabase
@@ -150,25 +156,26 @@ export async function createEvent(_prev: FormState, formData: FormData): Promise
     .insert({ garage_id: garage.id, ...event.values })
     .select("id")
     .single();
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   revalidatePath("/dashboard", "layout");
   redirect(`/dashboard/events/${inserted.id}`);
 }
 
 export async function updateEvent(eventId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, garage } = await getCurrentGarage();
-  const event = await readEvent(supabase, garage.id, formData);
+  const [{ supabase, garage }, t] = await Promise.all([getCurrentGarage(), getDictionary()]);
+  const te = t.events;
+  const event = await readEvent(supabase, garage.id, formData, te);
   if ("error" in event) return event;
 
   const { error } = await supabase.from("events").update(event.values).eq("id", eventId).eq("garage_id", garage.id);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(te.saveFailed, error) };
 
   // Costs booked on the event follow it to its (new) season.
   await supabase.from("expenses").update({ season_id: event.values.season_id }).eq("event_id", eventId);
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Wijzigingen opgeslagen." };
+  return { success: te.changesSaved };
 }
 
 /** Removes the event with its sessions and laps. Costs stay, without the event link. */
@@ -185,7 +192,7 @@ export async function deleteEvent(eventId: string): Promise<FormState> {
   );
 
   const { error } = await supabase.from("events").delete().eq("id", eventId).eq("garage_id", garage.id);
-  if (error) return { error: `Verwijderen mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed((await getDictionary()).events.deleteFailed, error) };
   await removeSessionLeftovers(supabase, sessions ?? [], telemetry);
   await removeTelemetryImports(
     supabase,
@@ -264,7 +271,8 @@ export async function createSession(eventId: string, _prev: FormState, formData:
 }
 
 export async function updateSession(sessionId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const session = readSession(formData, (await getDictionary()).setup);
+  const t = await getDictionary();
+  const session = readSession(formData, t);
   if ("error" in session) return session;
 
   const { supabase, garage } = await getCurrentGarage();
@@ -277,7 +285,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
     .eq("events.garage_id", garage.id)
     .limit(1, { referencedTable: "laps" })
     .maybeSingle();
-  if (!current) return { error: "Deze sessie bestaat niet meer." };
+  if (!current) return { error: t.session.gone };
 
   // A used setup is a snapshot and never changes: a different setup becomes a new snapshot that takes
   // the old one's place in the chain (same parent), so the old one can usually be removed.
@@ -309,7 +317,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
       setup_id: setupId,
     })
     .eq("id", sessionId);
-  if (error) return { error: `Opslaan mislukt: ${dbError(error)}` };
+  if (error) return { error: await failed(t.events.saveFailed, error) };
 
   // The old snapshot goes, unless a later setup was derived from it (those are frozen and keep their parent).
   if (setupChanged && current.setup_id) {
@@ -317,7 +325,7 @@ export async function updateSession(sessionId: string, _prev: FormState, formDat
   }
 
   revalidatePath("/dashboard", "layout");
-  return { success: "Wijzigingen opgeslagen." };
+  return { success: t.events.changesSaved };
 }
 
 /**

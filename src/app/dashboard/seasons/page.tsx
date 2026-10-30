@@ -8,15 +8,16 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { cardClass } from "@/components/ui";
 import { getCurrentGarage } from "@/lib/garage";
 import type { Dictionary } from "@/lib/i18n/dictionaries/nl";
-import { getDictionary } from "@/lib/i18n/server";
+import { format, plural } from "@/lib/i18n/locales";
+import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { formatCents, labelFor, ownOrOfficial, todayInAmsterdam, trackLabel } from "@/lib/karting";
 
 import { EventForm } from "./event-form";
 import { SeasonForm } from "./season-form";
 
-export const metadata: Metadata = {
-  title: "Seizoen — CorsaIQ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: `${(await getDictionary()).events.title} — CorsaIQ` };
+}
 
 type EventRow = {
   id: string;
@@ -29,11 +30,10 @@ type EventRow = {
   sessions: { id: string }[];
 };
 
-const dayFormat = new Intl.DateTimeFormat("nl-NL", { day: "numeric", timeZone: "UTC" });
-const monthFormat = new Intl.DateTimeFormat("nl-NL", { month: "short", timeZone: "UTC" });
-
-function EventList({ events, t }: { events: EventRow[]; t: Dictionary }) {
-  if (events.length === 0) return <p className="mt-3 text-sm text-zinc-500">Nog geen evenementen.</p>;
+function EventList({ events, t, locale }: { events: EventRow[]; t: Dictionary; locale: string }) {
+  if (events.length === 0) return <p className="mt-3 text-sm text-zinc-500">{t.events.noEvents}</p>;
+  const dayFormat = new Intl.DateTimeFormat(locale, { day: "numeric", timeZone: "UTC" });
+  const monthFormat = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
   return (
     <ul className="mt-4 flex flex-col gap-2">
       {events.map((event) => {
@@ -56,7 +56,7 @@ function EventList({ events, t }: { events: EventRow[]; t: Dictionary }) {
                 <span className="block truncate text-sm font-medium text-zinc-100">{event.name}</span>
                 <span className="flex items-center gap-1 truncate text-xs text-zinc-500">
                   <Icon name="pin" className="size-3 shrink-0" />
-                  {event.tracks ? trackLabel(event.tracks) : "Onbekend circuit"}
+                  {event.tracks ? trackLabel(event.tracks) : t.events.unknownTrack}
                 </span>
               </span>
               <span className="flex shrink-0 flex-col items-end gap-1">
@@ -64,7 +64,7 @@ function EventList({ events, t }: { events: EventRow[]; t: Dictionary }) {
                 <span className="flex items-center gap-1 text-xs text-zinc-500">
                   <Icon name="stopwatch" className="size-3" />
                   {event.sessions.length}
-                  <span className="sr-only">{event.sessions.length === 1 ? "sessie" : "sessies"}</span>
+                  <span className="sr-only">{plural(event.sessions.length, t.events.sessionsWord)}</span>
                 </span>
               </span>
             </Link>
@@ -76,7 +76,7 @@ function EventList({ events, t }: { events: EventRow[]; t: Dictionary }) {
 }
 
 /** Spent against the season budget, as a meter that links to the season's costs. */
-function SeasonBudget({ seasonId, spent, budget }: { seasonId: string; spent: number; budget: number | null }) {
+function SeasonBudget({ seasonId, spent, budget, t }: { seasonId: string; spent: number; budget: number | null; t: Dictionary }) {
   return (
     <Link
       href={`/dashboard/costs?season=${seasonId}`}
@@ -85,18 +85,19 @@ function SeasonBudget({ seasonId, spent, budget }: { seasonId: string; spent: nu
       <span className="mb-1.5 flex items-center justify-between gap-2 text-xs text-zinc-400">
         <span className="flex items-center gap-1">
           <Icon name="euro" className="size-3.5" />
-          {formatCents(spent)} uitgegeven
+          {format(t.events.spent, { amount: formatCents(spent) })}
         </span>
-        {budget !== null && <span className="tabular-nums">budget {formatCents(budget)}</span>}
+        {budget !== null && <span className="tabular-nums">{format(t.events.budget, { amount: formatCents(budget) })}</span>}
       </span>
-      {budget !== null && budget > 0 && <Meter share={spent / budget} label="Deel van het seizoensbudget uitgegeven" />}
+      {budget !== null && budget > 0 && <Meter share={spent / budget} label={t.events.budgetMeter} />}
     </Link>
   );
 }
 
 export default async function SeasonsPage() {
   const { supabase, garage } = await getCurrentGarage();
-  const t = await getDictionary();
+  const [t, locale] = await Promise.all([getDictionary(), getLocale()]);
+  const te = t.events;
 
   const [seasonsResult, eventsResult, tracksResult] = await Promise.all([
     supabase
@@ -124,10 +125,10 @@ export default async function SeasonsPage() {
 
   return (
     <>
-      <PageHeader icon="calendar" title="Seizoen" subtitle="Races en trainingen; open er een voor sessies en setups." add="Evenement" addId="add-event" />
+      <PageHeader icon="calendar" title={te.title} subtitle={te.subtitle} add={te.add} addId="add-event" />
 
       {seasons.length === 0 && events.length === 0 && (
-        <EmptyState icon="calendar" title="Nog geen seizoen" text="Maak je seizoen aan met een budget, en zet je races en trainingen erin." />
+        <EmptyState icon="calendar" title={te.emptyTitle} text={te.emptyText} />
       )}
 
       {seasons.map((season) => (
@@ -139,30 +140,30 @@ export default async function SeasonsPage() {
                 href={`/dashboard/seasons/${season.id}`}
                 className="ml-3 text-xs font-normal text-zinc-500 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
               >
-                Bewerken
+                {te.edit}
               </Link>
             </h2>
             <p className="text-xs text-zinc-500">{[season.class, season.championship].filter(Boolean).join(" · ")}</p>
           </div>
-          <SeasonBudget seasonId={season.id} spent={season.expenses.reduce((sum, e) => sum + e.amount_cents, 0)} budget={season.budget_cents} />
-          <EventList events={events.filter((event) => event.season_id === season.id)} t={t} />
+          <SeasonBudget seasonId={season.id} spent={season.expenses.reduce((sum, e) => sum + e.amount_cents, 0)} budget={season.budget_cents} t={t} />
+          <EventList events={events.filter((event) => event.season_id === season.id)} t={t} locale={locale} />
         </section>
       ))}
 
       {looseEvents.length > 0 && (
         <section aria-labelledby="loose-heading" className={cardClass}>
           <h2 id="loose-heading" className="text-lg font-semibold">
-            Buiten seizoen
+            {te.outsideSeason}
           </h2>
-          <EventList events={looseEvents} t={t} />
+          <EventList events={looseEvents} t={t} locale={locale} />
         </section>
       )}
 
-      <AddSection id="add-event" title="Evenement toevoegen" defaultOpen={events.length === 0}>
+      <AddSection id="add-event" title={te.addEvent} defaultOpen={events.length === 0}>
         <EventForm seasons={seasons.map((s) => ({ id: s.id, label: s.name }))} tracks={tracks} />
       </AddSection>
 
-      <AddSection id="add-season" title="Seizoen toevoegen" defaultOpen={seasons.length === 0}>
+      <AddSection id="add-season" title={te.addSeason} defaultOpen={seasons.length === 0}>
         <SeasonForm defaultYear={new Date().getFullYear() + (new Date().getMonth() >= 9 ? 1 : 0)} />
       </AddSection>
     </>
