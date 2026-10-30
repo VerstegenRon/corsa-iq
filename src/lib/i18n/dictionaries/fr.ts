@@ -1413,7 +1413,8 @@ export const fr: Dictionary = {
     },
     compare: {
       title: "Compare les abonnements",
-      intro: "Tout côte à côte. Pendant la phase de lancement, toutes les fonctions sont gratuites.",
+      intro: "Tout côte à côte.",
+      launchIntro: "Pendant la phase de lancement, toutes les fonctions sont gratuites.",
       feature: "Fonction",
       pickPlan: "Choisis un abonnement à comparer",
       unlimited: "Illimité",
@@ -1472,6 +1473,7 @@ export const fr: Dictionary = {
         question: "Combien coûte CorsaIQ aujourd'hui ?",
         answer:
           "Rien, sauf si tu prends un abonnement. Pendant la phase de lancement, toutes les fonctions sont gratuites. Tu seras prévenu à l'avance quand les limites par abonnement s'appliqueront.",
+        limitsAnswer: "L'abonnement gratuit reste gratuit, avec un kart et un pilote. Si tu veux plus, choisis un abonnement payant ci-dessus.",
       },
       switch: {
         question: "Puis-je changer d'abonnement plus tard ?",
