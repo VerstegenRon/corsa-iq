@@ -192,6 +192,22 @@ export const nl = {
     samePassword: "Kies een ander wachtwoord dan je huidige.",
     passwordChanged: "Je wachtwoord is gewijzigd.",
   },
+  billing: {
+    title: "Abonnement",
+    current: "Huidig abonnement",
+    renews: "Wordt verlengd op {date}.",
+    ends: "Loopt af op {date}; daarna ga je terug naar Gratis.",
+    pastDue: "De laatste betaling is mislukt. Werk je betaalgegevens bij om je abonnement te houden.",
+    manage: "Abonnement beheren",
+    manageHelp: "Van abonnement wisselen, betaalgegevens, facturen of opzeggen regel je bij onze betaalpartner Stripe.",
+    choose: "Abonnementen bekijken",
+    chooseHelp: "Vergelijk de abonnementen en kies wat bij je past.",
+    success: "Bedankt! Je betaling is gelukt; je abonnement verschijnt hier binnen een minuut.",
+    ownerOnly: "Alleen de eigenaar van de garage regelt het abonnement.",
+    choosePlan: "Kies {plan}",
+    payYearly: "Liever per jaar betalen",
+    yourPlan: "Je huidige abonnement",
+  },
   home: {
     metaTitle: "CorsaIQ — je kartseizoen in één pitbox",
     metaDescription:

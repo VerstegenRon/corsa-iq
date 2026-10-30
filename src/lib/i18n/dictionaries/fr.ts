@@ -175,6 +175,22 @@ export const fr: Dictionary = {
     samePassword: "Choisis un mot de passe différent de l'actuel.",
     passwordChanged: "Ton mot de passe a été changé.",
   },
+  billing: {
+    title: "Abonnement",
+    current: "Abonnement actuel",
+    renews: "Renouvelé le {date}.",
+    ends: "Prend fin le {date} ; ensuite tu repasses à Gratuit.",
+    pastDue: "Le dernier paiement a échoué. Mets à jour tes données de paiement pour garder ton abonnement.",
+    manage: "Gérer l'abonnement",
+    manageHelp: "Changer d'abonnement, données de paiement, factures ou résiliation : tout se règle chez notre partenaire de paiement Stripe.",
+    choose: "Voir les abonnements",
+    chooseHelp: "Compare les abonnements et choisis celui qui te convient.",
+    success: "Merci ! Ton paiement a réussi ; ton abonnement apparaît ici d'ici une minute.",
+    ownerOnly: "Seul le propriétaire du garage gère l'abonnement.",
+    choosePlan: "Choisir {plan}",
+    payYearly: "Plutôt payer à l'année",
+    yourPlan: "Ton abonnement actuel",
+  },
   home: {
     metaTitle: "CorsaIQ — toute ta saison de karting dans un seul stand",
     metaDescription:

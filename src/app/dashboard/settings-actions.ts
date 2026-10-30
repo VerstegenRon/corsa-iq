@@ -12,6 +12,7 @@ import { format } from "@/lib/i18n/locales";
 import { getDictionary } from "@/lib/i18n/server";
 import { LOGGER_BUCKET, RECEIPT_BUCKET, TELEMETRY_BUCKET } from "@/lib/storage";
 import { listFiles } from "@/lib/storage-files";
+import { stripe } from "@/lib/stripe";
 
 import { text } from "./form-data";
 
@@ -73,6 +74,12 @@ export async function deleteAccount(_prev: FormState, formData: FormData): Promi
     return { error: `Maak eerst iemand anders eigenaar van ${blocked.map((g) => g.garage_name).join(", ")} (Meer → Team).` };
   }
 
+  // Their Stripe customers go too, after the garages: that cancels any subscription.
+  const doomed = (garages ?? []).filter((g) => g.outcome === "deleted").map((g) => g.garage_id);
+  const { data: billing } = doomed.length
+    ? await supabase.from("garage_billing").select("stripe_customer_id").in("garage_id", doomed)
+    : { data: [] };
+
   // Files cannot be deleted in SQL: remove those of the garages that go, before the garages themselves.
   for (const garage of (garages ?? []).filter((g) => g.outcome === "deleted")) {
     for (const bucket of [LOGGER_BUCKET, RECEIPT_BUCKET, TELEMETRY_BUCKET]) {
@@ -86,6 +93,16 @@ export async function deleteAccount(_prev: FormState, formData: FormData): Promi
 
   const { error } = await supabase.rpc("delete_my_account");
   if (error) return { error: `Account verwijderen mislukt: ${dbError(error)}` };
+
+  // The account is gone by now: a Stripe failure is logged for follow-up, not shown.
+  for (const { stripe_customer_id } of billing ?? []) {
+    if (!stripe_customer_id) continue;
+    try {
+      await stripe().customers.del(stripe_customer_id);
+    } catch (stripeError) {
+      console.error("Deleting Stripe customer failed", stripe_customer_id, stripeError);
+    }
+  }
 
   await supabase.auth.signOut();
   (await cookies()).delete(GARAGE_COOKIE);

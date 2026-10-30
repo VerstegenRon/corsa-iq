@@ -654,6 +654,47 @@ export type Database = {
           },
         ]
       }
+      garage_billing: {
+        Row: {
+          cancel_at_period_end: boolean
+          current_period_end: string | null
+          garage_id: string
+          price_lookup_key: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          garage_id: string
+          price_lookup_key?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          garage_id?: string
+          price_lookup_key?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_billing_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: true
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garage_invites: {
         Row: {
           accepted_at: string | null
